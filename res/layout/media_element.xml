@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    >
+    
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:paddingRight="5dip"
+    android:paddingTop="5dip"
+    android:paddingBottom="5dip"
+    >
+    
+    <TextView android:id="@+id/media_el_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="18sp" 
+                android:layout_alignParentLeft="true"/>
+    <TextView android:id="@+id/media_el_subfield1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp" 
+                android:layout_alignParentLeft="true" 
+                android:layout_below="@id/media_el_name"/>
+                
+    <TextView android:id="@+id/media_el_subfield2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp" 
+                android:layout_alignParentLeft="true" 
+                android:layout_below="@id/media_el_subfield1"/>
+                     
+    <Button android:id="@+id/media_el_play"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" Play "
+                android:textSize="18sp" 
+                android:focusable="false"
+                android:layout_alignParentRight="true" android:height="60dip"/>
+        
+</RelativeLayout>                
+</RelativeLayout> 

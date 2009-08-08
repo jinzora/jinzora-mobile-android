@@ -1,0 +1,25 @@
+<PreferenceScreen  
+   xmlns:android="http://schemas.android.com/apk/res/android">  
+  <EditTextPreference
+  android:key="@string/site"
+  android:title="Media Server"
+  android:summary="The URL of your Jinzora Media Server"
+  android:dialogTitle="Your server, eg: http://yoursite.com/music"
+  android:singleLine="true"
+  />
+  <EditTextPreference
+  android:key="@string/username"
+  android:title="Username"
+  android:summary="Your account's username"
+  android:dialogTitle="Your account's username:"
+  android:singleLine="true"
+  />
+  <EditTextPreference
+  android:key="@string/password"
+  android:title="Password"
+  android:summary="Your account's password"
+  android:password="true"
+  android:dialogTitle="Your account's password:"
+  android:singleLine="true"
+  />
+</PreferenceScreen>  

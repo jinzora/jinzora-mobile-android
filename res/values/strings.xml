@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    <string name="app_name">Jinzora Mobile</string>
+<string name="settings">Settings</string>
+<string name="player">Player</string>
+<string name="browser">Browse</string>
+<string name="search">Search</string>
+<string name="home">Home</string>
+<string name="quit">Quit</string>
+<string name="scan">Scan</string>
+<string name="refresh">Refresh</string>
+
+<string name="username">username</string>
+<string name="password">password</string>
+<string name="site">site</string>
+
+<string name="play">Play</string>
+<string name="pause">Pause</string>
+<string name="previous">Previous</string>
+<string name="next">Next</string>
+<string name="stop">Stop</string>
+<string name="playback_to">Play media on...</string>
+<string name="add_to">Add media to...</string>
+<string name="save">Save</string>
+<string name="load">Load</string>
+<string name="alert_dialog_ok">OK</string>
+<string name="alert_dialog_cancel">Cancel</string>
+<string name="delete_profile">Delete profile?</string>
+</resources>

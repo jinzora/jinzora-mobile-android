@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:scrollbars="vertical"
+>
+<LinearLayout 
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:id="@+id/player"
+    >
+<LinearLayout
+    android:orientation="horizontal"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:id="@+id/player_buttons"
+    >
+        
+<Button android:id="@+id/prevbutton" 
+	 	android:text="@+string/previous"
+		android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:drawableTop="@+android:drawable/ic_media_previous"
+/>
+<!-- 
+<Button android:id="@+id/stopbutton" 
+	 	android:text="@+string/stop"
+		android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:drawableTop="@+android:drawable/ic_media_stop"
+/>
+ -->
+ <Button android:id="@+id/pausebutton" 
+	 	android:text="@+string/pause"
+		android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:drawableTop="@+android:drawable/ic_media_pause"
+/>
+<Button android:id="@+id/playbutton" 
+	 	android:text="@+string/play"
+		android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:drawableTop="@+android:drawable/ic_media_play"
+/>
+<Button android:id="@+id/nextbutton" 
+	 	android:text="@+string/next"
+		android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:drawableTop="@+android:drawable/ic_media_next"
+/>
+</LinearLayout>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content" 
+    >
+    <TextView 
+    		android:text="@string/playback_to"
+    		android:layout_width="wrap_content"
+    		android:layout_height="wrap_content"
+    		/>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content" 
+    >
+    <Button android:id="@+id/refreshJukeboxes"
+    		android:text="@+string/refresh"
+			android:layout_width="wrap_content"
+    		android:layout_height="wrap_content"
+    		android:layout_alignParentRight="true"
+    		android:drawableTop="@+android:drawable/ic_menu_rotate"
+    />
+    
+    <Spinner android:visibility="visible"
+			android:id="@+id/player_jb_list"
+			android:layout_width="fill_parent"
+    		android:layout_height="wrap_content"
+    		android:prompt="@string/playback_to"
+		    android:layout_toLeftOf="@id/refreshJukeboxes"
+		    />
+</RelativeLayout>
+</LinearLayout>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content" 
+    >
+    <TextView 
+    		android:text="@string/add_to"
+    		android:layout_width="wrap_content"
+    		android:layout_height="wrap_content"
+    		/>
+    <Spinner
+			android:id="@+id/addtype_list"
+			android:layout_width="fill_parent"
+    		android:layout_height="wrap_content"
+    		android:prompt="@string/add_to"
+    />
+</LinearLayout>
+</LinearLayout>
+</ScrollView>

@@ -1,0 +1,326 @@
+package org.jinzora;
+
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.jinzora.playback.PlaybackService;
+import org.jinzora.playback.PlaybackServiceConnection;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserFactory;
+
+import android.app.ListActivity;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
+
+import android.util.Log;
+import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
+import android.widget.TextView;
+
+public class Browser extends ListActivity {
+	private ArrayList<Map<String,String>> allEntries = new ArrayList<Map<String,String>>();
+	private ArrayList<Map<String,String>> visibleEntries = allEntries;
+	
+	protected static String browsing;
+	
+	@Override
+	protected void onStart() {
+		super.onStart();
+
+       if (browsing == null) {
+	   		browsing = getHomeURL();
+	   		if (null  == browsing) {
+	   			startActivity(new Intent(this, Preferences.class));
+	   			return;
+	   		}
+       }
+       doBrowsing();
+	}
+	
+	@Override
+	public void onResume() {
+		super.onResume();
+		if (browsing == null) {
+			browsing = getHomeURL();
+			if (null != browsing) {
+				doBrowsing();
+			} else {
+				Log.w("jinzora","could not set browsing url");
+			}
+		}
+	}
+	
+	
+	
+    /** Called when the activity is first created. */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+    }
+    
+    private String getHomeURL() {
+    	String baseurl = Jinzora.getBaseURL();
+   		if (baseurl == null) {
+   			return null;
+   		} else {
+   			return baseurl + "&request=home";
+   		}
+    }
+
+    private void doBrowsing() {
+    	try {
+    		XmlPullParser xpp;
+    		InputStream inStream;
+    		try {
+    			URL url = new URL(browsing);
+    			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+    			conn.setConnectTimeout(30000);
+    			inStream = conn.getInputStream();
+    			conn.connect();
+
+    			XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+    			factory.setNamespaceAware(true);
+    			xpp = factory.newPullParser();
+    			xpp.setInput(inStream, conn.getContentEncoding());
+    		} catch (Exception e) {
+
+        		JzMediaAdapter adapter = new JzMediaAdapter(this, new ArrayList<HashMap<String,String>>());
+        		setContentView(R.layout.browse);
+        		setListAdapter(adapter);
+    			
+    			return;
+    		}
+
+
+    		int eventType = xpp.getEventType();
+    		while (eventType != XmlPullParser.END_DOCUMENT) {
+    			if(eventType == XmlPullParser.START_DOCUMENT) {
+
+    			} else if(eventType == XmlPullParser.END_DOCUMENT) {
+
+    			} else if(eventType == XmlPullParser.START_TAG && 
+    					(xpp.getName().equals("nodes") || xpp.getName().equals("browse") || xpp.getName().equals("tracks"))) {
+
+    				int depth = xpp.getDepth();
+    				xpp.next();
+
+    				Map<String,String> item = null;
+    				while (!(depth == xpp.getDepth() && eventType == XmlPullParser.END_TAG)) {	            	  
+    					if (depth+1 == xpp.getDepth() && eventType == XmlPullParser.START_TAG) {
+    						item = new HashMap<String,String>();
+    					} else if (depth+1 == xpp.getDepth() && eventType == XmlPullParser.END_TAG) {
+    						/*if (item.containsKey("album")) {
+	            			  item.put("subfield1", item.get("album"));
+	            			  if (item.containsKey("artist")) {
+	            				  item.put("subfield2",item.get("artist"));
+	            			  }
+	            		  } else*/ if (item.containsKey("artist")){
+	            			  item.put("subfield1", item.get("artist"));
+	            		  }
+
+	            		  allEntries.add(item);
+    					}
+
+    					if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("name")) {
+    						eventType = xpp.next();
+    						item.put("name", xpp.getText());	           			  
+    					}
+
+    					if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("artist")) {
+    						eventType = xpp.next();
+    						item.put("artist", xpp.getText());
+    					}
+
+    					if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("album")) {
+    						eventType = xpp.next();
+    						item.put("album", xpp.getText());
+    					}
+
+    					if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("playlink")) {
+    						eventType = xpp.next();
+    						item.put("playlink", xpp.getText());
+    					}
+
+    					if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("browse")) {
+    						eventType = xpp.next();
+    						item.put("browse",xpp.getText());
+    					}
+
+    					eventType = xpp.next();
+    				}
+    			} else if(eventType == XmlPullParser.END_TAG) {
+
+    			} else if(eventType == XmlPullParser.TEXT) {
+
+    			}
+    			eventType = xpp.next();
+    		}
+
+    		inStream.close();
+    		JzMediaAdapter adapter = new JzMediaAdapter(this, allEntries);
+
+
+    		setContentView(R.layout.browse);
+    		setListAdapter(adapter);
+
+
+    	} catch (Exception e) {
+    		Log.e("jinzora", "error", e);
+    	}
+    }
+
+    
+    
+    
+    @Override
+    public void onListItemClick(ListView l, View v, final int position, long id) {
+    	try {
+    		String mBrowse = null;
+    		if (null == (mBrowse = visibleEntries.get(position).get("browse"))) {
+    			if (visibleEntries.get(position).containsKey("playlink")) {
+					new Thread() {
+						public void run() {
+							try {
+								Jinzora.playbackBinding.playlist(visibleEntries.get(position).get("playlink"));
+							} catch (Exception e) {
+								Log.e("jinzora","Error playing media",e);
+							}
+						}
+					}.start();
+    			}
+    			
+    			return;
+    		}
+    		browsing = mBrowse;
+    		
+    		Intent intent = new Intent(this,Jinzora.class);
+    		startActivity(intent);
+    		
+    	} catch (Exception e) {
+    		Log.e("jinzora","Error during listItemClick",e);
+    	}
+    
+    }
+    
+    private String query = "";
+    @Override
+    public synchronized boolean onKeyUp(int keyCode, android.view.KeyEvent event) {
+    	ArrayList<Map<String,String>> workingEntries;
+    	char c;
+    	if ('\0' != (c = event.getMatch("ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ".toCharArray()))) {
+    		query = query + c;
+    		workingEntries = visibleEntries;
+    	} else if (keyCode == KeyEvent.KEYCODE_DEL) {
+    		if (query.length() > 0) {
+    			query = query.substring(0, query.length()-1);
+    			if (query.length() == 0) {
+        			visibleEntries = allEntries;
+        			JzMediaAdapter adapter = new JzMediaAdapter(this, visibleEntries);
+        	        setListAdapter(adapter);
+        	    	return super.onKeyUp(keyCode,event);
+        		}
+    			workingEntries = allEntries;
+    		} else {
+    			return super.onKeyUp(keyCode,event);
+    		}
+    	} else {
+    		return super.onKeyUp(keyCode,event);
+    	}
+    	
+    	//TODO: support caching in the case of deletions?
+    	// (as long as it doesn't use too much memory)
+    	ArrayList<Map<String,String>> newList = new ArrayList<Map<String,String>>();
+    	for (int i = 0; i < workingEntries.size(); i++) {
+    		if (workingEntries.get(i).get("name").toUpperCase().contains(query)) {
+    			newList.add(workingEntries.get(i));
+    		}
+    	}
+    	visibleEntries= newList;
+    	
+    	JzMediaAdapter adapter = new JzMediaAdapter(this, visibleEntries);
+        setListAdapter(adapter);
+    	return super.onKeyUp(keyCode,event);
+    }
+    
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+    	return Jinzora.createMenu(menu);
+    }
+    
+    @Override
+    public boolean onMenuItemSelected(int featureId, MenuItem item) {
+    	Jinzora.menuItemSelected(featureId,item);
+    	return super.onMenuItemSelected(featureId, item);
+    }
+    
+    
+    public static void clearBrowsing() {
+    	browsing=null;
+    }
+    
+
+	
+	class JzMediaAdapter extends SimpleAdapter {
+		Browser context;
+		public JzMediaAdapter(Browser context, List<? extends Map<String, ?>> data) {
+			super(context, data, R.layout.media_element, null, null);
+			this.context=context;
+		}
+		
+		@Override
+		public View getView(int position, View convertView, ViewGroup parent) {  
+			LayoutInflater inflater=LayoutInflater.from(context);  
+			View row=inflater.inflate(R.layout.media_element, null);
+			final Map<String,String>item = (Map<String,String>)this.getItem(position);
+			TextView label = (TextView)row.findViewById(R.id.media_el_name);
+			label.setText(item.get("name"));
+		
+		if (item.containsKey("subfield1")) {
+			label = (TextView)row.findViewById(R.id.media_el_subfield1);
+			label.setText(item.get("subfield1"));
+		}
+		if (item.containsKey("subfield2")) {
+			label = (TextView)row.findViewById(R.id.media_el_subfield2);
+			label.setText(item.get("subfield2"));
+		}
+		
+		if (!item.containsKey("playlink")) {
+			row.findViewById(R.id.media_el_play).setVisibility(View.INVISIBLE);
+		} else {
+			Button button = (Button)row.findViewById(R.id.media_el_play);
+			button.setOnClickListener(new View.OnClickListener() {
+	
+				@Override
+				public void onClick(View v) {
+				
+					new Thread() {
+						public void run() {
+							try {
+								Jinzora.playbackBinding.playlist(item.get("playlink"));
+							} catch (Exception e) {
+								Log.e("jinzora","Error playing media",e);
+								}
+							}
+						}.start();
+					}
+					
+				});
+			}
+			return row;  
+		}
+	}
+}

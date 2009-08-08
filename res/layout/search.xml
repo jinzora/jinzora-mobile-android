@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    >
+
+<EditText android:id="@+id/search_box"
+				android:layout_width="fill_parent" 
+				android:layout_height="wrap_content"
+				android:singleLine="true"
+				/>    
+
+<LinearLayout
+	android:id="@+id/search_button_container"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:gravity="bottom|center_horizontal"
+    android:orientation="horizontal"
+    android:layout_below="@id/search_box"
+	>
+
+<Button android:id="@+id/search_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" Search "
+                android:focusable="false"
+                />
+<Button android:id="@+id/quicksearch_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" Feelin' Groovy "
+                android:focusable="false"
+                />    
+
+</LinearLayout>
+</RelativeLayout>
