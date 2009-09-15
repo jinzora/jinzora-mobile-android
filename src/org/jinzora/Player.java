@@ -88,6 +88,7 @@ public class Player extends Activity {
 				public void onItemSelected(AdapterView<?> parent, View v,
 						int pos, long id) {
 					
+					if (pos == selectedAddType) return;
 					try {
 						Jinzora.playbackBinding.setAddType(pos);
 						selectedAddType = pos;
@@ -235,6 +236,7 @@ public class Player extends Activity {
 			public void onItemSelected(AdapterView<?> parent, View v,
 					int pos, long id) {
 				
+				if (pos == selectedPlaybackDevice) return;
 				try {
 					if (pos < staticDeviceList.size()) {
 						Jinzora.playbackBinding.setPlaybackDevice(staticDeviceList.get(pos)[1],staticDeviceList.get(pos)[0]);
