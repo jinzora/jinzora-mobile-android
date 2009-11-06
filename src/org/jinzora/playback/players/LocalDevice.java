@@ -7,10 +7,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.jinzora.Jinzora;
 import org.jinzora.R;
 import org.jinzora.playback.PlaybackService;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -23,14 +26,14 @@ import android.os.RemoteException;
 import android.util.Log;
 
 public class LocalDevice extends PlaybackDevice {
-	private Service service;
-	private MediaPlayer mp = null;
-	private int pos;
-	private List<String> trackNames;
+	protected Service service;
+	protected MediaPlayer mp = null;
+	protected int pos;
+	protected List<String> trackNames;
 	
-	private NotificationManager nm;
-	private static final int NOTIFY_ID = R.layout.player;
-	private static String UNKNOWN_TRACK = "Unknown Track";
+	protected NotificationManager nm;
+	protected static final int NOTIFY_ID = R.layout.player;
+	protected static String UNKNOWN_TRACK = "Unknown Track";
 	
 	
 	public LocalDevice() {
@@ -101,9 +104,7 @@ public class LocalDevice extends PlaybackDevice {
 			this.pos=pos;
 			mp.reset();
 			mp.setDataSource(playlist.get(pos));
-			mp.prepare();
-			mp.start();
-	
+			
 			mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
 	
 				public void onCompletion(MediaPlayer arg0) {
@@ -115,10 +116,20 @@ public class LocalDevice extends PlaybackDevice {
 				}
 			});
 			
+			mp.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+				@Override
+				public void onPrepared(MediaPlayer _mp) {
+					_mp.start();
+					
+				}
+			});
+			
+			mp.prepareAsync();
 			notifyPlaying();
 			
 		} catch (Exception e) {
-			Log.e("jinzora","Error changing media",e);
+			Log.e("jinzora","Error changing media (pos=" + pos + ", len=" + playlist.size() + ")",e);
+			if (pos < playlist.size()) Log.e("jinzora", "Content: " + playlist.get(pos));
 		}
 	}
 
@@ -199,7 +210,7 @@ public class LocalDevice extends PlaybackDevice {
 		return null;
 	}
 	
-	private void notifyPlaying() {
+	protected void notifyPlaying() {
 		try {
 			String notice = /*"Playing: " +*/ trackNames.get(pos);
 			Notification notification = new Notification(
@@ -214,7 +225,7 @@ public class LocalDevice extends PlaybackDevice {
 		}
 	}
 	
-	private void notifyPaused() {
+	protected void notifyPaused() {
 		try {
 			Notification notification = new Notification(
 					android.R.drawable.ic_media_pause, "Paused", System.currentTimeMillis());
@@ -226,5 +237,11 @@ public class LocalDevice extends PlaybackDevice {
 		} catch (Exception e) {
 			Log.d("jinzora","notification error",e);
 		}
+	}
+
+	@Override
+	public String playbackIPC(String params) throws RemoteException {
+		
+		return null;
 	}
 }
