@@ -97,6 +97,13 @@
     		android:layout_height="wrap_content"
     		android:prompt="@string/add_to"
     />
+    
+    <Button android:id="@+id/jbfeatures" 
+	 	android:text="@+string/jbfeatures"
+		android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:drawableTop="@+android:drawable/ic_menu_edit"
+/>
 </LinearLayout>
 </LinearLayout>
 </ScrollView>

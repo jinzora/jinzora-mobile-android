@@ -10,11 +10,19 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-<activity android:name="Preferences"></activity>
-<activity android:name="Player"></activity>
-<activity android:name="Browser"></activity>
-<activity android:name="Search"></activity>
+            
+            <!--  joining a junction activity: set playback target -->
+            <intent-filter>
+                <action android:name="junction.intent.action.JOIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+		</activity>
+		<activity android:name="Preferences"></activity>
+		<activity android:name="Player"></activity>
+		<activity android:name="Browser"></activity>
+		<activity android:name="Search"></activity>
+		<activity android:name=".playback.players.views.JunctionBoxView" ></activity>
+		
 </application>
 <uses-permission android:name="android.permission.INTERNET"></uses-permission>
 

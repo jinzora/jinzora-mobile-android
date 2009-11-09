@@ -1,6 +1,7 @@
 package org.jinzora.playback;
 
 import java.lang.reflect.Method;
+import java.util.Map;
 
 import org.jinzora.playback.players.LocalDevice;
 import org.jinzora.playback.players.PlaybackDevice;
@@ -44,7 +45,11 @@ public class PlaybackService extends Service {
 			Class<PlaybackDevice> pc = (Class<PlaybackDevice>) Class.forName(playerClass);
 			Method m = pc.getMethod("getInstance", new Class[]{String.class});
 			if (player != null) {
-				player.onDestroy();
+				try {
+					player.onDestroy();
+				} catch (Exception e) {
+					Log.e("jinzora","error destroying player", e);
+				}
 			}
 			player = (PlaybackDevice)m.invoke(null, arg);
 			
@@ -132,6 +137,11 @@ public class PlaybackService extends Service {
 		public void setPlaybackDevice(String playerClass, String arg) throws RemoteException {
 			PlaybackService.getInstance().setPlaybackDevice(playerClass, arg);
 			
+		}
+
+		@Override
+		public String playbackIPC(String params) throws RemoteException {
+			return player.playbackIPC(params);
 		}
 	};
 	

@@ -3,13 +3,16 @@ package org.jinzora;
 
 
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.MessageDigest;
 
 import org.jinzora.playback.PlaybackInterface;
 import org.jinzora.playback.PlaybackService;
 import org.jinzora.playback.PlaybackServiceConnection;
+import org.jinzora.playback.players.JunctionBox;
 import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
@@ -17,6 +20,9 @@ import org.xmlpull.v1.XmlPullParserFactory;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
+import edu.stanford.prpl.junction.impl.AndroidJunctionMaker;
+
+import android.app.Activity;
 import android.app.TabActivity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -48,8 +54,8 @@ public class Jinzora extends TabActivity {
 	private static String baseurl;
 	
 	private static boolean sServiceStarted = false;
-    private static PlaybackServiceConnection sPbConnection = new PlaybackServiceConnection();
-	protected static PlaybackInterface playbackBinding;
+    public static PlaybackServiceConnection sPbConnection = new PlaybackServiceConnection();
+	//protected static PlaybackInterface playbackBinding;
 	
 	public static void resetBaseURL() {
 		baseurl = null;
@@ -70,8 +76,19 @@ public class Jinzora extends TabActivity {
 		if (site == null || username == null || password == null) {
 			baseurl = null;
 		}
-			
-		baseurl = site + "/api.php?user=" + username + "&pass=" + password;
+		
+		baseurl = site + "/api.php?user=" + username;
+		try {
+		    MessageDigest md5=MessageDigest.getInstance("MD5");
+		    md5.update(password.getBytes(),0,password.length());
+		    
+		    baseurl += "&pass=" + new BigInteger(1,md5.digest()).toString(16);
+			baseurl += "&pw_hashed=true";
+		} catch (Exception e) {
+			Log.w("jinzora","Error computing password hash");
+			baseurl += "&pass=" + password;
+		}
+		
 		if (sPbConnection != null) {
 			try {
 				sPbConnection.setBaseURL(baseurl);
@@ -87,20 +104,26 @@ public class Jinzora extends TabActivity {
 	protected void onStart() {
 		super.onStart();
 		
+		/* Start the playback service */
+    	if (!sServiceStarted) {
+    		startService(new Intent(this, PlaybackService.class));
+    		sServiceStarted = true;
+    	}
+		
 		instance = this;
 		instanceCount++;
 		
 		this.bindService(new Intent(this,PlaybackService.class), sPbConnection, Context.BIND_AUTO_CREATE);
-		playbackBinding = sPbConnection.playbackBinding;
+		//playbackBinding = sPbConnection.playbackBinding;
 	}
 	
 	@Override
 	protected void onStop() {
 		super.onStop();
 		instanceCount--;
-		if (instanceCount == 0) {
+		if (instanceCount <= 0) {
 			this.unbindService(sPbConnection);
-			playbackBinding = null;
+			//playbackBinding = null;
 		}
 	}
 	
@@ -110,16 +133,7 @@ public class Jinzora extends TabActivity {
         super.onCreate(savedInstanceState);
         
         try {
-        	/* Start the playback service */
-        	if (!sServiceStarted) {
-        		startService(new Intent(this, PlaybackService.class));
-        		sServiceStarted = true;
-        	}
         	
-        	
-        	instance = this;
-        	this.bindService(new Intent(this,PlaybackService.class), sPbConnection, Context.BIND_AUTO_CREATE);
-    		
     		if (preferences == null) {
         		preferences = getSharedPreferences("main", 0);
         	}
@@ -133,9 +147,14 @@ public class Jinzora extends TabActivity {
 	        
 	        //ImageView icon = new ImageView(this);
 	        //icon.setImageResource(android.R.drawable.ic_menu_compass);
+	        
+	        Intent intBrowse = new Intent(this,Browser.class);
+	        if (getIntent() != null && getIntent().getExtras() != null)
+	        	intBrowse.putExtras(getIntent().getExtras());
+	        
 	        host.addTab(host.newTabSpec("browse")
 	        		.setIndicator(getString(R.string.browser)/*,icon.getDrawable()*/)
-	        		.setContent(new Intent(this, Browser.class)));
+	        		.setContent(intBrowse));
 	        
 	        host.addTab(host.newTabSpec("playback")
 	        		.setIndicator(getString(R.string.player))
@@ -151,6 +170,13 @@ public class Jinzora extends TabActivity {
 	        		.setContent(new Intent(this, Preferences.class)));
 	        
 	       
+	        if (AndroidJunctionMaker.getInstance().isJoinable(this)) {
+	        	Log.d("jinzora","setting playback target from Junction");
+	        	this.sPbConnection.playbackBinding
+	        		.setPlaybackDevice(JunctionBox.class.getName(), 
+	        							AndroidJunctionMaker.getInstance().getInvitationForActivity(this).toString());
+	        }
+	        
         } catch (Exception e) {
         	Log.e("jinzora", "error", e);
         }
@@ -167,14 +193,16 @@ public class Jinzora extends TabActivity {
     	.setIcon(android.R.drawable.ic_menu_close_clear_cancel)
     	.setAlphabeticShortcut('q');
     	
+    	/*
     	menu.add(0,MenuItems.SCAN,3,R.string.scan)
     	.setIcon(android.R.drawable.ic_menu_search)
     	.setAlphabeticShortcut('s');
+    	*/
     	
     	return true;
     }
     
-    protected static void menuItemSelected(int featureId, MenuItem item) {
+    protected static void menuItemSelected(int featureId, MenuItem item, Activity activity) {
     	switch (item.getItemId()) {
     	case MenuItems.HOME:
     		Browser.clearBrowsing();
@@ -188,12 +216,14 @@ public class Jinzora extends TabActivity {
     	case MenuItems.QUIT:
     		try {
     			Browser.clearBrowsing();
-    			playbackBinding.stop();
+    			instanceCount=0;
+    			
     			
     			Intent etphonehome = new Intent(Intent.ACTION_MAIN);
     			etphonehome.addCategory(Intent.CATEGORY_HOME);
     			instance.startActivity(etphonehome);
     			
+    			//activity.finish();
     		} catch (Exception e) {
     			
     		}

@@ -20,6 +20,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -39,6 +40,44 @@ public class LocalDevice extends PlaybackDevice {
 	public LocalDevice() {
 		this.service = PlaybackService.getInstance();
 		mp = new MediaPlayer();
+		
+		mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+			
+			public void onCompletion(MediaPlayer arg0) {
+				try {
+					next();
+				} catch (RemoteException e) {
+
+				}
+			}
+		});
+		
+		mp.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+			@Override
+			public void onPrepared(MediaPlayer _mp) {
+				_mp.start();
+				notifyPlaying();
+			}
+		});
+		
+		/*
+		mp.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
+			@Override
+			public void onBufferingUpdate(MediaPlayer _mp, int percent) {
+				Log.d("jinzora","buffering: " + percent);
+			}
+		});
+		*/
+		
+		mp.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+			@Override
+			public boolean onError(MediaPlayer arg0, int arg1, int arg2) {
+				Log.d("jinzora","media player error " + arg1 + ", " + arg2);
+				Log.d("jinzora", "error track was " + pos + ", " + playlist.get(pos));
+				return true;
+			}
+		});
+		
 		playlist = new ArrayList<String>();
 		trackNames = new ArrayList<String>();
 		
@@ -99,34 +138,14 @@ public class LocalDevice extends PlaybackDevice {
 	}
 
 	@Override
-	public synchronized void jumpTo(int pos) throws RemoteException {
+	public synchronized void jumpTo(final int pos) throws RemoteException {
 		try {
 			this.pos=pos;
 			mp.reset();
 			mp.setDataSource(playlist.get(pos));
-			
-			mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-	
-				public void onCompletion(MediaPlayer arg0) {
-					try {
-						next();
-					} catch (RemoteException e) {
-
-					}
-				}
-			});
-			
-			mp.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-				@Override
-				public void onPrepared(MediaPlayer _mp) {
-					_mp.start();
-					
-				}
-			});
+			mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
 			
 			mp.prepareAsync();
-			notifyPlaying();
-			
 		} catch (Exception e) {
 			Log.e("jinzora","Error changing media (pos=" + pos + ", len=" + playlist.size() + ")",e);
 			if (pos < playlist.size()) Log.e("jinzora", "Content: " + playlist.get(pos));

@@ -6,6 +6,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.jinzora.Jinzora;
 import org.jinzora.R;
@@ -150,6 +151,12 @@ public class JukeboxDevice extends PlaybackDevice {
 	
 	@Override
 	public IBinder asBinder() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String playbackIPC(String params) throws RemoteException {
 		// TODO Auto-generated method stub
 		return null;
 	}

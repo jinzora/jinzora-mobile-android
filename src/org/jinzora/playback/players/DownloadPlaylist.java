@@ -14,6 +14,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.jinzora.Jinzora;
 import org.jinzora.R;
@@ -207,6 +208,12 @@ public class DownloadPlaylist extends PlaybackDevice {
 				}				
 			}
 		}.start();
+	}
+
+	@Override
+	public String playbackIPC(String params) throws RemoteException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }

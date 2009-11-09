@@ -3,6 +3,7 @@ package org.jinzora;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.Map;
 import org.jinzora.Jinzora.MenuItems;
 import org.jinzora.playback.PlaybackService;
 import org.jinzora.playback.PlaybackServiceConnection;
+import org.jinzora.playback.players.PlaybackDevice;
 
 import android.app.Activity;
 import android.content.Context;
@@ -28,6 +30,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.AdapterView.OnItemSelectedListener;
 
 public class Player extends Activity {
@@ -41,8 +44,9 @@ public class Player extends Activity {
 	static {
 		staticDeviceList = new ArrayList<String[]>();
 		staticDeviceList.add(new String[] { "Local Device","org.jinzora.playback.players.LocalDevice" });
+		staticDeviceList.add(new String[] { "Junction Jukebox","org.jinzora.playback.players.JunctionBox" });
 		//staticDeviceList.add(new String[] { "Download List","org.jinzora.playback.players.DownloadPlaylist" });
-		staticDeviceList.add(new String[] { "Pocket Jukebox","org.jinzora.playback.players.JukeboxReceiver" });
+		//staticDeviceList.add(new String[] { "Pocket Jukebox","org.jinzora.playback.players.JukeboxReceiver" });
 		//staticDeviceList.add(new String[] { "Pocket Jukebox 2","org.jinzora.playback.players.JukeboxReceiver" });
 		//staticDeviceList.add(new String[] { "http://prpl.stanford.edu/music/api.php?jb_id=quickbox&request=jukebox&user=prpl&pass=ppleaters","org.jinzora.playback.players.ForeignJukeboxDevice" });
 	}
@@ -90,7 +94,7 @@ public class Player extends Activity {
 					
 					if (pos == selectedAddType) return;
 					try {
-						Jinzora.playbackBinding.setAddType(pos);
+						Jinzora.sPbConnection.playbackBinding.setAddType(pos);
 						selectedAddType = pos;
 					} catch (Exception e) {
 						Log.e("jinzora","Error setting add-type",e);
@@ -106,7 +110,17 @@ public class Player extends Activity {
 			});
 		} catch (Exception e) {
 			Log.e("jinzora","Error creating jukebox list",e);
+		}
+		
+		/* JB extra features */
+		Button button = (Button)this.findViewById(R.id.jbfeatures);
+		button.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View arg0) {
+				jukeboxFeatures();
 			}
+		});
+		
 		
 		this.findViewById(R.id.prevbutton).setOnClickListener(new View.OnClickListener() {
 
@@ -116,7 +130,7 @@ public class Player extends Activity {
 					@Override
 					public void run() {
 						try {
-							Jinzora.playbackBinding.prev();
+							Jinzora.sPbConnection.playbackBinding.prev();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
 						}
@@ -134,7 +148,7 @@ public class Player extends Activity {
 					@Override
 					public void run() {
 						try {
-							Jinzora.playbackBinding.next();
+							Jinzora.sPbConnection.playbackBinding.next();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
 						}
@@ -153,7 +167,7 @@ public class Player extends Activity {
 					@Override
 					public void run() {
 						try {
-							Jinzora.playbackBinding.pause();
+							Jinzora.sPbConnection.playbackBinding.pause();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
 						}
@@ -170,7 +184,7 @@ public class Player extends Activity {
 					@Override
 					public void run() {
 						try {
-							Jinzora.playbackBinding.pause();
+							Jinzora.sPbConnection.playbackBinding.pause();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
 						}
@@ -238,11 +252,12 @@ public class Player extends Activity {
 				
 				if (pos == selectedPlaybackDevice) return;
 				try {
+					
 					if (pos < staticDeviceList.size()) {
-						Jinzora.playbackBinding.setPlaybackDevice(staticDeviceList.get(pos)[1],staticDeviceList.get(pos)[0]);
+						Jinzora.sPbConnection.playbackBinding.setPlaybackDevice(staticDeviceList.get(pos)[1],staticDeviceList.get(pos)[0]);
 					} else {
 						// set jb_id to pos-1 somehow in Jinzora.
-						Jinzora.playbackBinding.setPlaybackDevice("org.jinzora.playback.players.JukeboxDevice",""+(pos-staticDeviceList.size()));
+						Jinzora.sPbConnection.playbackBinding.setPlaybackDevice("org.jinzora.playback.players.JukeboxDevice",""+(pos-staticDeviceList.size()));
 					}
 					selectedPlaybackDevice = pos;
 				} catch (Exception e) {
@@ -257,6 +272,29 @@ public class Player extends Activity {
 			}
 			
 		});
+		
+	}
+	
+	
+	private void jukeboxFeatures() {
+		
+		final int pos = ((Spinner)this.findViewById(R.id.player_jb_list)).getSelectedItemPosition();
+		if (pos < staticDeviceList.size()) {
+			final String playerClass= staticDeviceList.get(pos)[1];
+			
+			new Thread() {
+				@Override
+				public void run() {
+					try {
+						Class pc = Class.forName(playerClass);
+						Method m = pc.getMethod("doFeaturesView", new Class[]{Activity.class});
+						m.invoke(null, Player.this);
+					} catch (Exception e) {
+						Log.e("jinzora","error drawing features view for class " + playerClass,e);
+					}
+				}
+			}.start();
+		}
 	}
 	
 	@Override
@@ -266,7 +304,7 @@ public class Player extends Activity {
     
     @Override
     public boolean onMenuItemSelected(int featureId, MenuItem item) {
-    	Jinzora.menuItemSelected(featureId,item);
+    	Jinzora.menuItemSelected(featureId,item,this);
     	return super.onMenuItemSelected(featureId, item);
     }
 }

@@ -41,4 +41,16 @@ public abstract class PlaybackDevice implements PlaybackInterface {
 	public int getAddType() {
 		return currentAddType;
 	}
+	
+	public String getAddTypeString() {
+		switch (currentAddType) {
+		case 0:
+			return "REPLACE";
+		case 1:
+			return "END";
+		case 2:
+			return "CURRENT";
+		}
+		return null;
+	}
 }

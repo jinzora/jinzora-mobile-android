@@ -12,4 +12,6 @@ interface PlaybackInterface {
 	void setBaseURL( in String url );
 	void setAddType(in int type);
 	void setPlaybackDevice( in String playerClass, in String arg );
+	
+	String playbackIPC ( in String input );
 }

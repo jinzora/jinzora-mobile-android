@@ -39,8 +39,10 @@ public class Browser extends ListActivity {
 	@Override
 	protected void onStart() {
 		super.onStart();
-
-       if (browsing == null) {
+		if (null != getIntent().getStringExtra(getPackageName()+".browse")) {
+			// todo: get rid of this static.
+			browsing = getIntent().getStringExtra(getPackageName()+".browse");
+		} else {
 	   		browsing = getHomeURL();
 	   		if (null  == browsing) {
 	   			startActivity(new Intent(this, Preferences.class));
@@ -83,9 +85,11 @@ public class Browser extends ListActivity {
 
     private void doBrowsing() {
     	try {
+    		allEntries.clear();
     		XmlPullParser xpp;
     		InputStream inStream;
     		try {
+    			
     			URL url = new URL(browsing);
     			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
     			conn.setConnectTimeout(30000);
@@ -195,7 +199,7 @@ public class Browser extends ListActivity {
 					new Thread() {
 						public void run() {
 							try {
-								Jinzora.playbackBinding.playlist(visibleEntries.get(position).get("playlink"));
+								Jinzora.sPbConnection.playbackBinding.playlist(visibleEntries.get(position).get("playlink"));
 							} catch (Exception e) {
 								Log.e("jinzora","Error playing media",e);
 							}
@@ -205,9 +209,9 @@ public class Browser extends ListActivity {
     			
     			return;
     		}
-    		browsing = mBrowse;
-    		
+
     		Intent intent = new Intent(this,Jinzora.class);
+    		intent.putExtra(getPackageName()+".browse", mBrowse);
     		startActivity(intent);
     		
     	} catch (Exception e) {
@@ -263,7 +267,7 @@ public class Browser extends ListActivity {
     
     @Override
     public boolean onMenuItemSelected(int featureId, MenuItem item) {
-    	Jinzora.menuItemSelected(featureId,item);
+    	Jinzora.menuItemSelected(featureId,item,this);
     	return super.onMenuItemSelected(featureId, item);
     }
     
@@ -310,7 +314,7 @@ public class Browser extends ListActivity {
 					new Thread() {
 						public void run() {
 							try {
-								Jinzora.playbackBinding.playlist(item.get("playlink"));
+								Jinzora.sPbConnection.playbackBinding.playlist(item.get("playlink"));
 							} catch (Exception e) {
 								Log.e("jinzora","Error playing media",e);
 								}

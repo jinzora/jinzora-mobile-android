@@ -48,7 +48,7 @@ public class Search extends Activity {
 		 							String query = ((EditText)findViewById(R.id.search_box)).getText().toString();
 		 							if (query != null && query.length() > 0) {
 		 								Intent intent = new Intent(Search.this, Jinzora.class);
-		 								Browser.browsing = Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query);
+		 								intent.putExtra(Search.this.getPackageName()+".browse",Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query, "UTF-8"));
 		 					    		startActivity(intent);
 		 							}
 		 						} catch (Exception e) {
@@ -76,7 +76,7 @@ public class Search extends Activity {
 	 							String query = ((EditText)findViewById(R.id.search_box)).getText().toString();
 	 							if (query != null && query.length() > 0) {
 	 								Intent intent = new Intent(Search.this, Jinzora.class);
-	 								Browser.browsing = Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query);
+	 								intent.putExtra(Search.this.getPackageName()+".browse",Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query, "UTF-8"));
 	 					    		startActivity(intent);
 	 							}
 	 						} catch (Exception e) {
@@ -137,7 +137,7 @@ public class Search extends Activity {
 	        		 eventType = xpp.next();
 	        		 
 	        		 // found a match; play it.
-	        		 Jinzora.playbackBinding.playlist( xpp.getText() );
+	        		 Jinzora.sPbConnection.playbackBinding.playlist( xpp.getText() );
 	        		 return;
 	        	 }
 	        	 eventType = xpp.next();
@@ -156,7 +156,7 @@ public class Search extends Activity {
     
     @Override
     public boolean onMenuItemSelected(int featureId, MenuItem item) {
-    	Jinzora.menuItemSelected(featureId,item);
+    	Jinzora.menuItemSelected(featureId,item, this);
     	return super.onMenuItemSelected(featureId, item);
     }
 }
