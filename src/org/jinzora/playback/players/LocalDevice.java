@@ -102,6 +102,11 @@ public class LocalDevice extends PlaybackDevice {
 	}
 	
 	@Override
+	public boolean isPlaying() {
+		return (mp != null && mp.isPlaying());
+	}
+	
+	@Override
 	public void clear() throws RemoteException {
 		playlist.clear();
 		mp.stop();

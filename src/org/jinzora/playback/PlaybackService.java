@@ -10,6 +10,8 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.telephony.PhoneStateListener;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 public class PlaybackService extends Service {
@@ -59,6 +61,21 @@ public class PlaybackService extends Service {
 	}
 	
 	private final PlaybackInterface.Stub mBinder = new PlaybackInterface.Stub() {
+		
+		@Override
+		public boolean isPlaying() {
+			return player.isPlaying();
+		}
+		
+		@Override
+		public void onCallBegin() {
+			player.onCallBegin();
+		}
+		
+		@Override
+		public void onCallEnd() {
+			player.onCallEnd();
+		}
 		
 		@Override
 		public void playlist(String pl) throws RemoteException {
@@ -151,6 +168,41 @@ public class PlaybackService extends Service {
 		instance = this;
 		if (player == null) {
 			player = LocalDevice.getInstance(null);
+			
+			
+			Log.d("jinzora","initializing phone state listener");
+			final PhoneStateListener mPhoneListener = new PhoneStateListener()
+			{
+			        public void onCallStateChanged(int state, String incomingNumber)
+			        {
+			                try {
+			                        switch (state)
+			                        {
+			                        case TelephonyManager.CALL_STATE_RINGING:
+			                        case TelephonyManager.CALL_STATE_OFFHOOK:
+			                        	// pause playback
+			                        	player.onCallBegin();
+			                                break;
+
+			                        case TelephonyManager.CALL_STATE_IDLE:
+			                        	// resume playback
+			                        	player.onCallEnd();
+			                        	
+			                                break;
+			                        default:
+			                               // Log.d("jinzora", "Unknown phone state=" + state);
+			                        }
+			                } catch (Exception e) { Log.e("jinzora","Error changing phone state",e); }
+			        }
+			};
+			
+			TelephonyManager tm = (TelephonyManager)getSystemService(TELEPHONY_SERVICE);
+			tm.listen(mPhoneListener, PhoneStateListener.LISTEN_CALL_STATE);
+			
+			
+			
+			
+			
 		}
 		//player = JukeboxDevice.getInstance("0");
 		return mBinder;

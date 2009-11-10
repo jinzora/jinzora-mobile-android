@@ -78,14 +78,21 @@ public class Jinzora extends TabActivity {
 		}
 		
 		baseurl = site + "/api.php?user=" + username;
-		try {
-		    MessageDigest md5=MessageDigest.getInstance("MD5");
-		    md5.update(password.getBytes(),0,password.length());
-		    
-		    baseurl += "&pass=" + new BigInteger(1,md5.digest()).toString(16);
-			baseurl += "&pw_hashed=true";
-		} catch (Exception e) {
-			Log.w("jinzora","Error computing password hash");
+		
+		// disable until enough people upgrade.
+		boolean pwPrehash=false;
+		if (pwPrehash) {
+			try {
+			    MessageDigest md5=MessageDigest.getInstance("MD5");
+			    md5.update(password.getBytes(),0,password.length());
+			    
+			    baseurl += "&pass=" + new BigInteger(1,md5.digest()).toString(16);
+				baseurl += "&pw_hashed=true";
+			} catch (Exception e) {
+				Log.w("jinzora","Error computing password hash");
+				baseurl += "&pass=" + password;
+			}
+		} else {
 			baseurl += "&pass=" + password;
 		}
 		
@@ -151,7 +158,7 @@ public class Jinzora extends TabActivity {
 	        Intent intBrowse = new Intent(this,Browser.class);
 	        if (getIntent() != null && getIntent().getExtras() != null)
 	        	intBrowse.putExtras(getIntent().getExtras());
-	        
+
 	        host.addTab(host.newTabSpec("browse")
 	        		.setIndicator(getString(R.string.browser)/*,icon.getDrawable()*/)
 	        		.setContent(intBrowse));

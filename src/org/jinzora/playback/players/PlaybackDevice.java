@@ -23,6 +23,42 @@ public abstract class PlaybackDevice implements PlaybackInterface {
 	protected static final int ADD_END 		= 1;
 	protected static final int ADD_CURRENT 	= 2;
 	
+	private boolean autopaused = false;
+	
+	/**
+	 * Don't require our implementations to
+	 * implement this.
+	 */
+	public boolean isPlaying() {
+		return false;
+	}
+	
+	@Override
+	public void onCallBegin() {
+		//Log.d("jinzora","receiving call");
+		
+		if (this.isPlaying()) {
+			autopaused=true;
+			try {
+				this.pause();
+			} catch (RemoteException e) {
+				Log.e("jinzora","error autopausing",e);
+			}
+		}
+	}
+	
+	@Override
+	public void onCallEnd() {
+		//Log.d("jinzora","call ended");
+		if (!this.isPlaying() && autopaused) {
+			try {
+				this.pause();
+			} catch (RemoteException e) {
+				Log.e("jinzora","error autoresuming",e);
+			}
+		}
+		autopaused=false;
+	}
 	
 	@Override
 	public void setBaseURL(String url) throws RemoteException {

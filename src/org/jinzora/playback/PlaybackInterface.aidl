@@ -13,5 +13,9 @@ interface PlaybackInterface {
 	void setAddType(in int type);
 	void setPlaybackDevice( in String playerClass, in String arg );
 	
+	void onCallBegin();
+	void onCallEnd();
+	
 	String playbackIPC ( in String input );
+	boolean isPlaying();
 }
