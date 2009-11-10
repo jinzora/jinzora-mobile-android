@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.zxing.integration.android;
+package com.google.zxing.integration;
 
 import android.app.AlertDialog;
 import android.app.Activity;
