@@ -17,8 +17,8 @@ import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
-import com.google.zxing.integration.android.IntentIntegrator;
-import com.google.zxing.integration.android.IntentResult;
+import com.google.zxing.integration.IntentIntegrator;
+import com.google.zxing.integration.IntentResult;
 
 import edu.stanford.prpl.junction.impl.AndroidJunctionMaker;
 
