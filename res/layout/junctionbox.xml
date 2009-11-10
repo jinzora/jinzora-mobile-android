@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout 
+  	xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:id="@+id/jxbox"
+    >
+
+    <Button android:id="@+id/jx_invite" 
+	 	android:text="Invite a friend"
+		android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:drawableTop="@+android:drawable/ic_menu_edit"
+	/>
+	
+	<Button android:id="@+id/jx_join" 
+	 	android:text="Join a party"
+		android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:drawableTop="@+android:drawable/ic_menu_edit"
+	/>
+	
+	<CheckBox 
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:text=" Play on this device "
+		android:id="@+id/jx_localplay"
+		android:checked="true"
+		/>
+	
+</LinearLayout>
