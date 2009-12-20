@@ -57,9 +57,36 @@ public class Player extends ListActivity {
 		//staticDeviceList.add(new String[] { "http://prpl.stanford.edu/music/api.php?jb_id=quickbox&request=jukebox&user=prpl&pass=ppleaters","org.jinzora.playback.players.ForeignJukeboxDevice" });
 	}
 	
+	ArrayAdapter<String> addTypeAdapter;
+	DialogInterface.OnClickListener addTypeClickListener;
+	
+	
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		// Add-type Dialog
+		addTypeAdapter = new ArrayAdapter<String>(this,
+				android.R.layout.simple_spinner_dropdown_item,
+		        addTypes );
+		
+		addTypeClickListener = new DialogInterface.OnClickListener () {
+			@Override
+			public void onClick(DialogInterface dialog, int pos) {
+				if (pos == selectedAddType) return;
+				try {
+					Jinzora.sPbConnection.playbackBinding.setAddType(pos);
+					selectedAddType = pos;
+					dialog.dismiss();
+				} catch (Exception e) {
+					Log.e("jinzora","Error setting add-type",e);
+				}
+			}
+		};	
+		
+		
+		// Playlist 
 		
 		playlistAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
 		
@@ -82,6 +109,7 @@ public class Player extends ListActivity {
 		});
 		
 		
+		// Buttons
 		
 		this.findViewById(R.id.prevbutton).setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -321,29 +349,10 @@ public class Player extends ListActivity {
     public boolean onMenuItemSelected(int featureId, MenuItem item) {
     	
     	if (item.getItemId() == PlayerMenuItems.ADDWHERE) {
-
-			ArrayAdapter<String> addTypeAdapter = new ArrayAdapter<String>(this,
-					android.R.layout.simple_spinner_dropdown_item,
-			        addTypes );
-			
-			
-			
-			DialogInterface.OnClickListener onClickListener = new DialogInterface.OnClickListener () {
-				@Override
-				public void onClick(DialogInterface arg0, int pos) {
-					if (pos == selectedAddType) return;
-					try {
-						Jinzora.sPbConnection.playbackBinding.setAddType(pos);
-						selectedAddType = pos;
-					} catch (Exception e) {
-						Log.e("jinzora","Error setting add-type",e);
-					}
-				}
-			};			
-			
+    		
 			AlertDialog dialog = 
 			new AlertDialog.Builder(this)
-				.setAdapter(addTypeAdapter, onClickListener)
+				.setSingleChoiceItems(addTypeAdapter, selectedAddType, addTypeClickListener)
 				.setTitle(R.string.add_to)
 				.create();
 			
