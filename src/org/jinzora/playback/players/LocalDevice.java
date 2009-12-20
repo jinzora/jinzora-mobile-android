@@ -271,4 +271,9 @@ public class LocalDevice extends PlaybackDevice {
 		
 		return null;
 	}
+
+	@Override
+	public List<String> getPlaylist() throws RemoteException {
+		return trackNames;
+	}
 }

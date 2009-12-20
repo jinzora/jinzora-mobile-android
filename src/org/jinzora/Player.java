@@ -18,7 +18,11 @@ import org.jinzora.playback.PlaybackServiceConnection;
 import org.jinzora.playback.players.PlaybackDevice;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.ListActivity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.RemoteException;
@@ -29,17 +33,19 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.AdapterView.OnItemSelectedListener;
 
-public class Player extends Activity {
+public class Player extends ListActivity {
 	private static Map<Integer,String>jukeboxes = null;
 	private static int selectedPlaybackDevice = 0;
 	private static int selectedAddType = 0;
 	private static List<String[]> staticDeviceList;
 	private static String[] addTypes = {"Replace current playlist","End of list","After current track"};
 
+	ArrayAdapter<String> playlistAdapter;
 	
 	static {
 		staticDeviceList = new ArrayList<String[]>();
@@ -54,76 +60,30 @@ public class Player extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		if (null == jukeboxes) {
-			refreshJukeboxList();
-		}
+		
+		playlistAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
 		
 		this.setContentView(R.layout.player);
-		
-		
-		try {
-			setJukeboxSpinner();
-			
-			/* jukebox refresh */
-			Button button = (Button)this.findViewById(R.id.refreshJukeboxes);
-			button.setOnClickListener(new View.OnClickListener() {
+		setListAdapter(playlistAdapter);
+		((ListView)findViewById(android.R.id.list)).setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
-				@Override
-				public void onClick(View v) {
-					refreshJukeboxList();
-					setJukeboxSpinner();
-				}
-				
-			});
-			
-			/* Add-types */
-			Spinner spinner = (Spinner)this.findViewById(R.id.addtype_list);
-			 
-			
-			ArrayAdapter<String> addTypeAdapter = new ArrayAdapter<String>(this,
-					android.R.layout.simple_spinner_dropdown_item,
-			        addTypes );
-			spinner.setAdapter(addTypeAdapter);
-			spinner.setVisibility(View.VISIBLE);
-			spinner.setSelection(selectedAddType);
-			spinner.setOnItemSelectedListener(new OnItemSelectedListener () {
-
-				@Override
-				public void onItemSelected(AdapterView<?> parent, View v,
-						int pos, long id) {
-					
-					if (pos == selectedAddType) return;
-					try {
-						Jinzora.sPbConnection.playbackBinding.setAddType(pos);
-						selectedAddType = pos;
-					} catch (Exception e) {
-						Log.e("jinzora","Error setting add-type",e);
-					}
-				}
-
-				@Override
-				public void onNothingSelected(AdapterView<?> arg0) {
-					
-					
-				}
-				
-			});
-		} catch (Exception e) {
-			Log.e("jinzora","Error creating jukebox list",e);
-		}
-		
-		/* JB extra features */
-		Button button = (Button)this.findViewById(R.id.jbfeatures);
-		button.setOnClickListener(new View.OnClickListener() {
 			@Override
-			public void onClick(View arg0) {
-				jukeboxFeatures();
+			public void onItemClick(AdapterView<?> arg0, View arg1, int pos,
+					long arg3) {
+				
+				try {
+					Jinzora.sPbConnection.playbackBinding.jumpTo(pos);
+				} catch (Exception e) {
+					Log.e("jinzora","Failed jumping in playlist",e);
+				}
+				
 			}
+			
 		});
 		
 		
+		
 		this.findViewById(R.id.prevbutton).setOnClickListener(new View.OnClickListener() {
-
 			@Override
 			public void onClick(View v) {
 				new Thread() {
@@ -137,11 +97,9 @@ public class Player extends Activity {
 					}
 				}.start();
 			}
-			
 		});
 		
 		this.findViewById(R.id.nextbutton).setOnClickListener(new View.OnClickListener() {
-
 			@Override
 			public void onClick(View v) {
 				new Thread() {
@@ -155,14 +113,11 @@ public class Player extends Activity {
 					}
 				}.start();
 			}
-			
 		});
 		
 		this.findViewById(R.id.playbutton).setOnClickListener(new View.OnClickListener() {
-
 			@Override
 			public void onClick(View v) {
-			
 				new Thread() {
 					@Override
 					public void run() {
@@ -177,7 +132,6 @@ public class Player extends Activity {
 		});
 		
 		this.findViewById(R.id.pausebutton).setOnClickListener(new View.OnClickListener() {
-
 			@Override
 			public void onClick(View v) {
 				new Thread() {
@@ -191,11 +145,46 @@ public class Player extends Activity {
 					}
 				}.start();
 			}
-			
 		});
+		
+		/*
+		try {
+			if (null == jukeboxes) {
+				refreshJukeboxList();
+			}
+			
+			setJukeboxSpinner();
+			
+			// jukebox refresh
+			Button button = (Button)this.findViewById(R.id.refreshJukeboxes);
+			button.setOnClickListener(new View.OnClickListener() {
+
+				@Override
+				public void onClick(View v) {
+					refreshJukeboxList();
+					setJukeboxSpinner();
+				}
+				
+			});
+			
+		} catch (Exception e) {
+			Log.e("jinzora","Error creating jukebox list",e);
+		}
+		
+		// JB extra features
+		Button button = (Button)this.findViewById(R.id.jbfeatures);
+		button.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View arg0) {
+				jukeboxFeatures();
+			}
+		});
+		
+		*/
+		
 	}
 	
-	
+	/*
 	protected static void refreshJukeboxList() {
 		try {
 			jukeboxes = new HashMap<Integer,String>();
@@ -221,7 +210,7 @@ public class Player extends Activity {
 	}
 	
 	private void setJukeboxSpinner() {
-		/* List of players */
+		// List of players
 		Spinner spinner = (Spinner)this.findViewById(R.id.player_jb_list);
 		 
 		ArrayList<String> jba = new ArrayList<String>();
@@ -296,15 +285,79 @@ public class Player extends Activity {
 			}.start();
 		}
 	}
+	*/
+	
+	
+	
+	@Override
+	protected void onResume() {
+		super.onResume();
+		
+		try {
+			List<String>tracks = Jinzora.sPbConnection.playbackBinding.getPlaylist();
+			if (tracks != null) {
+				playlistAdapter.clear();
+				for (int i=0;i<tracks.size();i++) {
+					playlistAdapter.add(tracks.get(i));
+				}
+			}
+		} catch (Exception e) {
+			Log.e("jinzora" , "Could not build playlist", e);
+		}
+	}
 	
 	@Override
     public boolean onCreateOptionsMenu(Menu menu) {
-    	return Jinzora.createMenu(menu);
+    	Jinzora.createMenu(menu);
+    	
+    	menu.add(0,PlayerMenuItems.ADDWHERE,3,"Queue Mode")
+    	.setIcon(android.R.drawable.ic_menu_add)
+    	.setAlphabeticShortcut('a');
+    	
+    	return true;
     }
     
     @Override
     public boolean onMenuItemSelected(int featureId, MenuItem item) {
+    	
+    	if (item.getItemId() == PlayerMenuItems.ADDWHERE) {
+
+			ArrayAdapter<String> addTypeAdapter = new ArrayAdapter<String>(this,
+					android.R.layout.simple_spinner_dropdown_item,
+			        addTypes );
+			
+			
+			
+			DialogInterface.OnClickListener onClickListener = new DialogInterface.OnClickListener () {
+				@Override
+				public void onClick(DialogInterface arg0, int pos) {
+					if (pos == selectedAddType) return;
+					try {
+						Jinzora.sPbConnection.playbackBinding.setAddType(pos);
+						selectedAddType = pos;
+					} catch (Exception e) {
+						Log.e("jinzora","Error setting add-type",e);
+					}
+				}
+			};			
+			
+			AlertDialog dialog = 
+			new AlertDialog.Builder(this)
+				.setAdapter(addTypeAdapter, onClickListener)
+				.setTitle(R.string.add_to)
+				.create();
+			
+			dialog.show();
+    		
+    		
+    	}
+    	
     	Jinzora.menuItemSelected(featureId,item,this);
     	return super.onMenuItemSelected(featureId, item);
+    }
+    
+    static class PlayerMenuItems {
+    	public static int ADDWHERE = 101;
+    	
     }
 }

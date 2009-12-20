@@ -16,6 +16,8 @@ interface PlaybackInterface {
 	void onCallBegin();
 	void onCallEnd();
 	
+	List<String> getPlaylist();
+	
 	String playbackIPC ( in String input );
 	boolean isPlaying();
 }

@@ -1,6 +1,7 @@
 package org.jinzora.playback;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 
 import org.jinzora.playback.players.LocalDevice;
@@ -159,6 +160,11 @@ public class PlaybackService extends Service {
 		@Override
 		public String playbackIPC(String params) throws RemoteException {
 			return player.playbackIPC(params);
+		}
+
+		@Override
+		public List<String> getPlaylist() throws RemoteException {
+			return player.getPlaylist();
 		}
 	};
 	

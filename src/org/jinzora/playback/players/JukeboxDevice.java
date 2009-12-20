@@ -161,4 +161,10 @@ public class JukeboxDevice extends PlaybackDevice {
 		return null;
 	}
 
+	@Override
+	public List<String> getPlaylist() throws RemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
