@@ -251,6 +251,8 @@ public class LocalDevice extends PlaybackDevice {
 	
 	protected void notifyPaused() {
 		try {
+			nm.cancel(NOTIFY_ID);
+			/*
 			Notification notification = new Notification(
 					android.R.drawable.ic_media_pause, "Paused", System.currentTimeMillis());
 			PendingIntent pending = PendingIntent.getActivity(this.service, 0,
@@ -258,6 +260,7 @@ public class LocalDevice extends PlaybackDevice {
 			notification.setLatestEventInfo(this.service, "Jinzora Mobile", "Paused", pending);
 			
 			nm.notify(NOTIFY_ID, notification);
+			*/
 		} catch (Exception e) {
 			Log.d("jinzora","notification error",e);
 		}
