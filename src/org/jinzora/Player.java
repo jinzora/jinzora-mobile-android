@@ -416,10 +416,30 @@ class PlaylistAdapter extends ArrayAdapter<String> {
 	
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
-		View row=inflater.inflate(R.layout.playlist_item, null);
-		((TextView)row.findViewById(R.id.entry_text)).setText(this.getItem(position));
+		Log.d("jinzora","fetching " + position);
+		
+		View row;
+		if (convertView != null) {
+			row = convertView;
+		} else {
+			row=inflater.inflate(R.layout.playlist_item, null);
+		}
+		String entry = this.getItem(position);
+
+		// copied from m3u convention.
+		// TODO: build better metadata when playlist is read
+		int p = entry.indexOf(" - ");
+		if (p >= 0) {
+			((TextView)row.findViewById(R.id.entry_line2)).setText(entry.substring(0,p));
+			((TextView)row.findViewById(R.id.entry_line1)).setText(entry.substring(p+3));
+		} else {
+			((TextView)row.findViewById(R.id.entry_line1)).setText(entry);
+		}
+		
 		if (position == mPos) {
 			row.setBackgroundResource(R.color.now_playing);
+		} else {
+			row.setBackgroundColor(R.color.playlist_entry);
 		}
 		return row;
 	}
