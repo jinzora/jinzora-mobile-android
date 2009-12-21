@@ -416,8 +416,6 @@ class PlaylistAdapter extends ArrayAdapter<String> {
 	
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
-		Log.d("jinzora","fetching " + position);
-		
 		View row;
 		if (convertView != null) {
 			row = convertView;
