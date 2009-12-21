@@ -180,7 +180,6 @@ public class PlaybackService extends Service {
 		if (player == null) {
 			player = LocalDevice.getInstance(null);
 			
-			
 			Log.d("jinzora","initializing phone state listener");
 			final PhoneStateListener mPhoneListener = new PhoneStateListener()
 			{
@@ -209,9 +208,6 @@ public class PlaybackService extends Service {
 			
 			TelephonyManager tm = (TelephonyManager)getSystemService(TELEPHONY_SERVICE);
 			tm.listen(mPhoneListener, PhoneStateListener.LISTEN_CALL_STATE);
-			
-			
-			
 			
 			
 		}
