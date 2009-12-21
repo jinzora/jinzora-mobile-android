@@ -221,6 +221,12 @@ public class DownloadPlaylist extends PlaybackDevice {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public int getPlaylistPos() throws RemoteException {
+		// TODO Auto-generated method stub
+		return -1;
+	}
 	
 }
 

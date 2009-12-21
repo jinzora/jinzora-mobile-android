@@ -27,14 +27,18 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.AdapterView.OnItemSelectedListener;
 
@@ -45,7 +49,7 @@ public class Player extends ListActivity {
 	private static List<String[]> staticDeviceList;
 	private static String[] addTypes = {"Replace current playlist","End of list","After current track"};
 
-	ArrayAdapter<String> playlistAdapter;
+	PlaylistAdapter playlistAdapter;
 	
 	static {
 		staticDeviceList = new ArrayList<String[]>();
@@ -88,7 +92,7 @@ public class Player extends ListActivity {
 		
 		// Playlist 
 		
-		playlistAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
+		playlistAdapter = new PlaylistAdapter(this);
 		
 		this.setContentView(R.layout.player);
 		setListAdapter(playlistAdapter);
@@ -321,13 +325,16 @@ public class Player extends ListActivity {
 	protected void onResume() {
 		super.onResume();
 		
+		// TODO: make Handler in GUI thread,
+		// then put the below in a runnable
+		// and post it.
+		
+		
 		try {
 			List<String>tracks = Jinzora.sPbConnection.playbackBinding.getPlaylist();
 			if (tracks != null) {
-				playlistAdapter.clear();
-				for (int i=0;i<tracks.size();i++) {
-					playlistAdapter.add(tracks.get(i));
-				}
+				int pos = Jinzora.sPbConnection.playbackBinding.getPlaylistPos();
+				playlistAdapter.setEntries(tracks, pos);
 			}
 		} catch (Exception e) {
 			Log.e("jinzora" , "Could not build playlist", e);
@@ -369,4 +376,36 @@ public class Player extends ListActivity {
     	public static int ADDWHERE = 101;
     	
     }
+}
+
+
+class PlaylistAdapter extends ArrayAdapter<String> {
+	protected int mPos = -1;
+	ListActivity mListActivity;
+	LayoutInflater inflater;
+	public PlaylistAdapter(ListActivity parent) {
+		super(parent, android.R.layout.simple_list_item_1);
+		mListActivity = parent;
+		inflater=LayoutInflater.from(parent);
+	}
+	
+	
+	@Override
+	public View getView(int position, View convertView, ViewGroup parent) {
+		View row=inflater.inflate(R.layout.playlist_item, null);
+		((TextView)row.findViewById(R.id.entry_text)).setText(this.getItem(position));
+		if (position == mPos) {
+			row.setBackgroundResource(R.color.now_playing);
+		}
+		return row;
+	}
+	
+	public void setEntries(List<String>tracks, int pos) {
+		mPos=pos;
+		this.clear();
+		for (int i=0;i<tracks.size();i++) {
+			this.add(tracks.get(i));
+		}
+	}
+	
 }

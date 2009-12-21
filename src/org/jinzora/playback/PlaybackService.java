@@ -166,6 +166,11 @@ public class PlaybackService extends Service {
 		public List<String> getPlaylist() throws RemoteException {
 			return player.getPlaylist();
 		}
+
+		@Override
+		public int getPlaylistPos() throws RemoteException {
+			return player.getPlaylistPos();
+		}
 	};
 	
 	
