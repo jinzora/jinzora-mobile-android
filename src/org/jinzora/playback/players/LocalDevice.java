@@ -236,6 +236,7 @@ public class LocalDevice extends PlaybackDevice {
 	
 	protected void notifyPlaying() {
 		try {
+			/* Notification icon */
 			String notice = /*"Playing: " +*/ trackNames.get(pos);
 			Notification notification = new Notification(
 					android.R.drawable.ic_media_play, notice, System.currentTimeMillis());
@@ -245,7 +246,16 @@ public class LocalDevice extends PlaybackDevice {
 			
 			nm.notify(NOTIFY_ID, notification);
 		} catch (Exception e) {
-			Log.d("jinzora","notification error",e);
+			Log.w("jinzora","notification error",e);
+		}
+		
+		try {
+			/* Broadcast */
+			Intent positionIntent = new Intent("org.jinzora.playlist.pos");
+			positionIntent.putExtra("position", pos);
+			service.sendBroadcast(positionIntent);
+		} catch (Exception e) {
+			Log.w("jinzora","broadcast error",e);
 		}
 	}
 	

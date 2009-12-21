@@ -24,6 +24,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -49,7 +50,9 @@ public class Player extends ListActivity {
 	private static List<String[]> staticDeviceList;
 	private static String[] addTypes = {"Replace current playlist","End of list","After current track"};
 
-	PlaylistAdapter playlistAdapter;
+	PlaylistAdapter mPlaylistAdapter;
+	
+	BroadcastReceiver mPositionReceiver;
 	
 	static {
 		staticDeviceList = new ArrayList<String[]>();
@@ -92,10 +95,10 @@ public class Player extends ListActivity {
 		
 		// Playlist 
 		
-		playlistAdapter = new PlaylistAdapter(this);
+		mPlaylistAdapter = new PlaylistAdapter(this);
 		
 		this.setContentView(R.layout.player);
-		setListAdapter(playlistAdapter);
+		setListAdapter(mPlaylistAdapter);
 		((ListView)findViewById(android.R.id.list)).setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
 			@Override
@@ -325,7 +328,7 @@ public class Player extends ListActivity {
 	protected void onResume() {
 		super.onResume();
 		
-		// TODO: make Handler in GUI thread,
+		// TODO: make async w/ handler in GUI thread,
 		// then put the below in a runnable
 		// and post it.
 		
@@ -334,11 +337,32 @@ public class Player extends ListActivity {
 			List<String>tracks = Jinzora.sPbConnection.playbackBinding.getPlaylist();
 			if (tracks != null) {
 				int pos = Jinzora.sPbConnection.playbackBinding.getPlaylistPos();
-				playlistAdapter.setEntries(tracks, pos);
+				mPlaylistAdapter.setEntries(tracks,pos);
 			}
 		} catch (Exception e) {
 			Log.e("jinzora" , "Could not build playlist", e);
 		}
+		
+		
+		mPositionReceiver = new BroadcastReceiver() {
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				int pos = intent.getExtras().getInt("position");
+				mPlaylistAdapter.setPlaylistPos(pos);
+			}
+		};	
+		
+		IntentFilter intentFilter = new IntentFilter("org.jinzora.playlist.pos");
+		registerReceiver(mPositionReceiver, intentFilter);
+		
+	}
+	
+	@Override
+	public void onPause() {
+		super.onPause();
+		
+		unregisterReceiver(mPositionReceiver);
+		mPositionReceiver = null;
 	}
 	
 	@Override
@@ -408,4 +432,9 @@ class PlaylistAdapter extends ArrayAdapter<String> {
 		}
 	}
 	
+	public void setPlaylistPos(int pos) {
+		mPos=pos;
+		
+		notifyDataSetChanged();
+	}
 }
