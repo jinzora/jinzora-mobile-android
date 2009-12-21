@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    
+    android:id="@+id/entry_wrapper"
+    >
+    
+    <TextView android:id="@+id/entry_text"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:textSize="28sp" 
+                android:paddingTop="5sp"
+                android:paddingBottom="5sp"
+                android:layout_alignParentLeft="true"/>
+                    
+</RelativeLayout> 
