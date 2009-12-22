@@ -113,7 +113,7 @@ public class Jinzora extends TabActivity {
 		baseurl = site + "/api.php?user=" + username;
 		
 		// disable until enough people upgrade.
-		boolean pwPrehash=false;
+		boolean pwPrehash=true;
 		if (pwPrehash) {
 			try {
 			    MessageDigest md5=MessageDigest.getInstance("MD5");

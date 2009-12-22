@@ -13,8 +13,10 @@ import org.jinzora.playback.PlaybackServiceConnection;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 
@@ -25,6 +27,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
@@ -35,6 +38,8 @@ public class Browser extends ListActivity {
 	private ArrayList<Map<String,String>> visibleEntries = allEntries;
 	
 	protected static String browsing;
+	
+	protected JzMediaAdapter mMediaAdapter;
 	
 	@Override
 	protected void onStart() {
@@ -175,20 +180,64 @@ public class Browser extends ListActivity {
     		}
 
     		inStream.close();
-    		JzMediaAdapter adapter = new JzMediaAdapter(this, allEntries);
-
+    		mMediaAdapter = new JzMediaAdapter(this, allEntries);
 
     		setContentView(R.layout.browse);
-    		setListAdapter(adapter);
+    		setListAdapter(mMediaAdapter);
 
+    		final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue list to end", "Queue list next" };
+    		((ListView)findViewById(android.R.id.list))
+				.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+
+					@Override
+					public boolean onItemLongClick(AdapterView<?> parent,
+							View view, final int listPosition, long id) {
+
+						if (!mMediaAdapter.isPlayable(listPosition)) return false;
+						
+						new AlertDialog.Builder(Browser.this)
+							.setTitle(mMediaAdapter.getEntryTitle(listPosition))
+							.setItems(entryOptions, 
+									new AlertDialog.OnClickListener() {
+										@Override
+										public void onClick(DialogInterface dialog, int entryPos) {
+											try {
+												Map<String,String>item = mMediaAdapter.getEntry(listPosition);
+												switch (entryPos) {
+												case 0:
+													Intent share = new Intent("android.intent.action.SEND");
+													share.setType("audio/x-mpegurl")
+														.putExtra(Intent.EXTRA_TEXT, item.get("playlink"));
+													Browser.this
+														.startActivity(Intent.createChooser(share, "Share playlist..."));
+													break;
+												case 1:
+												case 2:
+												case 3:
+													Jinzora.sPbConnection
+														.playbackBinding
+														.playlist(item.get("playlink"), entryPos-1);
+													break;
+												}
+											} catch (Exception e) {
+												Log.e("jinzora","Error in longpress event",e);
+												dialog.dismiss();
+											}
+										}
+									}
+							)
+							.create().show();
+						
+						return true;
+					}
+					
+				});
 
     	} catch (Exception e) {
     		Log.e("jinzora", "error", e);
     	}
     }
 
-    
-    
     
     @Override
     public void onListItemClick(ListView l, View v, final int position, long id) {
@@ -273,66 +322,81 @@ public class Browser extends ListActivity {
     	return super.onMenuItemSelected(featureId, item);
     }
     
-    
     public static void clearBrowsing() {
     	browsing=null;
     }
     
 
-	
-	class JzMediaAdapter extends SimpleAdapter {
-		Browser context;
-		public JzMediaAdapter(Browser context, List<? extends Map<String, ?>> data) {
-			super(context, data, R.layout.media_element, null, null);
-			this.context=context;
-		}
-		
-		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-			View row;
-			if (convertView == null) {
-				LayoutInflater inflater=LayoutInflater.from(context);
-				row=inflater.inflate(R.layout.media_element, null);
-			} else {
-				row = convertView;
-			}
-			  
-			final Map<String,String>item = (Map<String,String>)this.getItem(position);
-			TextView label = (TextView)row.findViewById(R.id.media_el_name);
-			label.setText(item.get("name"));
-		
-		if (item.containsKey("subfield1")) {
-			label = (TextView)row.findViewById(R.id.media_el_subfield1);
-			label.setText(item.get("subfield1"));
-		}
-		if (item.containsKey("subfield2")) {
-			label = (TextView)row.findViewById(R.id.media_el_subfield2);
-			label.setText(item.get("subfield2"));
-		}
-		
-		if (!item.containsKey("playlink")) {
-			row.findViewById(R.id.media_el_play).setVisibility(View.INVISIBLE);
-		} else {
-			Button button = (Button)row.findViewById(R.id.media_el_play);
-			button.setOnClickListener(new View.OnClickListener() {
-	
-				@Override
-				public void onClick(View v) {
-				
-					new Thread() {
-						public void run() {
-							try {
-								Jinzora.sPbConnection.playbackBinding.playlist(item.get("playlink"), Jinzora.getAddType());
-							} catch (Exception e) {
-								Log.e("jinzora","Error playing media",e);
-								}
-							}
-						}.start();
-					}
-					
-				});
-			}
-			return row;  
-		}
-	}
+    class JzMediaAdapter extends SimpleAdapter {
+    	Browser context;
+    	public JzMediaAdapter(Browser context, List<? extends Map<String, ?>> data) {
+    		super(context, data, R.layout.media_element, null, null);
+    		this.context=context;
+    	}
+
+    	@Override
+    	public View getView(int position, View convertView, ViewGroup parent) {
+    		View row;
+    		if (convertView == null) {
+    			LayoutInflater inflater=LayoutInflater.from(context);
+    			row=inflater.inflate(R.layout.media_element, null);
+    		} else {
+    			row = convertView;
+    		}
+
+    		final Map<String,String>item = (Map<String,String>)this.getItem(position);
+    		TextView label = (TextView)row.findViewById(R.id.media_el_name);
+    		label.setText(item.get("name"));
+
+    		if (item.containsKey("subfield1")) {
+    			label = (TextView)row.findViewById(R.id.media_el_subfield1);
+    			label.setText(item.get("subfield1"));
+    		}
+    		if (item.containsKey("subfield2")) {
+    			label = (TextView)row.findViewById(R.id.media_el_subfield2);
+    			label.setText(item.get("subfield2"));
+    		}
+
+    		if (!item.containsKey("playlink")) {
+    			row.findViewById(R.id.media_el_play).setVisibility(View.INVISIBLE);
+    		} else {
+    			Button button = (Button)row.findViewById(R.id.media_el_play);
+    			button.setOnClickListener(new View.OnClickListener() {
+
+    				@Override
+    				public void onClick(View v) {
+
+    					new Thread() {
+    						public void run() {
+    							try {
+    								Jinzora.sPbConnection.playbackBinding.playlist(item.get("playlink"), Jinzora.getAddType());
+    							} catch (Exception e) {
+    								Log.e("jinzora","Error playing media",e);
+    							}
+    						}
+    					}.start();
+    				}
+
+    			});
+    		}
+    		return row;  
+    	}
+
+    	public Map<String,String>getEntry(int pos) {
+    		if (this.getCount() <= pos ) return null;
+    		return (Map<String,String>)getItem(pos);
+    	}
+    	
+    	public String getEntryTitle(int pos) {
+    		if (this.getCount() <= pos ) return null;
+    		Map<String,String>item = (Map<String,String>)this.getItem(pos);
+    		return item.get("name");
+    	}
+    	
+    	public boolean isPlayable(int pos) {
+    		if (this.getCount() <= pos ) return false;
+    		Map<String,String>item = (Map<String,String>)this.getItem(pos);
+    		return item.containsKey("playlink");
+    	}
+    }
 }

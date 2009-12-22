@@ -435,7 +435,7 @@ class PlaylistAdapter extends ArrayAdapter<String> {
 		String item = getItem(pos);
 		int p = item.indexOf(" - ");
 		if (p > 0) {
-			return item.substring(0,p);
+			return item.substring(p+3);
 		}
 		return item;
 	}
