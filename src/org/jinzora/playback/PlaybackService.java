@@ -79,8 +79,8 @@ public class PlaybackService extends Service {
 		}
 		
 		@Override
-		public void playlist(String pl) throws RemoteException {
-			player.playlist(pl);
+		public void playlist(String pl, int addType) throws RemoteException {
+			player.playlist(pl, addType);
 			
 		}
 		
@@ -117,12 +117,6 @@ public class PlaybackService extends Service {
 		@Override
 		public void stop() throws RemoteException {
 			player.stop();
-			
-		}
-		
-		@Override
-		public void setAddType(int type) throws RemoteException {
-			player.setAddType(type);
 			
 		}
 		

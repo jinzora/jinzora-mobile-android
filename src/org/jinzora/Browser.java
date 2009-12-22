@@ -199,7 +199,9 @@ public class Browser extends ListActivity {
 					new Thread() {
 						public void run() {
 							try {
-								Jinzora.sPbConnection.playbackBinding.playlist(visibleEntries.get(position).get("playlink"));
+								Jinzora.sPbConnection.playbackBinding
+									.playlist(visibleEntries.get(position).get("playlink"),
+											  Jinzora.getAddType());
 							} catch (Exception e) {
 								Log.e("jinzora","Error playing media",e);
 							}
@@ -320,7 +322,7 @@ public class Browser extends ListActivity {
 					new Thread() {
 						public void run() {
 							try {
-								Jinzora.sPbConnection.playbackBinding.playlist(item.get("playlink"));
+								Jinzora.sPbConnection.playbackBinding.playlist(item.get("playlink"), Jinzora.getAddType());
 							} catch (Exception e) {
 								Log.e("jinzora","Error playing media",e);
 								}

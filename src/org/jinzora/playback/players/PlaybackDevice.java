@@ -17,7 +17,6 @@ import android.util.Log;
 
 public abstract class PlaybackDevice implements PlaybackInterface {
 	protected List<String> playlist = null;
-	protected int currentAddType;
 	
 	protected static final int ADD_REPLACE 	= 0;
 	protected static final int ADD_END 		= 1;
@@ -77,16 +76,8 @@ public abstract class PlaybackDevice implements PlaybackInterface {
 		// Devices don't need this method.
 	}
 	
-	public void setAddType(int type) {
-		currentAddType = type;
-	}
-	
-	public int getAddType() {
-		return currentAddType;
-	}
-	
-	public String getAddTypeString() {
-		switch (currentAddType) {
+	public String getAddTypeString(int addType) {
+		switch (addType) {
 		case 0:
 			return "REPLACE";
 		case 1:

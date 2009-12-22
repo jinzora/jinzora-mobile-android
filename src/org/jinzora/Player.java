@@ -1,23 +1,9 @@
 package org.jinzora;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Method;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jinzora.Jinzora.MenuItems;
-import org.jinzora.playback.PlaybackService;
-import org.jinzora.playback.PlaybackServiceConnection;
-import org.jinzora.playback.players.PlaybackDevice;
-
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.BroadcastReceiver;
@@ -35,21 +21,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.RelativeLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.AdapterView.OnItemLongClickListener;
-import android.widget.AdapterView.OnItemSelectedListener;
 
 public class Player extends ListActivity {
 	private static Map<Integer,String>jukeboxes = null;
 	private static int selectedPlaybackDevice = 0;
 	private static int selectedAddType = 0;
 	private static List<String[]> staticDeviceList;
-	private static String[] addTypes = {"Replace current playlist","End of list","After current track"};
 
 	PlaylistAdapter mPlaylistAdapter;
 	
@@ -65,33 +44,10 @@ public class Player extends ListActivity {
 		//staticDeviceList.add(new String[] { "http://prpl.stanford.edu/music/api.php?jb_id=quickbox&request=jukebox&user=prpl&pass=ppleaters","org.jinzora.playback.players.ForeignJukeboxDevice" });
 	}
 	
-	ArrayAdapter<String> addTypeAdapter;
-	DialogInterface.OnClickListener addTypeClickListener;
-	
-	
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		// Add-type Dialog
-		addTypeAdapter = new ArrayAdapter<String>(this,
-				android.R.layout.simple_spinner_dropdown_item,
-		        addTypes );
-		
-		addTypeClickListener = new DialogInterface.OnClickListener () {
-			@Override
-			public void onClick(DialogInterface dialog, int pos) {
-				if (pos == selectedAddType) return;
-				try {
-					Jinzora.sPbConnection.playbackBinding.setAddType(pos);
-					selectedAddType = pos;
-					dialog.dismiss();
-				} catch (Exception e) {
-					Log.e("jinzora","Error setting add-type",e);
-				}
-			}
-		};	
 		
 		
 		// Playlist 
@@ -405,41 +361,16 @@ public class Player extends ListActivity {
 		mPositionReceiver = null;
 	}
 	
-	@Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-    	Jinzora.createMenu(menu);
-    	
-    	menu.add(0,PlayerMenuItems.ADDWHERE,3,"Queue Mode")
-    	.setIcon(android.R.drawable.ic_menu_add)
-    	.setAlphabeticShortcut('a');
-    	
-    	return true;
-    }
-    
-    @Override
-    public boolean onMenuItemSelected(int featureId, MenuItem item) {
-    	
-    	if (item.getItemId() == PlayerMenuItems.ADDWHERE) {
-    		
-			AlertDialog dialog = 
-			new AlertDialog.Builder(this)
-				.setSingleChoiceItems(addTypeAdapter, selectedAddType, addTypeClickListener)
-				.setTitle(R.string.add_to)
-				.create();
-			
-			dialog.show();
-    		
-    		
-    	}
-    	
-    	Jinzora.menuItemSelected(featureId,item,this);
-    	return super.onMenuItemSelected(featureId, item);
-    }
-    
-    static class PlayerMenuItems {
-    	public static int ADDWHERE = 101;
-    	
-    }
+	 @Override
+	 public boolean onCreateOptionsMenu(Menu menu) {
+		 return Jinzora.createMenu(menu);
+	 }
+	    
+	 @Override
+	 public boolean onMenuItemSelected(int featureId, MenuItem item) {
+		 Jinzora.menuItemSelected(featureId,item,this);
+		 return super.onMenuItemSelected(featureId, item);
+	 }
 }
 
 

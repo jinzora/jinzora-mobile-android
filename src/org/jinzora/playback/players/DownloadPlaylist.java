@@ -95,7 +95,7 @@ public class DownloadPlaylist extends PlaybackDevice {
 		
 	}
 
-	public void playlist(String urlstr) {
+	public void playlist(String urlstr, int addType) {
 		try {
 			URL url = new URL(urlstr);
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();

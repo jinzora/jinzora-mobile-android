@@ -1,7 +1,7 @@
 package org.jinzora.playback;
 
 interface PlaybackInterface {
-	void playlist( in String pl );
+	void playlist( in String pl, in int addtype );
 	void pause();
 	void stop();
 	void prev();
@@ -11,7 +11,6 @@ interface PlaybackInterface {
 	void queueNext( in int pos );
 	void onDestroy();
 	void setBaseURL( in String url );
-	void setAddType(in int type);
 	void setPlaybackDevice( in String playerClass, in String arg );
 	
 	void onCallBegin();

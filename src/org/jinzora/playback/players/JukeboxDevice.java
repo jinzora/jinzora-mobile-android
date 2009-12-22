@@ -127,7 +127,7 @@ public class JukeboxDevice extends PlaybackDevice {
 	}
 
 	@Override
-	public void playlist(String urlstr) {
+	public void playlist(String urlstr, int currentAddType) {
 		try {
 			String addtype;
 			switch (currentAddType) {

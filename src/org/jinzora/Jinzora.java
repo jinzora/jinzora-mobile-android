@@ -23,9 +23,11 @@ import com.google.zxing.integration.IntentResult;
 import edu.stanford.prpl.junction.impl.AndroidJunctionMaker;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.TabActivity;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -35,13 +37,17 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
 import android.widget.TabHost;
 
 public class Jinzora extends TabActivity {
+	
+	
 	protected class MenuItems { 
 		final static int HOME = 1;
 		final static int QUIT = 2;
-		final static int SCAN = 3;	
+		final static int ADDWHERE = 3;
+		final static int SCAN = 4;
 	}
 	
 	protected class RequestCodes {
@@ -57,6 +63,25 @@ public class Jinzora extends TabActivity {
     public static PlaybackServiceConnection sPbConnection = new PlaybackServiceConnection();
 	//protected static PlaybackInterface playbackBinding;
 	
+    
+	private static String[] addTypes = {"Replace current playlist","End of list","After current track"};
+    private static int selectedAddType = 0;
+	private static DialogInterface.OnClickListener addTypeClickListener 
+		= new DialogInterface.OnClickListener () {
+			@Override
+			public void onClick(DialogInterface dialog, int pos) {
+				if (pos == selectedAddType) return;
+				try {
+					Jinzora.setAddType(pos);
+					selectedAddType = pos;
+					dialog.dismiss();
+				} catch (Exception e) {
+					Log.e("jinzora","Error setting add-type",e);
+				}
+			}
+		};
+    
+    
 	public static void resetBaseURL() {
 		baseurl = null;
 	}
@@ -66,6 +91,14 @@ public class Jinzora extends TabActivity {
     		setBaseURL(preferences);
     	}
 		return baseurl;
+	}
+	
+	public static void setAddType(int type) {
+		selectedAddType = type;
+	}
+	
+	public static int getAddType() {
+		return selectedAddType;
 	}
 	
 	private static void setBaseURL(SharedPreferences preferences) {
@@ -196,7 +229,12 @@ public class Jinzora extends TabActivity {
     	.setIcon(android.R.drawable.ic_menu_revert)
     	.setAlphabeticShortcut('h');
     	
-    	menu.add(0,MenuItems.QUIT,2,R.string.quit)
+    	menu.add(0,MenuItems.ADDWHERE,2,"Queue Mode")
+    	.setIcon(android.R.drawable.ic_menu_add)
+    	.setAlphabeticShortcut('a');
+    	
+    	
+    	menu.add(0,MenuItems.QUIT,3,R.string.quit)
     	.setIcon(android.R.drawable.ic_menu_close_clear_cancel)
     	.setAlphabeticShortcut('q');
     	
@@ -234,6 +272,21 @@ public class Jinzora extends TabActivity {
     		} catch (Exception e) {
     			
     		}
+    		break;
+    		
+    	case MenuItems.ADDWHERE:
+    		
+    		ArrayAdapter<String> addTypeAdapter = new ArrayAdapter<String>(activity,
+    				android.R.layout.simple_spinner_dropdown_item,
+    		        addTypes );
+    		
+    		AlertDialog dialog = 
+    			new AlertDialog.Builder(activity)
+    				.setSingleChoiceItems(addTypeAdapter, selectedAddType, addTypeClickListener)
+    				.setTitle(R.string.add_to)
+    				.create();
+    			
+    			dialog.show();
     		break;
     	}
     }
@@ -300,7 +353,7 @@ public class Jinzora extends TabActivity {
 	        		 eventType = xpp.next();
 	        		 
 	        		 // found a match; play it.
-	        		 sPbConnection.playbackBinding.playlist( xpp.getText() );
+	        		 sPbConnection.playbackBinding.playlist( xpp.getText(), Jinzora.getAddType() );
 	        		 return;
 	        	 }
 	        	 eventType = xpp.next();

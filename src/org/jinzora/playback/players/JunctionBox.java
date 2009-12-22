@@ -176,7 +176,7 @@ public class JunctionBox extends LocalDevice {
 	}
 	
 	@Override
-	public synchronized void playlist(String urlstr) {
+	public synchronized void playlist(String urlstr, int addType) {
 		try {
 			JSONArray tracklist = new JSONArray();
 			
@@ -223,7 +223,7 @@ public class JunctionBox extends LocalDevice {
 			
 			msg.put("action","playlist");
 			msg.put("playlist", tracklist);
-			msg.put("addtype", getAddTypeString());
+			msg.put("addtype", getAddTypeString(addType));
 			
 			mActor.getJunction().sendMessageToRole("jukebox", msg);
 			

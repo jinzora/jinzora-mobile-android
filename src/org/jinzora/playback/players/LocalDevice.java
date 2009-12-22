@@ -162,21 +162,21 @@ public class LocalDevice extends PlaybackDevice {
 		}
 	}
 
-	public synchronized void playlist(String urlstr) {
+	public synchronized void playlist(String urlstr, int addType) {
 		try {
 			URL url = new URL(urlstr);
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			InputStream inStream = conn.getInputStream();
 			conn.connect();
 			
-			if (currentAddType == ADD_REPLACE) {
+			if (addType == ADD_REPLACE) {
 				playlist = new ArrayList<String>();
 				trackNames = new ArrayList<String>();
 			}
 			
 			List<String> endList = new ArrayList<String>();
 			List<String> endListNames = new ArrayList<String>();
-			if (currentAddType == ADD_CURRENT) {
+			if (addType == ADD_CURRENT) {
 				while (playlist.size() > pos+1) {
 					endList.add(playlist.remove(pos+1));
 					endListNames.add(trackNames.remove(pos+1));
@@ -215,7 +215,7 @@ public class LocalDevice extends PlaybackDevice {
 			playlist.addAll(endList);
 			trackNames.addAll(endListNames);
 			
-			if (currentAddType == ADD_REPLACE || mp == null) {
+			if (addType == ADD_REPLACE || mp == null) {
 				jumpTo(0);
 			} else if (!mp.isPlaying()) {
 				jumpTo(pos);
