@@ -384,18 +384,18 @@ public class Browser extends ListActivity {
 
     	public Map<String,String>getEntry(int pos) {
     		if (this.getCount() <= pos ) return null;
-    		return (Map<String,String>)getItem(pos);
+    		return (Map<String,String>)visibleEntries.get(pos);
     	}
     	
     	public String getEntryTitle(int pos) {
     		if (this.getCount() <= pos ) return null;
-    		Map<String,String>item = (Map<String,String>)this.getItem(pos);
+    		Map<String,String>item = (Map<String,String>)visibleEntries.get(pos);
     		return item.get("name");
     	}
     	
     	public boolean isPlayable(int pos) {
     		if (this.getCount() <= pos ) return false;
-    		Map<String,String>item = (Map<String,String>)this.getItem(pos);
+    		Map<String,String>item = (Map<String,String>)visibleEntries.get(pos);
     		return item.containsKey("playlink");
     	}
     }
