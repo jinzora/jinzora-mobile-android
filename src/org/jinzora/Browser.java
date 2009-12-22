@@ -185,7 +185,7 @@ public class Browser extends ListActivity {
     		setContentView(R.layout.browse);
     		setListAdapter(mMediaAdapter);
 
-    		final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue list to end", "Queue list next" };
+    		final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next" };
     		((ListView)findViewById(android.R.id.list))
 				.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
 
