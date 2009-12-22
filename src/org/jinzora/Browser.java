@@ -286,9 +286,15 @@ public class Browser extends ListActivity {
 		}
 		
 		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {  
-			LayoutInflater inflater=LayoutInflater.from(context);  
-			View row=inflater.inflate(R.layout.media_element, null);
+		public View getView(int position, View convertView, ViewGroup parent) {
+			View row;
+			if (convertView == null) {
+				LayoutInflater inflater=LayoutInflater.from(context);
+				row=inflater.inflate(R.layout.media_element, null);
+			} else {
+				row = convertView;
+			}
+			  
 			final Map<String,String>item = (Map<String,String>)this.getItem(position);
 			TextView label = (TextView)row.findViewById(R.id.media_el_name);
 			label.setText(item.get("name"));

@@ -25,6 +25,8 @@ public abstract class PlaybackDevice implements PlaybackInterface {
 	
 	private boolean autopaused = false;
 	
+	protected int nextQueuedPos = -1;
+	
 	/**
 	 * Don't require our implementations to
 	 * implement this.
@@ -58,6 +60,11 @@ public abstract class PlaybackDevice implements PlaybackInterface {
 			}
 		}
 		autopaused=false;
+	}
+	
+	@Override
+	public void queueNext(int pos) throws RemoteException {
+		nextQueuedPos = pos;
 	}
 	
 	@Override

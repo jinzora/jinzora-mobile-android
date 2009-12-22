@@ -8,6 +8,7 @@ interface PlaybackInterface {
 	void next();
 	void clear();
 	void jumpTo( in int pos );
+	void queueNext( in int pos );
 	void onDestroy();
 	void setBaseURL( in String url );
 	void setAddType(in int type);

@@ -36,6 +36,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
@@ -100,7 +101,6 @@ public class Player extends ListActivity {
 		this.setContentView(R.layout.player);
 		setListAdapter(mPlaylistAdapter);
 		((ListView)findViewById(android.R.id.list)).setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
 			@Override
 			public void onItemClick(AdapterView<?> arg0, View arg1, int pos,
 					long arg3) {
@@ -110,11 +110,51 @@ public class Player extends ListActivity {
 				} catch (Exception e) {
 					Log.e("jinzora","Failed jumping in playlist",e);
 				}
-				
 			}
-			
 		});
 		
+		final CharSequence[] entryOptions = {"Play Now", "Play Next" /*, "Cut",*/ };
+		((ListView)findViewById(android.R.id.list))
+			.setOnItemLongClickListener(
+					new AdapterView.OnItemLongClickListener() {
+
+						@Override
+						public boolean onItemLongClick(AdapterView<?> parent,
+								View view, final int listPosition, long id) {
+
+							AlertDialog dialog =
+								new AlertDialog.Builder(Player.this)
+								.setTitle(mPlaylistAdapter.getItemName(listPosition))
+								.setItems(entryOptions, new AlertDialog.OnClickListener() {
+									
+									@Override
+									public void onClick(DialogInterface dialog, int entryPos) {
+										switch (entryPos) {
+										case 0:
+											try {
+												Jinzora.sPbConnection.playbackBinding.jumpTo(listPosition);
+											} catch (RemoteException e) {
+												Log.e("jinzora", "Failed to play track",e);
+											}
+											break;
+										case 1:
+											try {
+												Jinzora.sPbConnection.playbackBinding.queueNext(listPosition);
+											} catch (RemoteException e) {
+												Log.e("jinzora", "Failed to queue track",e);
+											}
+											break;
+										}
+									}
+								})
+								.create();
+							
+							dialog.show();
+							
+							return true;
+						}
+			
+					});
 		
 		// Buttons
 		
@@ -434,9 +474,13 @@ class PlaylistAdapter extends ArrayAdapter<String> {
 			((TextView)row.findViewById(R.id.entry_line1)).setText(entry);
 		}
 		
+		//ImageView iv = (ImageView)row.findViewById(R.id.play_indicator);
 		if (position == mPos) {
+			//iv.setVisibility(View.VISIBLE);
+			//iv.setImageResource(android.R.drawable.ic_media_play);
 			row.setBackgroundResource(R.color.now_playing);
 		} else {
+			//iv.setVisibility(View.GONE);
 			row.setBackgroundColor(R.color.playlist_entry);
 		}
 		return row;
@@ -454,5 +498,14 @@ class PlaylistAdapter extends ArrayAdapter<String> {
 		mPos=pos;
 		
 		notifyDataSetChanged();
+	}
+	
+	public String getItemName(int pos) {
+		String item = getItem(pos);
+		int p = item.indexOf(" - ");
+		if (p > 0) {
+			return item.substring(0,p);
+		}
+		return item;
 	}
 }

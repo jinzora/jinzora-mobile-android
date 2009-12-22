@@ -115,7 +115,12 @@ public class LocalDevice extends PlaybackDevice {
 
 	@Override
 	public synchronized void next() throws RemoteException {
-		if (++pos >= playlist.size()) {
+		if (nextQueuedPos >= 0) {
+			int i = nextQueuedPos;
+			nextQueuedPos = -1;
+			jumpTo(i);
+		}
+		else if (++pos >= playlist.size()) {
 			pos = 0;
 		} else {
 			jumpTo(pos);
