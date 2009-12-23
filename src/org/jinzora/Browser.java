@@ -200,28 +200,34 @@ public class Browser extends ListActivity {
 							.setItems(entryOptions, 
 									new AlertDialog.OnClickListener() {
 										@Override
-										public void onClick(DialogInterface dialog, int entryPos) {
-											try {
-												Map<String,String>item = mMediaAdapter.getEntry(listPosition);
-												switch (entryPos) {
-												case 0:
-													Intent share = new Intent("android.intent.action.SEND");
-													share.setType("audio/x-mpegurl")
-														.putExtra(Intent.EXTRA_TEXT, item.get("playlink"));
-													Browser.this
-														.startActivity(Intent.createChooser(share, "Share playlist..."));
-													break;
-												case 1:
-												case 2:
-												case 3:
-													Jinzora.sPbConnection
-														.playbackBinding
-														.playlist(item.get("playlink"), entryPos-1);
-													break;
-												}
-											} catch (Exception e) {
-												Log.e("jinzora","Error in longpress event",e);
-												dialog.dismiss();
+										public void onClick(final DialogInterface dialog, final int entryPos) {
+											final Map<String,String>item = mMediaAdapter.getEntry(listPosition);
+											switch (entryPos) {
+											case 0:
+												Intent share = new Intent("android.intent.action.SEND");
+												share.setType("audio/x-mpegurl")
+													.putExtra(Intent.EXTRA_TEXT, item.get("playlink"));
+												Browser.this
+													.startActivity(Intent.createChooser(share, "Share playlist..."));
+												break;
+											case 1:
+											case 2:
+											case 3:
+												new Thread() {
+													@Override
+													public void run() {
+														try {
+															Jinzora.sPbConnection
+															.playbackBinding
+															.playlist(item.get("playlink"), entryPos-1);
+														} catch (Exception e) {
+															Log.e("jinzora","Error in longpress event",e);
+														} finally {
+															dialog.dismiss();
+														}
+													}
+												}.start();
+												break;
 											}
 										}
 									}
