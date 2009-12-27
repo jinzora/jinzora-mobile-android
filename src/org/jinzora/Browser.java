@@ -54,19 +54,20 @@ public class Browser extends ListActivity {
 	   			return;
 	   		}
        }
-       doBrowsing();
 	}
 	
 	@Override
 	public void onResume() {
 		super.onResume();
 		if (browsing == null) {
+			Log.w("jinzora","should not see null browse link");
 			browsing = getHomeURL();
-			if (null != browsing) {
-				doBrowsing();
-			} else {
-				Log.w("jinzora","could not set browsing url");
-			}
+		}
+		
+		if (null != browsing) {
+			doBrowsing();
+		} else {
+			Log.w("jinzora","could not set browsing url");
 		}
 	}
 	

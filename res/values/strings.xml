@@ -28,4 +28,7 @@
 <string name="alert_dialog_cancel">Cancel</string>
 <string name="delete_profile">Delete profile?</string>
 <string name="jbfeatures">Player features...</string>
+
+<string name="search_label">Jinzora</string>
+<string name="search_hint">Search Jinzora</string>
 </resources>

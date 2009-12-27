@@ -24,6 +24,7 @@ import edu.stanford.prpl.junction.impl.AndroidJunctionMaker;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.SearchManager;
 import android.app.TabActivity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -34,6 +35,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.provider.SearchRecentSuggestions;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -48,6 +50,7 @@ public class Jinzora extends TabActivity {
 		final static int QUIT = 2;
 		final static int ADDWHERE = 3;
 		final static int SCAN = 4;
+		final static int SEARCH = 5;
 	}
 	
 	protected class RequestCodes {
@@ -173,6 +176,7 @@ public class Jinzora extends TabActivity {
         super.onCreate(savedInstanceState);
         
         try {
+        	setDefaultKeyMode(DEFAULT_KEYS_SEARCH_LOCAL);
         	
     		if (preferences == null) {
         		preferences = getSharedPreferences("main", 0);
@@ -189,8 +193,64 @@ public class Jinzora extends TabActivity {
 	        //icon.setImageResource(android.R.drawable.ic_menu_compass);
 	        
 	        Intent intBrowse = new Intent(this,Browser.class);
-	        if (getIntent() != null && getIntent().getExtras() != null)
+	        
+	        
+	        final Intent queryIntent = getIntent();
+	        final String queryAction = queryIntent.getAction();
+	        if (Intent.ACTION_SEARCH.equals(queryAction)) {
+	        	String queryString = queryIntent.getStringExtra(SearchManager.QUERY);
+	        	//Log.d("jinzora","got query " + queryString);
+	        	
+	        	
+	        	// Track history
+	        	SearchRecentSuggestions suggestions = new SearchRecentSuggestions(this, 
+	                    SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE);
+	            suggestions.saveRecentQuery(queryString, null);
+	            
+	        	
+	            // look for keywords
+	        	boolean quickplay=false;
+	        	if (queryString != null && queryString.startsWith("play ")) {
+	        		quickplay=true;
+	        		queryString=queryString.substring(5);
+	        	}
+	        	
+	        	// TODO: This does not work with the server search
+	        	// parameters. Format in a way that does, preferably using different fields.
+	        	//Log.d("jinzora","unformatted query: " + queryString);
+	        	if (queryString.contains(" by artist ")) {
+	        		queryString.replace(" by artist ", " @artist ");
+	        	} else if (queryString.contains(" artist ")) {
+	        		queryString.replace(" artist ", " @artist " );
+	        	} else if (queryString.startsWith("artist ")) {
+	        		queryString = "@artist " + queryString.substring(7);
+	        	} else if (queryString.contains(" by ")) {
+	        		queryString.replace(" by ", " @artist ");
+	        	}
+	        	
+	        	if (queryString.contains(" album ")) {
+	        		queryString.replace(" album ", " @album " );
+	        	} else if (queryString.startsWith("album ")) {
+	        		queryString = "@album " + queryString.substring(6);
+	        	}
+	        	
+	        	//Log.d("jinzora","reformatted query: " + queryString + " (quickplay " + quickplay + ")");
+	        	
+	            
+	            // Handle search
+	            
+	            // Quick search
+	            if (quickplay) {
+	            	this.quickplay(queryString);
+	            	finish();
+	            } else {
+		            // Open Browse activity
+		            intBrowse.putExtra(getPackageName()+".browse",
+		            		 			Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(queryString, "UTF-8"));
+	            }
+	        } else if (getIntent() != null && getIntent().getExtras() != null) {
 	        	intBrowse.putExtras(getIntent().getExtras());
+	        }
 
 	        host.addTab(host.newTabSpec("browse")
 	        		.setIndicator(getString(R.string.browser)/*,icon.getDrawable()*/)
@@ -233,6 +293,9 @@ public class Jinzora extends TabActivity {
     	.setIcon(android.R.drawable.ic_menu_add)
     	.setAlphabeticShortcut('a');
     	
+    	menu.add(0,MenuItems.SEARCH,3,R.string.search)
+    	.setIcon(android.R.drawable.ic_search_category_default)
+    	.setAlphabeticShortcut(SearchManager.MENU_KEY);
     	
     	menu.add(0,MenuItems.QUIT,3,R.string.quit)
     	.setIcon(android.R.drawable.ic_menu_close_clear_cancel)
@@ -287,6 +350,9 @@ public class Jinzora extends TabActivity {
     				.create();
     			
     			dialog.show();
+    		break;
+    	case MenuItems.SEARCH:
+    		activity.onSearchRequested();
     		break;
     	}
     }
@@ -364,5 +430,4 @@ public class Jinzora extends TabActivity {
 			Log.e("jinzora","Error during quicksearch",e);
 		}
 	}
-    
 }
