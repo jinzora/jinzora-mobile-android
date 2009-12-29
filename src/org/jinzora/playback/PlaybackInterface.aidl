@@ -19,6 +19,10 @@ interface PlaybackInterface {
 	List<String> getPlaylist();
 	int getPlaylistPos();
 	
+	// TODO: make Playable parcel and return it here and in getPlaylist()
+	String getArtistName();
+	String getTrackName();
+	
 	String playbackIPC ( in String input );
 	boolean isPlaying();
 }

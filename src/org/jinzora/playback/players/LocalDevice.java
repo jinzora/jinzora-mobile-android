@@ -27,18 +27,16 @@ import android.os.RemoteException;
 import android.util.Log;
 
 public class LocalDevice extends PlaybackDevice {
-	protected Service service;
+	protected PlaybackService mService;
 	protected MediaPlayer mp = null;
 	protected int pos;
 	protected List<String> trackNames;
 	
-	protected NotificationManager nm;
-	protected static final int NOTIFY_ID = R.layout.player;
 	protected static String UNKNOWN_TRACK = "Unknown Track";
 	
 	
 	public LocalDevice() {
-		this.service = PlaybackService.getInstance();
+		this.mService = PlaybackService.getInstance();
 		mp = new MediaPlayer();
 		
 		mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -56,7 +54,7 @@ public class LocalDevice extends PlaybackDevice {
 			@Override
 			public void onPrepared(MediaPlayer _mp) {
 				_mp.start();
-				notifyPlaying();
+				mService.notifyPlaying();
 			}
 		});
 		
@@ -82,7 +80,6 @@ public class LocalDevice extends PlaybackDevice {
 		trackNames = new ArrayList<String>();
 		
 		pos = 0;
-		nm = (NotificationManager) this.service.getSystemService(Service.NOTIFICATION_SERVICE);
 	}
 
 	private static LocalDevice instance = null;
@@ -93,8 +90,7 @@ public class LocalDevice extends PlaybackDevice {
 		return instance;
 	}
 	
-	public void onDestroy() {
-		nm.cancel(NOTIFY_ID);
+	public void onDestroy() {		
 		/*mp.stop();
 		mp.release();
 		mp = null;
@@ -110,7 +106,7 @@ public class LocalDevice extends PlaybackDevice {
 	public void clear() throws RemoteException {
 		playlist.clear();
 		mp.stop();
-		nm.cancel(NOTIFY_ID);
+		mService.notifyPaused();
 	}
 
 	@Override
@@ -131,11 +127,11 @@ public class LocalDevice extends PlaybackDevice {
 	public synchronized void pause() throws RemoteException {
 		if (!mp.isPlaying()) {
 			mp.start();
-			notifyPlaying();
+			mService.notifyPlaying();
 			
 		} else {
 			mp.pause();
-			notifyPaused();
+			mService.notifyPaused();
 		}
 	}
 
@@ -230,55 +226,13 @@ public class LocalDevice extends PlaybackDevice {
 	@Override
 	public void stop() throws RemoteException {
 		mp.stop();
-		nm.cancel(NOTIFY_ID);
+		mService.notifyPaused();
 	}
 
 	@Override
 	public IBinder asBinder() {
 		// TODO Auto-generated method stub
 		return null;
-	}
-	
-	protected void notifyPlaying() {
-		try {
-			/* Notification icon */
-			String notice = /*"Playing: " +*/ trackNames.get(pos);
-			Notification notification = new Notification(
-					android.R.drawable.ic_media_play, notice, System.currentTimeMillis());
-			PendingIntent pending = PendingIntent.getActivity(this.service, 0,
-	                								new Intent(this.service, Jinzora.class), 0);
-			notification.setLatestEventInfo(this.service, "Jinzora Mobile", notice, pending);
-			
-			nm.notify(NOTIFY_ID, notification);
-		} catch (Exception e) {
-			Log.w("jinzora","notification error",e);
-		}
-		
-		try {
-			/* Broadcast */
-			Intent positionIntent = new Intent("org.jinzora.playlist.pos");
-			positionIntent.putExtra("position", pos);
-			service.sendBroadcast(positionIntent);
-		} catch (Exception e) {
-			Log.w("jinzora","broadcast error",e);
-		}
-	}
-	
-	protected void notifyPaused() {
-		try {
-			nm.cancel(NOTIFY_ID);
-			/*
-			Notification notification = new Notification(
-					android.R.drawable.ic_media_pause, "Paused", System.currentTimeMillis());
-			PendingIntent pending = PendingIntent.getActivity(this.service, 0,
-	                								new Intent(this.service, Jinzora.class), 0);
-			notification.setLatestEventInfo(this.service, "Jinzora Mobile", "Paused", pending);
-			
-			nm.notify(NOTIFY_ID, notification);
-			*/
-		} catch (Exception e) {
-			Log.d("jinzora","notification error",e);
-		}
 	}
 
 	@Override
@@ -295,5 +249,25 @@ public class LocalDevice extends PlaybackDevice {
 	@Override
 	public int getPlaylistPos() throws RemoteException {
 		return pos;
+	}
+
+	@Override
+	public String getArtistName() throws RemoteException {
+		String entry = trackNames.get(pos);
+		if (entry.contains(" - ")) {
+			return entry.substring(0,entry.indexOf(" - "));
+		} else {
+			return null;
+		}
+	}
+
+	@Override
+	public String getTrackName() throws RemoteException {
+		String entry = trackNames.get(pos);
+		if (entry.contains(" - ")) {
+			return entry.substring(3+entry.indexOf(" - "));
+		} else {
+			return entry;
+		}
 	}
 }

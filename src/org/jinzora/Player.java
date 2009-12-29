@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.jinzora.playback.PlaybackService;
+
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.BroadcastReceiver;
@@ -129,6 +131,8 @@ public class Player extends ListActivity {
 				}.start();
 			}
 		});
+		
+		/* Could handle these buttons with broadcasted Intents as well. */
 		
 		this.findViewById(R.id.nextbutton).setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -348,7 +352,7 @@ public class Player extends ListActivity {
 			}
 		};	
 		
-		IntentFilter intentFilter = new IntentFilter("org.jinzora.playlist.pos");
+		IntentFilter intentFilter = new IntentFilter(PlaybackService.PLAYSTATE_CHANGED);
 		registerReceiver(mPositionReceiver, intentFilter);
 		
 	}

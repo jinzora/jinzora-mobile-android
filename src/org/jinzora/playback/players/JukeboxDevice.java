@@ -170,5 +170,17 @@ public class JukeboxDevice extends PlaybackDevice {
 	public int getPlaylistPos() throws RemoteException {
 		return -1;
 	}
+	
+	@Override
+	public String getArtistName() throws RemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public String getTrackName() throws RemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }

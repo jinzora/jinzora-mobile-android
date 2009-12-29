@@ -29,8 +29,8 @@
         <version>2.2.0</version>
         <configuration>
           <sdk>
-            <path>/usr/android/android-sdk</path>
-            <platform>1.5</platform>
+            <path>${env.ANDROID_SDK_15}</path>
+            <platform>1.6</platform>
           </sdk>
           <deleteConflictingFiles>true</deleteConflictingFiles>
         </configuration>
@@ -56,11 +56,14 @@
       <version>${android.version}</version>
       <scope>provided</scope>
     </dependency>
+    <!-- 
     <dependency>
       <groupId>edu.stanford.prpl.junction</groupId>
       <artifactId>AndroidJunction</artifactId>
       <version>0.4-SNAPSHOT</version>
     </dependency>
+     -->
+     
   </dependencies>
 
   <repositories>

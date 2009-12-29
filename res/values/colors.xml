@@ -1,3 +1,5 @@
-<resources><color name="now_playing">#A60000</color>
-<color name="playlist_entry">#000</color>
+<resources>
+	<color name="now_playing">#A60000</color>
+	<color name="playlist_entry">#000</color>
+	<color name="appwidget_text">#ffffffff</color>
 </resources>

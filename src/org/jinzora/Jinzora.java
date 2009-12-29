@@ -12,15 +12,12 @@ import java.security.MessageDigest;
 import org.jinzora.playback.PlaybackInterface;
 import org.jinzora.playback.PlaybackService;
 import org.jinzora.playback.PlaybackServiceConnection;
-import org.jinzora.playback.players.JunctionBox;
 import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import com.google.zxing.integration.IntentIntegrator;
 import com.google.zxing.integration.IntentResult;
-
-import edu.stanford.prpl.junction.impl.AndroidJunctionMaker;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -32,6 +29,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -176,6 +174,7 @@ public class Jinzora extends TabActivity {
         super.onCreate(savedInstanceState);
         
         try {
+        	setVolumeControlStream(AudioManager.STREAM_MUSIC);
         	setDefaultKeyMode(DEFAULT_KEYS_SEARCH_LOCAL);
         	
     		if (preferences == null) {
@@ -270,12 +269,14 @@ public class Jinzora extends TabActivity {
 	        		.setContent(new Intent(this, Preferences.class)));
 	        
 	       
+	        /*
 	        if (AndroidJunctionMaker.getInstance().isJoinable(this)) {
 	        	Log.d("jinzora","setting playback target from Junction");
 	        	this.sPbConnection.playbackBinding
 	        		.setPlaybackDevice(JunctionBox.class.getName(), 
 	        							AndroidJunctionMaker.getInstance().getInvitationForActivity(this).toString());
 	        }
+	        */
 	        
         } catch (Exception e) {
         	Log.e("jinzora", "error", e);
