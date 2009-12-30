@@ -42,6 +42,7 @@ public class Browser extends ListActivity {
 	private JzMediaAdapter visibleEntriesAdapter = null;
 	
 	protected static String browsing;
+	protected static LayoutInflater sInflater = null;
 	
 	Handler mAddEntriesHandler = new Handler() {
 		@Override
@@ -55,32 +56,14 @@ public class Browser extends ListActivity {
 	protected void onStart() {
 		super.onStart();
 		
-		if (null != getIntent().getStringExtra(getPackageName()+".browse")) {
-			// todo: get rid of this static.
-			browsing = getIntent().getStringExtra(getPackageName()+".browse");
-		} else {
-	   		browsing = getHomeURL();
-	   		if (null  == browsing) {
-	   			startActivity(new Intent(this, Preferences.class));
-	   			return;
-	   		}
-       }
+		
 	}
 	
 	
 	@Override
 	public void onResume() {
 		super.onResume();
-		if (browsing == null) {
-			Log.w("jinzora","should not see null browse link");
-			browsing = getHomeURL();
-		}
 		
-		if (null != browsing) {
-			doBrowsing();
-		} else {
-			Log.w("jinzora","could not set browsing url");
-		}
 	}
 	
 	
@@ -94,6 +77,18 @@ public class Browser extends ListActivity {
         
         allEntriesAdapter = new JzMediaAdapter(Browser.this);
         visibleEntriesAdapter = allEntriesAdapter;
+        
+        if (null != getIntent().getStringExtra(getPackageName()+".browse")) {
+			// todo: get rid of this static.
+			browsing = getIntent().getStringExtra(getPackageName()+".browse");
+		} else {
+	   		browsing = getHomeURL();
+	   		if (null  == browsing) {
+	   			startActivity(new Intent(this, Preferences.class));
+	   			return;
+	   		}
+       }
+        doBrowsing();
     }
     
     private String getHomeURL() {
@@ -343,6 +338,7 @@ public class Browser extends ListActivity {
     		}
     	}
     	
+    	Log.d("jinzora","trying to set new list of size " + newList.size());
     	visibleEntriesAdapter = new JzMediaAdapter(this, newList);
         setListAdapter(visibleEntriesAdapter);
     	return super.onKeyUp(keyCode,event);
@@ -378,8 +374,10 @@ public class Browser extends ListActivity {
     	public View getView(int position, View convertView, ViewGroup parent) {
     		View row;
     		if (convertView == null) {
-    			LayoutInflater inflater=LayoutInflater.from(context);
-    			row=inflater.inflate(R.layout.media_element, null);
+    			if (Browser.sInflater == null) {
+    				Browser.sInflater = LayoutInflater.from(context);
+    			}
+    			row=Browser.sInflater.inflate(R.layout.media_element, null);
     		} else {
     			row = convertView;
     		}

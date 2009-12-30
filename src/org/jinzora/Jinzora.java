@@ -171,9 +171,6 @@ public class Jinzora extends TabActivity {
         super.onCreate(savedInstanceState);
         
         try {
-        	setVolumeControlStream(AudioManager.STREAM_MUSIC);
-        	setDefaultKeyMode(DEFAULT_KEYS_SEARCH_LOCAL);
-        	
     		if (preferences == null) {
         		preferences = getSharedPreferences("main", 0);
         	}
