@@ -33,6 +33,7 @@ public class Preferences extends PreferenceActivity {
 	 @Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		Jinzora.initContext(this);
 		this.getPreferenceManager().setSharedPreferencesName("main");
 		addPreferencesFromResource(R.layout.preferences);
 	}

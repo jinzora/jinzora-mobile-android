@@ -18,7 +18,10 @@ import android.app.ListActivity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 
 import android.util.Log;
 import android.view.KeyEvent;
@@ -28,22 +31,30 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 public class Browser extends ListActivity {
-	private ArrayList<Map<String,String>> allEntries = new ArrayList<Map<String,String>>();
-	private ArrayList<Map<String,String>> visibleEntries = allEntries;
+	private JzMediaAdapter allEntriesAdapter = null;
+	private JzMediaAdapter visibleEntriesAdapter = null;
 	
 	protected static String browsing;
 	
-	protected JzMediaAdapter mMediaAdapter;
+	Handler mAddEntriesHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			allEntriesAdapter.add(msg.getData());
+		}
+	};
+	
 	
 	@Override
 	protected void onStart() {
 		super.onStart();
+		
 		if (null != getIntent().getStringExtra(getPackageName()+".browse")) {
 			// todo: get rid of this static.
 			browsing = getIntent().getStringExtra(getPackageName()+".browse");
@@ -55,6 +66,7 @@ public class Browser extends ListActivity {
 	   		}
        }
 	}
+	
 	
 	@Override
 	public void onResume() {
@@ -78,6 +90,10 @@ public class Browser extends ListActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Jinzora.initContext(this);
+        
+        allEntriesAdapter = new JzMediaAdapter(Browser.this);
+        visibleEntriesAdapter = allEntriesAdapter;
     }
     
     private String getHomeURL() {
@@ -91,7 +107,7 @@ public class Browser extends ListActivity {
 
     private void doBrowsing() {
     	try {
-    		allEntries.clear();
+    		allEntriesAdapter.clear();
     		XmlPullParser xpp;
     		InputStream inStream;
     		try {
@@ -107,84 +123,14 @@ public class Browser extends ListActivity {
     			xpp = factory.newPullParser();
     			xpp.setInput(inStream, conn.getContentEncoding());
     		} catch (Exception e) {
-
-        		JzMediaAdapter adapter = new JzMediaAdapter(this, new ArrayList<HashMap<String,String>>());
+        		JzMediaAdapter adapter = new JzMediaAdapter(this, new ArrayList<Bundle>());
         		setContentView(R.layout.browse);
         		setListAdapter(adapter);
-    			
     			return;
     		}
 
-
-    		int eventType = xpp.getEventType();
-    		while (eventType != XmlPullParser.END_DOCUMENT) {
-    			if(eventType == XmlPullParser.START_DOCUMENT) {
-
-    			} else if(eventType == XmlPullParser.END_DOCUMENT) {
-
-    			} else if(eventType == XmlPullParser.START_TAG && 
-    					(xpp.getName().equals("nodes") || xpp.getName().equals("browse") || xpp.getName().equals("tracks"))) {
-
-    				int depth = xpp.getDepth();
-    				xpp.next();
-
-    				Map<String,String> item = null;
-    				while (!(depth == xpp.getDepth() && eventType == XmlPullParser.END_TAG)) {	            	  
-    					if (depth+1 == xpp.getDepth() && eventType == XmlPullParser.START_TAG) {
-    						item = new HashMap<String,String>();
-    					} else if (depth+1 == xpp.getDepth() && eventType == XmlPullParser.END_TAG) {
-    						/*if (item.containsKey("album")) {
-	            			  item.put("subfield1", item.get("album"));
-	            			  if (item.containsKey("artist")) {
-	            				  item.put("subfield2",item.get("artist"));
-	            			  }
-	            		  } else*/ if (item.containsKey("artist")){
-	            			  item.put("subfield1", item.get("artist"));
-	            		  }
-
-	            		  allEntries.add(item);
-    					}
-
-    					if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("name")) {
-    						eventType = xpp.next();
-    						item.put("name", xpp.getText());	           			  
-    					}
-
-    					if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("artist")) {
-    						eventType = xpp.next();
-    						item.put("artist", xpp.getText());
-    					}
-
-    					if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("album")) {
-    						eventType = xpp.next();
-    						item.put("album", xpp.getText());
-    					}
-
-    					if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("playlink")) {
-    						eventType = xpp.next();
-    						item.put("playlink", xpp.getText());
-    					}
-
-    					if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("browse")) {
-    						eventType = xpp.next();
-    						item.put("browse",xpp.getText());
-    					}
-
-    					eventType = xpp.next();
-    				}
-    			} else if(eventType == XmlPullParser.END_TAG) {
-
-    			} else if(eventType == XmlPullParser.TEXT) {
-
-    			}
-    			eventType = xpp.next();
-    		}
-
-    		inStream.close();
-    		mMediaAdapter = new JzMediaAdapter(this, allEntries);
-
     		setContentView(R.layout.browse);
-    		setListAdapter(mMediaAdapter);
+    		setListAdapter(allEntriesAdapter);
 
     		final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next" };
     		((ListView)findViewById(android.R.id.list))
@@ -194,20 +140,20 @@ public class Browser extends ListActivity {
 					public boolean onItemLongClick(AdapterView<?> parent,
 							View view, final int listPosition, long id) {
 
-						if (!mMediaAdapter.isPlayable(listPosition)) return false;
+						if (!visibleEntriesAdapter.isPlayable(listPosition)) return false;
 						
 						new AlertDialog.Builder(Browser.this)
-							.setTitle(mMediaAdapter.getEntryTitle(listPosition))
+							.setTitle(visibleEntriesAdapter.getEntryTitle(listPosition))
 							.setItems(entryOptions, 
 									new AlertDialog.OnClickListener() {
 										@Override
 										public void onClick(final DialogInterface dialog, final int entryPos) {
-											final Map<String,String>item = mMediaAdapter.getEntry(listPosition);
+											final Bundle item = visibleEntriesAdapter.getEntry(listPosition);
 											switch (entryPos) {
 											case 0:
 												Intent share = new Intent("android.intent.action.SEND");
 												share.setType("audio/x-mpegurl")
-													.putExtra(Intent.EXTRA_TEXT, item.get("playlink"));
+													.putExtra(Intent.EXTRA_TEXT, item.getString("playlink"));
 												Browser.this
 													.startActivity(Intent.createChooser(share, "Share playlist..."));
 												break;
@@ -220,7 +166,7 @@ public class Browser extends ListActivity {
 														try {
 															Jinzora.sPbConnection
 															.playbackBinding
-															.playlist(item.get("playlink"), entryPos-1);
+															.playlist(item.getString("playlink"), entryPos-1);
 														} catch (Exception e) {
 															Log.e("jinzora","Error in longpress event",e);
 														} finally {
@@ -240,23 +186,108 @@ public class Browser extends ListActivity {
 					
 				});
 
+    		populateList(xpp, inStream);
+    		
     	} catch (Exception e) {
     		Log.e("jinzora", "error", e);
     	}
     }
 
     
+    public void populateList(final XmlPullParser xpp, final InputStream inStream) {
+    	new Thread() {
+    		@Override
+			public void run() {
+				try {
+					int eventType = xpp.getEventType();
+					while (eventType != XmlPullParser.END_DOCUMENT) {
+						if(eventType == XmlPullParser.START_DOCUMENT) {
+			
+						} else if(eventType == XmlPullParser.END_DOCUMENT) {
+			
+						} else if(eventType == XmlPullParser.START_TAG && 
+								(xpp.getName().equals("nodes") || xpp.getName().equals("browse") || xpp.getName().equals("tracks"))) {
+			
+							int depth = xpp.getDepth();
+							xpp.next();
+			
+							Bundle item = null;
+							while (!(depth == xpp.getDepth() && eventType == XmlPullParser.END_TAG)) {	            	  
+								if (depth+1 == xpp.getDepth() && eventType == XmlPullParser.START_TAG) {
+									item = new Bundle();
+								} else if (depth+1 == xpp.getDepth() && eventType == XmlPullParser.END_TAG) {
+									/*if (item.containsKey("album")) {
+			            			  item.put("subfield1", item.get("album"));
+			            			  if (item.containsKey("artist")) {
+			            				  item.put("subfield2",item.get("artist"));
+			            			  }
+			            		  } else*/ if (item.containsKey("artist")){
+			            			  item.putString("subfield1", item.getString("artist"));
+			            		  }
+			
+			            		  Message m = mAddEntriesHandler.obtainMessage();
+			            		  m.setData(item);
+			            		  mAddEntriesHandler.sendMessage(m);
+								}
+			
+								if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("name")) {
+									eventType = xpp.next();
+									item.putString("name", xpp.getText());	           			  
+								}
+			
+								if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("artist")) {
+									eventType = xpp.next();
+									item.putString("artist", xpp.getText());
+								}
+			
+								if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("album")) {
+									eventType = xpp.next();
+									item.putString("album", xpp.getText());
+								}
+			
+								if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("playlink")) {
+									eventType = xpp.next();
+									item.putString("playlink", xpp.getText());
+								}
+			
+								if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("browse")) {
+									eventType = xpp.next();
+									item.putString("browse",xpp.getText());
+								}
+			
+								eventType = xpp.next();
+							}
+						} else if(eventType == XmlPullParser.END_TAG) {
+			
+						} else if(eventType == XmlPullParser.TEXT) {
+			
+						}
+						eventType = xpp.next();
+					}
+				} catch (Exception e) {
+					Log.e("jinzora","Error processing XML",e);
+				} finally {
+					try {
+						inStream.close();
+					} catch (Exception e) {}
+				}
+    		}
+    	}.start();
+    }
+    
+    
+    
     @Override
     public void onListItemClick(ListView l, View v, final int position, long id) {
     	try {
     		String mBrowse = null;
-    		if (null == (mBrowse = visibleEntries.get(position).get("browse"))) {
-    			if (visibleEntries.get(position).containsKey("playlink")) {
+    		if (null == (mBrowse = visibleEntriesAdapter.getItem(position).getString("browse"))) {
+    			if (visibleEntriesAdapter.getItem(position).containsKey("playlink")) {
 					new Thread() {
 						public void run() {
 							try {
 								Jinzora.sPbConnection.playbackBinding
-									.playlist(visibleEntries.get(position).get("playlink"),
+									.playlist(visibleEntriesAdapter.getItem(position).getString("playlink"),
 											  Jinzora.getAddType());
 							} catch (Exception e) {
 								Log.e("jinzora","Error playing media",e);
@@ -281,21 +312,20 @@ public class Browser extends ListActivity {
     private String query = "";
     @Override
     public synchronized boolean onKeyUp(int keyCode, android.view.KeyEvent event) {
-    	ArrayList<Map<String,String>> workingEntries;
+    	JzMediaAdapter workingEntries;
     	char c;
     	if ('\0' != (c = event.getMatch("ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ".toCharArray()))) {
     		query = query + c;
-    		workingEntries = visibleEntries;
+    		workingEntries = visibleEntriesAdapter;
     	} else if (keyCode == KeyEvent.KEYCODE_DEL) {
     		if (query.length() > 0) {
     			query = query.substring(0, query.length()-1);
     			if (query.length() == 0) {
-        			visibleEntries = allEntries;
-        			JzMediaAdapter adapter = new JzMediaAdapter(this, visibleEntries);
-        	        setListAdapter(adapter);
+    				visibleEntriesAdapter = allEntriesAdapter;
+        	        setListAdapter(allEntriesAdapter);
         	    	return super.onKeyUp(keyCode,event);
         		}
-    			workingEntries = allEntries;
+    			workingEntries = allEntriesAdapter;
     		} else {
     			return super.onKeyUp(keyCode,event);
     		}
@@ -305,16 +335,16 @@ public class Browser extends ListActivity {
     	
     	//TODO: support caching in the case of deletions?
     	// (as long as it doesn't use too much memory)
-    	ArrayList<Map<String,String>> newList = new ArrayList<Map<String,String>>();
-    	for (int i = 0; i < workingEntries.size(); i++) {
-    		if (workingEntries.get(i).get("name").toUpperCase().contains(query)) {
-    			newList.add(workingEntries.get(i));
+    	int count = workingEntries.getCount();
+    	ArrayList<Bundle> newList = new ArrayList<Bundle>();
+    	for (int i = 0; i < count; i++) {
+    		if (workingEntries.getItem(i).getString("name").toUpperCase().contains(query)) {
+    			newList.add(workingEntries.getItem(i));
     		}
     	}
-    	visibleEntries= newList;
     	
-    	JzMediaAdapter adapter = new JzMediaAdapter(this, visibleEntries);
-        setListAdapter(adapter);
+    	visibleEntriesAdapter = new JzMediaAdapter(this, newList);
+        setListAdapter(visibleEntriesAdapter);
     	return super.onKeyUp(keyCode,event);
     }
     
@@ -333,12 +363,15 @@ public class Browser extends ListActivity {
     	browsing=null;
     }
     
-
-    class JzMediaAdapter extends SimpleAdapter {
+    class JzMediaAdapter extends ArrayAdapter<Bundle> {
     	Browser context;
-    	public JzMediaAdapter(Browser context, List<? extends Map<String, ?>> data) {
-    		super(context, data, R.layout.media_element, null, null);
+    	public JzMediaAdapter(Browser context) {
+    		super(context, R.layout.media_element);
     		this.context=context;
+    	}
+    	
+    	public JzMediaAdapter(Browser context, List<Bundle>data) {
+    		super(context,R.layout.media_element,data);
     	}
 
     	@Override
@@ -351,17 +384,17 @@ public class Browser extends ListActivity {
     			row = convertView;
     		}
 
-    		final Map<String,String>item = (Map<String,String>)this.getItem(position);
+    		final Bundle item = (Bundle)this.getItem(position);
     		TextView label = (TextView)row.findViewById(R.id.media_el_name);
-    		label.setText(item.get("name"));
+    		label.setText(item.getString("name"));
 
     		if (item.containsKey("subfield1")) {
     			label = (TextView)row.findViewById(R.id.media_el_subfield1);
-    			label.setText(item.get("subfield1"));
+    			label.setText(item.getString("subfield1"));
     		}
     		if (item.containsKey("subfield2")) {
     			label = (TextView)row.findViewById(R.id.media_el_subfield2);
-    			label.setText(item.get("subfield2"));
+    			label.setText(item.getString("subfield2"));
     		}
 
     		if (!item.containsKey("playlink")) {
@@ -376,7 +409,7 @@ public class Browser extends ListActivity {
     					new Thread() {
     						public void run() {
     							try {
-    								Jinzora.sPbConnection.playbackBinding.playlist(item.get("playlink"), Jinzora.getAddType());
+    								Jinzora.sPbConnection.playbackBinding.playlist(item.getString("playlink"), Jinzora.getAddType());
     							} catch (Exception e) {
     								Log.e("jinzora","Error playing media",e);
     							}
@@ -389,20 +422,20 @@ public class Browser extends ListActivity {
     		return row;  
     	}
 
-    	public Map<String,String>getEntry(int pos) {
+    	public Bundle getEntry(int pos) {
     		if (this.getCount() <= pos ) return null;
-    		return (Map<String,String>)visibleEntries.get(pos);
+    		return (Bundle)visibleEntriesAdapter.getItem(pos);
     	}
     	
     	public String getEntryTitle(int pos) {
     		if (this.getCount() <= pos ) return null;
-    		Map<String,String>item = (Map<String,String>)visibleEntries.get(pos);
-    		return item.get("name");
+    		Bundle item = (Bundle)visibleEntriesAdapter.getItem(pos);
+    		return item.getString("name");
     	}
     	
     	public boolean isPlayable(int pos) {
     		if (this.getCount() <= pos ) return false;
-    		Map<String,String>item = (Map<String,String>)visibleEntries.get(pos);
+    		Bundle item = (Bundle)visibleEntriesAdapter.getItem(pos);
     		return item.containsKey("playlink");
     	}
     }

@@ -24,11 +24,25 @@ import android.widget.EditText;
 
 
 public class Search extends Activity {
+	private PlaybackServiceConnection sPbConnection = new PlaybackServiceConnection();
+	
+	@Override
+	protected void onStart() {
+		super.onStart();
+		
+		bindService(new Intent(this,PlaybackService.class), sPbConnection, Context.BIND_AUTO_CREATE);
+	}
+	
+	@Override
+	protected void onStop() {
+		super.onStop();
+		unbindService(sPbConnection);
+	}
 	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+        Jinzora.initContext(this);
         try {
         	setContentView(R.layout.search);
         	
@@ -137,7 +151,7 @@ public class Search extends Activity {
 	        		 eventType = xpp.next();
 	        		 
 	        		 // found a match; play it.
-	        		 Jinzora.sPbConnection.playbackBinding.playlist( xpp.getText(), Jinzora.getAddType() );
+	        		 sPbConnection.playbackBinding.playlist( xpp.getText(), Jinzora.getAddType() );
 	        		 return;
 	        	 }
 	        	 eventType = xpp.next();

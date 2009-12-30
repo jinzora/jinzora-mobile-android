@@ -55,16 +55,13 @@ public class Jinzora extends TabActivity {
 		final static int SCAN_EVENT = 0;
 	}
 	
-	private static int instanceCount = 0;
 	private static Jinzora instance = null;
 	private static SharedPreferences preferences = null;
 	private static String baseurl;
 	
 	private static boolean sServiceStarted = false;
     public static PlaybackServiceConnection sPbConnection = new PlaybackServiceConnection();
-	//protected static PlaybackInterface playbackBinding;
 	
-    
 	private static String[] addTypes = {"Replace current playlist","End of list","After current track"};
     private static int selectedAddType = 0;
 	private static DialogInterface.OnClickListener addTypeClickListener 
@@ -142,6 +139,19 @@ public class Jinzora extends TabActivity {
 	}
 	
 	@Override
+	public void onResume() {
+		super.onResume();
+		Intent bindIntent = new Intent(this,PlaybackService.class);
+		bindService(bindIntent,sPbConnection,BIND_AUTO_CREATE);
+	}
+	
+	@Override
+	protected void onPause() {
+		super.onPause();
+		unbindService(sPbConnection);
+	}
+	
+	@Override
 	protected void onStart() {
 		super.onStart();
 		
@@ -152,20 +162,7 @@ public class Jinzora extends TabActivity {
     	}
 		
 		instance = this;
-		instanceCount++;
-		
-		this.bindService(new Intent(this,PlaybackService.class), sPbConnection, Context.BIND_AUTO_CREATE);
 		//playbackBinding = sPbConnection.playbackBinding;
-	}
-	
-	@Override
-	protected void onStop() {
-		super.onStop();
-		instanceCount--;
-		if (instanceCount <= 0) {
-			this.unbindService(sPbConnection);
-			//playbackBinding = null;
-		}
 	}
 	
     /** Called when the activity is first created. */
@@ -284,6 +281,9 @@ public class Jinzora extends TabActivity {
         
     }    
 
+    protected static void initContext(Activity activity) {
+    	activity.setVolumeControlStream(AudioManager.STREAM_MUSIC);
+    }
     
     protected static boolean createMenu(Menu menu) {
     	menu.add(0,MenuItems.HOME,1,R.string.home)
@@ -315,7 +315,11 @@ public class Jinzora extends TabActivity {
     	switch (item.getItemId()) {
     	case MenuItems.HOME:
     		Browser.clearBrowsing();
-    		instance.startActivity(new Intent(instance,Jinzora.class));
+    		Intent goHome = 
+    			new Intent(instance,Jinzora.class);
+    					//.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    					//.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    		instance.startActivity(goHome);
     		break;
     		
     	case MenuItems.SCAN:
@@ -325,8 +329,6 @@ public class Jinzora extends TabActivity {
     	case MenuItems.QUIT:
     		try {
     			Browser.clearBrowsing();
-    			instanceCount=0;
-    			
     			
     			Intent etphonehome = new Intent(Intent.ACTION_MAIN);
     			etphonehome.addCategory(Intent.CATEGORY_HOME);

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.jinzora.playback.PlaybackService;
+import org.jinzora.playback.PlaybackServiceConnection;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
@@ -31,7 +32,7 @@ public class Player extends ListActivity {
 	private static int selectedPlaybackDevice = 0;
 	private static int selectedAddType = 0;
 	private static List<String[]> staticDeviceList;
-
+	
 	PlaylistAdapter mPlaylistAdapter;
 	
 	BroadcastReceiver mPositionReceiver;
@@ -45,12 +46,11 @@ public class Player extends ListActivity {
 		//staticDeviceList.add(new String[] { "Pocket Jukebox 2","org.jinzora.playback.players.JukeboxReceiver" });
 		//staticDeviceList.add(new String[] { "http://prpl.stanford.edu/music/api.php?jb_id=quickbox&request=jukebox&user=prpl&pass=ppleaters","org.jinzora.playback.players.ForeignJukeboxDevice" });
 	}
-	
-	
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+		Jinzora.initContext(this);
 		
 		// Playlist 
 		

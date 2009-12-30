@@ -27,6 +27,7 @@ public class PlaybackServiceConnection implements ServiceConnection {
 	// service connection methods
 	
 	public synchronized void onServiceConnected(ComponentName className, IBinder service) {
+		
 		if (playbackBinding == null) {
 			Log.d("jinzora","playback interface is null; creating instance.");
 			playbackBinding = PlaybackInterface.Stub.asInterface((IBinder)service);
