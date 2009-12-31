@@ -43,11 +43,17 @@ public class Browser extends ListActivity {
 	
 	protected static String browsing;
 	protected static LayoutInflater sInflater = null;
+	private String curQuery = "";
 	
 	Handler mAddEntriesHandler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
 			allEntriesAdapter.add(msg.getData());
+			if (allEntriesAdapter != visibleEntriesAdapter) {
+				if (matchesFilter(msg.getData().getString("name"))) {
+					visibleEntriesAdapter.add(msg.getData());
+				}
+			}
 		}
 	};
 	
@@ -304,18 +310,21 @@ public class Browser extends ListActivity {
     
     }
     
-    private String query = "";
+    private boolean matchesFilter(String entry) {
+    	return curQuery.length() == 0 || entry.toUpperCase().contains(curQuery);
+    }
+    
     @Override
     public synchronized boolean onKeyUp(int keyCode, android.view.KeyEvent event) {
     	JzMediaAdapter workingEntries;
     	char c;
     	if ('\0' != (c = event.getMatch("ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ".toCharArray()))) {
-    		query = query + c;
+    		curQuery = curQuery + c;
     		workingEntries = visibleEntriesAdapter;
     	} else if (keyCode == KeyEvent.KEYCODE_DEL) {
-    		if (query.length() > 0) {
-    			query = query.substring(0, query.length()-1);
-    			if (query.length() == 0) {
+    		if (curQuery.length() > 0) {
+    			curQuery = curQuery.substring(0, curQuery.length()-1);
+    			if (curQuery.length() == 0) {
     				visibleEntriesAdapter = allEntriesAdapter;
         	        setListAdapter(allEntriesAdapter);
         	    	return super.onKeyUp(keyCode,event);
@@ -333,7 +342,7 @@ public class Browser extends ListActivity {
     	int count = workingEntries.getCount();
     	ArrayList<Bundle> newList = new ArrayList<Bundle>();
     	for (int i = 0; i < count; i++) {
-    		if (workingEntries.getItem(i).getString("name").toUpperCase().contains(query)) {
+    		if (matchesFilter(workingEntries.getItem(i).getString("name"))) {
     			newList.add(workingEntries.getItem(i));
     		}
     	}
