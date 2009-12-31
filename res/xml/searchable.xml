@@ -4,5 +4,6 @@
      android:searchSuggestAuthority="org.jinzora"
      android:voiceSearchMode="launchRecognizer|showVoiceSearchButton"
      android:searchSuggestSelection=" ? "
+     android:includeInGlobalSearch="true"
      >
  </searchable>
