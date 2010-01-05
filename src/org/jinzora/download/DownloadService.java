@@ -170,6 +170,11 @@ public class DownloadService extends Service {
 		        File dlFile = new File(dlDir, dlName);
 		        tempFile.renameTo(dlFile);
 		        MediaScannerNotifier.scan(DownloadService.this, dlFile.getAbsolutePath(), null);
+		        
+		        try {
+		        	// Otherwise, every other download fails (BJD 1/4/10)
+		        	Thread.sleep(1500);
+		        } catch (Exception e) {}
 			} catch (Exception e) {
 				Log.e("jinzora","failed to download file " + dlURL.toExternalForm(),e);
 			}
