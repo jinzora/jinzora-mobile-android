@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.jinzora.download.DownloadServiceConnection;
 import org.jinzora.playback.PlaybackService;
 import org.jinzora.playback.PlaybackServiceConnection;
 import org.xmlpull.v1.XmlPullParser;
@@ -133,7 +134,7 @@ public class Browser extends ListActivity {
     		setContentView(R.layout.browse);
     		setListAdapter(allEntriesAdapter);
 
-    		final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next" };
+    		final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next", "Download to device" };
     		((ListView)findViewById(android.R.id.list))
 				.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
 
@@ -152,6 +153,7 @@ public class Browser extends ListActivity {
 											final Bundle item = visibleEntriesAdapter.getEntry(listPosition);
 											switch (entryPos) {
 											case 0:
+												// Share
 												Intent share = new Intent("android.intent.action.SEND");
 												share.setType("audio/x-mpegurl")
 													.putExtra(Intent.EXTRA_TEXT, item.getString("playlink"));
@@ -161,6 +163,7 @@ public class Browser extends ListActivity {
 											case 1:
 											case 2:
 											case 3:
+												// Play, Queue
 												new Thread() {
 													@Override
 													public void run() {
@@ -176,6 +179,17 @@ public class Browser extends ListActivity {
 													}
 												}.start();
 												break;
+											case 4:
+												// Download to device
+												try {
+													Jinzora
+													  .sDlConnection
+													  .getBinding()
+													  .downloadPlaylist(item.getString("playlink"));
+												} catch (Exception e) {
+													Log.d("jinzora","Error downloading playlist",e);
+												}
+												// Add menu entry
 											}
 										}
 									}

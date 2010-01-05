@@ -9,6 +9,8 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 
+import org.jinzora.download.DownloadService;
+import org.jinzora.download.DownloadServiceConnection;
 import org.jinzora.playback.PlaybackInterface;
 import org.jinzora.playback.PlaybackService;
 import org.jinzora.playback.PlaybackServiceConnection;
@@ -61,6 +63,7 @@ public class Jinzora extends TabActivity {
 	
 	private static boolean sServiceStarted = false;
     public static PlaybackServiceConnection sPbConnection = new PlaybackServiceConnection();
+    public static DownloadServiceConnection sDlConnection = new DownloadServiceConnection();
 	
 	private static String[] addTypes = {"Replace current playlist","End of list","After current track"};
     private static int selectedAddType = 0;
@@ -141,14 +144,20 @@ public class Jinzora extends TabActivity {
 	@Override
 	public void onResume() {
 		super.onResume();
+		
 		Intent bindIntent = new Intent(this,PlaybackService.class);
-		bindService(bindIntent,sPbConnection,BIND_AUTO_CREATE);
+		bindService(bindIntent,sPbConnection,0);
+		
+		bindIntent = new Intent(this,DownloadService.class);
+		bindService(bindIntent,sDlConnection,0);
 	}
 	
 	@Override
 	protected void onPause() {
 		super.onPause();
+		
 		unbindService(sPbConnection);
+		unbindService(sDlConnection);
 	}
 	
 	@Override
@@ -158,6 +167,8 @@ public class Jinzora extends TabActivity {
 		/* Start the playback service */
     	if (!sServiceStarted) {
     		startService(new Intent(this, PlaybackService.class));
+    		startService(new Intent(this, DownloadService.class));
+    		
     		sServiceStarted = true;
     	}
 		
