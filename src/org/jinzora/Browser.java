@@ -412,10 +412,16 @@ public class Browser extends ListActivity {
     		if (item.containsKey("subfield1")) {
     			label = (TextView)row.findViewById(R.id.media_el_subfield1);
     			label.setText(item.getString("subfield1"));
+    		} else {
+    			label = (TextView)row.findViewById(R.id.media_el_subfield1);
+    			label.setText("");
     		}
     		if (item.containsKey("subfield2")) {
     			label = (TextView)row.findViewById(R.id.media_el_subfield2);
     			label.setText(item.getString("subfield2"));
+    		} else {
+    			label = (TextView)row.findViewById(R.id.media_el_subfield2);
+    			label.setText("");
     		}
 
     		if (!item.containsKey("playlink")) {
