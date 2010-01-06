@@ -44,6 +44,15 @@
     android:layout_height="wrap_content"
     android:drawableTop="@+android:drawable/ic_media_next"
 />
+
+<!-- 
+<Button android:id="@+id/clearbutton" 
+	 	android:text="@+string/clear"
+		android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:drawableTop="@+android:drawable/ic_delete"
+/>
+ -->
 </LinearLayout>
 
 

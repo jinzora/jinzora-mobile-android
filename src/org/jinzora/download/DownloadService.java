@@ -21,6 +21,8 @@ import android.util.Log;
 import android.widget.Toast;
 
 public class DownloadService extends Service {
+	public static final String UPDATE_DOWNLOAD_LIST = "org.jinzora.dllistupdated";
+	
 	LinkedList<String>downloadLabels;
 	LinkedList<URL>downloadURLs;
 	
@@ -70,15 +72,21 @@ public class DownloadService extends Service {
 									    } else {
 									    	trackname = UNKNOWN_TRACK;
 									    }
-									    
+									    Log.d("jinzora","adding a track to dl list");
 									    synchronized(mBinder) {
 										    downloadLabels.add(trackname);
 										    downloadURLs.add(track);
 										    
-										    mBinder.notifyAll();
+										    //mBinder.notifyAll();
 									    }
-									    doDownload();
-									   
+									    
+									    if (!amDownloading) {
+										    new Thread() {
+										    	public void run() {
+										    		doDownload();		
+										    	};
+										    }.start();
+									    }
 									} catch (Exception e) {
 										// probably a comment line
 									}
@@ -136,6 +144,7 @@ public class DownloadService extends Service {
 		
 		while (downloadURLs.size() > 0) {
 			URL dlURL = downloadURLs.get(0);
+			
 			String dlName = downloadLabels.get(0)+".mp3"; // TODO: fix extension; better file name choice.
 			//String dlMimeType = "audio/mpeg"; // TODO: read from headers
 			
@@ -166,8 +175,25 @@ public class DownloadService extends Service {
 		        }
 		        in.close();
 		        out.close();
+		       
+				// TODO: Send proper playlist with album/artist/track/num info to better name file.
+		        File dlFile = null;
+		        if (dlName.contains(" - ")) {
+					int p = dlName.indexOf(" - ");
+					String artist = dlName.substring(0,p);
+					String track = dlName.substring(p+3);
+					dlFile = new File(dlDir, artist);
+					if (!dlFile.exists()) {
+						boolean res = dlFile.mkdir();
+						if (!res) {
+							throw new Exception("Could not create directory " + dlFile.getAbsolutePath());
+						}
+					}
+					dlFile = new File(dlFile,track);
+				} else {
+					dlFile = new File(dlDir, dlName);
+				}
 		        
-		        File dlFile = new File(dlDir, dlName);
 		        tempFile.renameTo(dlFile);
 		        MediaScannerNotifier.scan(DownloadService.this, dlFile.getAbsolutePath(), null);
 		        
@@ -185,6 +211,9 @@ public class DownloadService extends Service {
 				
 				mBinder.notifyAll();
 			}
+			
+			Intent notify = new Intent(UPDATE_DOWNLOAD_LIST);
+			sendBroadcast(notify);
 			
 		}
 

@@ -9,6 +9,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 
+import org.jinzora.download.DownloadActivity;
 import org.jinzora.download.DownloadService;
 import org.jinzora.download.DownloadServiceConnection;
 import org.jinzora.playback.PlaybackInterface;
@@ -51,6 +52,7 @@ public class Jinzora extends TabActivity {
 		final static int ADDWHERE = 3;
 		final static int SCAN = 4;
 		final static int SEARCH = 5;
+		final static int DOWNLOADS = 6;
 	}
 	
 	protected class RequestCodes {
@@ -306,7 +308,12 @@ public class Jinzora extends TabActivity {
     	.setIcon(android.R.drawable.ic_search_category_default)
     	.setAlphabeticShortcut(SearchManager.MENU_KEY);
     	
-    	menu.add(0,MenuItems.QUIT,3,R.string.quit)
+    	menu.add(0,MenuItems.DOWNLOADS,4,R.string.downloads)
+    	.setIcon(android.R.drawable.ic_menu_save)
+    	.setAlphabeticShortcut('d');
+    	
+    	
+    	menu.add(0,MenuItems.QUIT,5,R.string.quit)
     	.setIcon(android.R.drawable.ic_menu_close_clear_cancel)
     	.setAlphabeticShortcut('q');
     	
@@ -364,6 +371,10 @@ public class Jinzora extends TabActivity {
     		break;
     	case MenuItems.SEARCH:
     		activity.onSearchRequested();
+    		break;
+    	case MenuItems.DOWNLOADS:
+    		Intent dlLaunch = new Intent(activity,DownloadActivity.class);
+    		activity.startActivity(dlLaunch);
     		break;
     	}
     }
