@@ -170,8 +170,9 @@ public class PlaybackService extends Service {
 			PendingIntent pending = PendingIntent.getActivity(this, 0,
 	                								new Intent(this, Jinzora.class), 0);
 			notification.setLatestEventInfo(this, "Jinzora Mobile", notice, pending);
-			
+			notification.flags |= Notification.FLAG_ONGOING_EVENT;
 			nm.notify(NOTIFY_ID, notification);
+			//startForeground(NOTIFY_ID,notification); // API level 5
 		} catch (Exception e) {
 			Log.w("jinzora","notification error",e);
 		}

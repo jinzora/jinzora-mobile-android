@@ -110,11 +110,40 @@ public class DownloadService extends Service {
 
 		@Override
 		public void cancelAllDownloads() throws RemoteException {
-			cancelCurrentDownload=true;
 			synchronized(mBinder) {
+				cancelCurrentDownload=true;
 				downloadLabels.clear();
 				downloadURLs.clear();
+				
 				mBinder.notifyAll();
+			}
+			Intent notify = new Intent(UPDATE_DOWNLOAD_LIST);
+			sendBroadcast(notify);
+		}
+
+		@Override
+		public void cancelDownload(int indexGuess, String label)
+				throws RemoteException {
+			int i = indexGuess;
+			// download might have moved towards the front of the list.
+			// not 100% sure this is thread safe. (bjd 1/7/10)
+			synchronized(mBinder){
+				while (i >= 0) {
+					if (downloadLabels.get(i).equals(label)) {
+						if (i == 0) {
+							cancelCurrentDownload=true;
+						} else {
+							downloadURLs.remove(i);
+							downloadLabels.remove(i);
+						}
+						
+						Intent notify = new Intent(UPDATE_DOWNLOAD_LIST);
+						sendBroadcast(notify);
+						
+						return;
+					}
+					i--;
+				}
 			}
 		}
 	};
@@ -141,14 +170,14 @@ public class DownloadService extends Service {
 	}
 	
 	private void doDownload() {
-		// probably a race condition here.
-		cancelCurrentDownload = false;
-		
 		if (amDownloading) {
 			return;
 		}
 		
+		// probably a race condition here.
+		cancelCurrentDownload = false;
 		amDownloading = true;
+		
 		if (!dlDir.canWrite()){
 			Log.e("jinzora","could not download to " + ROOT_DIR);
 			amDownloading=false;
@@ -168,12 +197,15 @@ public class DownloadService extends Service {
 		    	tempFile.deleteOnExit();
 			} catch (IOException e) {
 				Log.e("jinzora","could not create temporary file",e);
-				
-				synchronized(mBinder) {
-					downloadURLs.removeFirst();
-					downloadLabels.removeFirst();
-					
-					mBinder.notifyAll();
+
+				// if cleared, no entries left. Otherwise, remove first.
+				if (downloadURLs.size()>0) {
+					synchronized(mBinder) {
+						downloadURLs.removeFirst();
+						downloadLabels.removeFirst();
+						
+						mBinder.notifyAll();
+					}
 				}
 			}
 		    
@@ -192,49 +224,49 @@ public class DownloadService extends Service {
 		        if (cancelCurrentDownload) {
 		        	tempFile.delete();
 		        	cancelCurrentDownload=false;
-		        	return;
-		        }
-		        
-		        
-				// TODO: Send proper playlist with album/artist/track/num info to better name file.
-		        File dlFile = null;
-		        if (dlName.contains(" - ")) {
-					int p = dlName.indexOf(" - ");
-					String artist = dlName.substring(0,p);
-					String track = dlName.substring(p+3);
-					dlFile = new File(dlDir, artist);
-					if (!dlFile.exists()) {
-						boolean res = dlFile.mkdir();
-						if (!res) {
-							throw new Exception("Could not create directory " + dlFile.getAbsolutePath());
+		        } else {
+			        // TODO: Send proper playlist with album/artist/track/num info to better name file.
+			        File dlFile = null;
+			        if (dlName.contains(" - ")) {
+						int p = dlName.indexOf(" - ");
+						String artist = dlName.substring(0,p);
+						String track = dlName.substring(p+3);
+						dlFile = new File(dlDir, artist);
+						if (!dlFile.exists()) {
+							boolean res = dlFile.mkdir();
+							if (!res) {
+								throw new Exception("Could not create directory " + dlFile.getAbsolutePath());
+							}
 						}
+						dlFile = new File(dlFile,track);
+					} else {
+						dlFile = new File(dlDir, dlName);
 					}
-					dlFile = new File(dlFile,track);
-				} else {
-					dlFile = new File(dlDir, dlName);
-				}
-		        
-		        tempFile.renameTo(dlFile);
-		        MediaScannerNotifier.scan(DownloadService.this, dlFile.getAbsolutePath(), null);
-		        
-		        try {
-		        	// Otherwise, every other download fails (BJD 1/4/10)
-		        	Thread.sleep(1500);
-		        } catch (Exception e) {}
+			        
+			        tempFile.renameTo(dlFile);
+			        MediaScannerNotifier.scan(DownloadService.this, dlFile.getAbsolutePath(), null);
+		        }
 			} catch (Exception e) {
 				Log.e("jinzora","failed to download file " + dlURL.toExternalForm(),e);
 			}
 		
-			synchronized(mBinder) {
-				downloadURLs.removeFirst();
-				downloadLabels.removeFirst();
-				
-				mBinder.notifyAll();
+			// if cleared, no entries left. Otherwise, remove first.
+			if (downloadURLs.size()>0) {
+				synchronized(mBinder) {
+					downloadURLs.removeFirst();
+					downloadLabels.removeFirst();
+					
+					mBinder.notifyAll();
+				}
 			}
 			
 			Intent notify = new Intent(UPDATE_DOWNLOAD_LIST);
 			sendBroadcast(notify);
 			
+			try {
+	        	// Otherwise, every other download fails (BJD 1/4/10)
+	        	Thread.sleep(1500);
+	        } catch (Exception e) {}
 		}
 
 		amDownloading = false;

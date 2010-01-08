@@ -34,5 +34,6 @@
 <string name="search_hint">Search Jinzora</string>
 
 <string name="emptyplaylist">Selected playlist is empty.</string>
+<string name="cancel_all_downloads">Cancel All</string>
 
 </resources>
