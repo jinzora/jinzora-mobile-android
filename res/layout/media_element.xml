@@ -5,6 +5,7 @@
     android:layout_marginRight="8dip"
     android:layout_marginTop="8dip"
     android:layout_marginBottom="8dip"
+	android:layout_marginLeft="8dip"
     >
 
     <Button android:id="@+id/media_el_play"
@@ -13,7 +14,10 @@
                 android:text=" Play "
                 android:textSize="18sp" 
                 android:focusable="false"
-                android:layout_alignParentRight="true" android:height="60dip"/>
+                android:layout_alignParentRight="true" 
+                android:height="50dip"
+                android:layout_centerVertical="true"
+                />
     
     <TextView android:id="@+id/media_el_name"
                 android:layout_width="wrap_content"
