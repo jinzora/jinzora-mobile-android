@@ -11,17 +11,28 @@
     android:paddingTop="5dip"
     android:paddingBottom="5dip"
     >
+   
+    <Button android:id="@+id/media_el_play"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" Play "
+                android:textSize="18sp" 
+                android:focusable="false"
+                android:layout_alignParentRight="true" android:height="60dip"/>
     
     <TextView android:id="@+id/media_el_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceMedium"
+                android:singleLine="true"
                 android:ellipsize="end" 
+                android:layout_toLeftOf="@id/media_el_play"
                 android:layout_alignParentLeft="true"/>
     <TextView android:id="@+id/media_el_subfield1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceSmall" 
+                android:singleLine="true"
                 android:ellipsize="end"
                 android:layout_alignParentLeft="true" 
                 android:layout_below="@id/media_el_name"/>
@@ -30,17 +41,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceSmall"
+                android:singleLine="true"
                 android:ellipsize="end"
                 android:layout_alignParentLeft="true" 
                 android:layout_below="@id/media_el_subfield1"/>
-                     
-    <Button android:id="@+id/media_el_play"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=" Play "
-                android:textSize="18sp" 
-                android:focusable="false"
-                android:layout_alignParentRight="true" android:height="60dip"/>
         
 </RelativeLayout>                
 </RelativeLayout> 
