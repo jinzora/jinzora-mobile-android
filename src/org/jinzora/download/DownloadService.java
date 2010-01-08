@@ -32,6 +32,7 @@ public class DownloadService extends Service {
 	
 	private static DownloadService sInstance;
 	private boolean amDownloading = false;
+	private boolean cancelCurrentDownload = false;
 	
 	private static String UNKNOWN_TRACK = "Unknown Track";
 	private static String ROOT_DIR = "jinzora";
@@ -72,7 +73,7 @@ public class DownloadService extends Service {
 									    } else {
 									    	trackname = UNKNOWN_TRACK;
 									    }
-									    Log.d("jinzora","adding a track to dl list");
+
 									    synchronized(mBinder) {
 										    downloadLabels.add(trackname);
 										    downloadURLs.add(track);
@@ -106,7 +107,16 @@ public class DownloadService extends Service {
 		public List<String> getPendingDownloads() throws RemoteException {
 			return downloadLabels;
 		}
-		
+
+		@Override
+		public void cancelAllDownloads() throws RemoteException {
+			cancelCurrentDownload=true;
+			synchronized(mBinder) {
+				downloadLabels.clear();
+				downloadURLs.clear();
+				mBinder.notifyAll();
+			}
+		}
 	};
 	
 	@Override
@@ -131,6 +141,9 @@ public class DownloadService extends Service {
 	}
 	
 	private void doDownload() {
+		// probably a race condition here.
+		cancelCurrentDownload = false;
+		
 		if (amDownloading) {
 			return;
 		}
@@ -170,12 +183,19 @@ public class DownloadService extends Service {
 		        InputStream in = dlURL.openStream();
 		        byte[] buf = new byte[4 * 1024];
 		        int bytesRead;
-		        while ((bytesRead = in.read(buf)) != -1) {
+		        while (!cancelCurrentDownload && (bytesRead = in.read(buf)) != -1) {
 		          out.write(buf, 0, bytesRead);
 		        }
 		        in.close();
 		        out.close();
 		       
+		        if (cancelCurrentDownload) {
+		        	tempFile.delete();
+		        	cancelCurrentDownload=false;
+		        	return;
+		        }
+		        
+		        
 				// TODO: Send proper playlist with album/artist/track/num info to better name file.
 		        File dlFile = null;
 		        if (dlName.contains(" - ")) {
