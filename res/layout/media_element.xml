@@ -6,6 +6,7 @@
     android:layout_marginTop="8dip"
     android:layout_marginBottom="8dip"
 	android:layout_marginLeft="8dip"
+	android:paddingRight="5dip"
     >
 
     <Button android:id="@+id/media_el_play"
