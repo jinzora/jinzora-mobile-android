@@ -150,7 +150,6 @@ public class LocalDevice extends PlaybackDevice {
 			mp.reset();
 			mp.setDataSource(playlist.get(pos));
 			mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
-			
 			mp.prepareAsync();
 		} catch (Exception e) {
 			Log.e("jinzora","Error changing media (pos=" + pos + ", len=" + playlist.size() + ")",e);

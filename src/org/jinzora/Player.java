@@ -36,6 +36,7 @@ public class Player extends ListActivity {
 	PlaylistAdapter mPlaylistAdapter;
 	
 	BroadcastReceiver mPositionReceiver;
+	BroadcastReceiver mListUpdatedReceiver;
 	
 	static {
 		staticDeviceList = new ArrayList<String[]>();
@@ -355,6 +356,25 @@ public class Player extends ListActivity {
 		IntentFilter intentFilter = new IntentFilter(PlaybackService.PLAYSTATE_CHANGED);
 		registerReceiver(mPositionReceiver, intentFilter);
 		
+		
+		mListUpdatedReceiver = new BroadcastReceiver() {
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				try {
+					List<String>tracks = Jinzora.sPbConnection.playbackBinding.getPlaylist();
+					if (tracks != null) {
+						int pos = Jinzora.sPbConnection.playbackBinding.getPlaylistPos();
+						mPlaylistAdapter.setEntries(tracks,pos);
+					}
+				} catch (Exception e) {
+					Log.e("jinzora" , "Could not build playlist", e);
+				}
+			}
+		};
+		
+		IntentFilter listIntentFilter = new IntentFilter(PlaybackService.PLAYLIST_UPDATED);
+		registerReceiver(mListUpdatedReceiver, listIntentFilter);
+		
 	}
 	
 	@Override
@@ -362,7 +382,9 @@ public class Player extends ListActivity {
 		super.onPause();
 		
 		unregisterReceiver(mPositionReceiver);
+		unregisterReceiver(mListUpdatedReceiver);
 		mPositionReceiver = null;
+		mListUpdatedReceiver = null;
 	}
 	
 	 @Override

@@ -47,6 +47,7 @@ public class PlaybackService extends Service {
 	public static final String PLAYSTATE_CHANGED = "org.jinzora.playstatechanged";
 	public static final String META_CHANGED = "org.jinzora.metachanged";
 	public static final String PLAYBACK_COMPLETE = "org.jinzora.playbackcomplete";
+	public static final String PLAYLIST_UPDATED = "org.jinzora.playlistupdated";
 	
 	public static final String TOGGLEPAUSE_ACTION = "org.jinzora.musicservicecommand.togglepause";
 	public static final String NEXT_ACTION = "org.jinzora.musicservicecommand.next";
@@ -268,6 +269,16 @@ public class PlaybackService extends Service {
 		@Override
 		public void playlist(String pl, int addType) throws RemoteException {
 			player.playlist(pl, addType);
+			
+			/* Assumes synchronous player.playlist(). Might have to change this. */
+			try {
+				/* Broadcast */
+				Intent playlistIntent = new Intent(PLAYLIST_UPDATED);
+				sendBroadcast(playlistIntent);
+				
+			} catch (Exception e) {
+				Log.w("jinzora","broadcast error",e);
+			}
 			
 		}
 		
