@@ -59,6 +59,8 @@ public class Jinzora extends TabActivity {
 		final static int SCAN_EVENT = 0;
 	}
 	
+	public static String INTENT_SWITCH_TAB = "org.jinzora.switch_tab";
+	
 	private static Jinzora instance = null;
 	private static SharedPreferences preferences = null;
 	private static String baseurl;
@@ -198,8 +200,9 @@ public class Jinzora extends TabActivity {
 	        //ImageView icon = new ImageView(this);
 	        //icon.setImageResource(android.R.drawable.ic_menu_compass);
 	        
+	        String curTab = "browse";
 	        Intent intBrowse = new Intent(this,Browser.class);
-	        
+	        Intent playbackIntent = new Intent(this,Player.class);
 	        
 	        final Intent queryIntent = getIntent();
 	        final String queryAction = queryIntent.getAction();
@@ -264,7 +267,7 @@ public class Jinzora extends TabActivity {
 	        
 	        host.addTab(host.newTabSpec("playback")
 	        		.setIndicator(getString(R.string.player))
-	        		.setContent(new Intent(this, Player.class)));
+	        		.setContent(playbackIntent));
 	        
 	        //icon.setImageResource(android.R.drawable.ic_menu_search);
 	        host.addTab(host.newTabSpec("search")
@@ -284,6 +287,19 @@ public class Jinzora extends TabActivity {
 	        							AndroidJunctionMaker.getInstance().getInvitationForActivity(this).toString());
 	        }
 	        */
+	        
+	        // View M3U?
+	        Intent inboundIntent = getIntent(); 
+	        if (Intent.ACTION_VIEW.equals(inboundIntent.getAction())) {
+	        	sPbConnection.playbackBinding.playlist( inboundIntent.getData().toString(), Jinzora.getAddType() );
+	        	curTab = "playback";
+	        }
+	        
+	        if (inboundIntent.hasExtra(INTENT_SWITCH_TAB)) {
+	        	curTab = getIntent().getStringExtra(INTENT_SWITCH_TAB);
+	        }
+
+	        host.setCurrentTabByTag(curTab);
 	        
         } catch (Exception e) {
         	Log.e("jinzora", "error", e);

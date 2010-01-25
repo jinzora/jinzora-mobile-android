@@ -167,15 +167,15 @@ public class JinzoraAppWidgetProvider extends AppWidgetProvider {
         
         final ComponentName serviceName = new ComponentName(context, PlaybackService.class);
         
+        Intent playerIntent = new Intent(context,Jinzora.class);
+        playerIntent.putExtra(Jinzora.INTENT_SWITCH_TAB, "playback");
         if (playerActive) {
-            intent = new Intent(context, Jinzora.class);
             pendingIntent = PendingIntent.getActivity(context,
-                    0 /* no requestCode */, intent, 0 /* no flags */);
+                    0 /* no requestCode */, playerIntent, 0 /* no flags */);
             views.setOnClickPendingIntent(R.id.album_appwidget, pendingIntent);
         } else {
-            intent = new Intent(context, Jinzora.class);
             pendingIntent = PendingIntent.getActivity(context,
-                    0 /* no requestCode */, intent, 0 /* no flags */);
+                    0 /* no requestCode */, playerIntent, 0 /* no flags */);
             views.setOnClickPendingIntent(R.id.album_appwidget, pendingIntent);
         }
         

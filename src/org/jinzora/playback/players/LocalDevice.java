@@ -1,6 +1,7 @@
 package org.jinzora.playback.players;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -159,10 +160,16 @@ public class LocalDevice extends PlaybackDevice {
 
 	public synchronized void playlist(String urlstr, int addType) {
 		try {
-			URL url = new URL(urlstr);
-			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-			InputStream inStream = conn.getInputStream();
-			conn.connect();
+			
+			InputStream inStream = null;
+			if (urlstr.startsWith("file://")) {
+				inStream = new FileInputStream(urlstr.substring(7));
+			} else {
+				URL url = new URL(urlstr);
+				HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+				inStream = conn.getInputStream();
+				conn.connect();
+			}
 			
 			if (addType == ADD_REPLACE) {
 				playlist = new ArrayList<String>();
@@ -180,7 +187,7 @@ public class LocalDevice extends PlaybackDevice {
 
 			BufferedReader br = new BufferedReader(new InputStreamReader(inStream));
 			String line = null; 
-			String lastLine = null;
+			String lastLine = "";
 			
 			line = br.readLine();
 			while (line != null) {
@@ -188,7 +195,7 @@ public class LocalDevice extends PlaybackDevice {
 					try {
 						URL track = new URL(line);
 					    playlist.add(track.toExternalForm());
-					    if (lastLine.charAt(0) == '#') {
+					    if (lastLine.length() > 0 && lastLine.charAt(0) == '#') {
 					    	int pos;
 					    	if (-1 != (pos = lastLine.indexOf(','))) {
 					    		trackNames.add(lastLine.substring(pos+1,lastLine.length()));
@@ -196,10 +203,19 @@ public class LocalDevice extends PlaybackDevice {
 					    		trackNames.add(UNKNOWN_TRACK);
 					    	}
 					    } else {
-					    	trackNames.add(UNKNOWN_TRACK);
+					    	String guess = track.toExternalForm();
+					    	if (guess.endsWith("/")) {
+					    		guess = guess.substring(0,guess.length()-1);
+					    	}
+					    	if (guess.contains("/")) {
+					    		trackNames.add(guess.substring(guess.lastIndexOf("/")+1));
+					    	} else {
+					    		trackNames.add(UNKNOWN_TRACK);
+					    	}
 					    }
 					} catch (Exception e) {
 						// probably a comment line
+						Log.d("jinzora","playlist error ",e);
 					}
 				}
 				
