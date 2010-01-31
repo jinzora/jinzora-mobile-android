@@ -77,7 +77,7 @@ public class Preferences extends PreferenceActivity {
     		String pass = settings.getString("password",null);
     		
     		String key;
-    		if (user != null){
+    		if (user != null && user.length() > 0){
     			key = user + "@" + site;
     		} else {
     			key = site;
@@ -97,11 +97,18 @@ public class Preferences extends PreferenceActivity {
 				dl.setContentView(R.layout.profiles);
 				
 				dl.show();
+				
+				String[] profileNames = profiles.keySet().toArray(new String[]{});
+				for (int i=0;i<profileNames.length;i++) {
+					profileNames[i] = profileNames[i].replace("http://", "");
+					profileNames[i] = profileNames[i].replace("https://", "");
+				}
+				
 				ListView listview = (ListView)dl.findViewById(R.id.profile_list);
 				ArrayAdapter<String> adapter = 
 					new ArrayAdapter<String>(this,
 								android.R.layout.simple_list_item_1,
-								profiles.keySet().toArray(new String[]{}));
+								profileNames);
 				listview.setAdapter(adapter);
 				
 				listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -112,8 +119,14 @@ public class Preferences extends PreferenceActivity {
 						
 						String key = (String)profiles.keySet().toArray()[position];
 						SharedPreferences.Editor editor = settings.edit();
-						editor.putString("site", key.substring(key.indexOf("@")+1));
-						editor.putString("username", key.substring(0,key.indexOf("@")));
+						
+						if (key.contains("@")) {
+							editor.putString("site", key.substring(key.indexOf("@")+1));
+							editor.putString("username", key.substring(0,key.indexOf("@")));
+						} else {
+							editor.putString("site", key);
+							editor.putString("username","");
+						}
 						editor.putString("password", (String)profiles.get(key));
 						
 						editor.commit();

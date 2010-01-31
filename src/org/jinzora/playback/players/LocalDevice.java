@@ -191,7 +191,7 @@ public class LocalDevice extends PlaybackDevice {
 			
 			line = br.readLine();
 			while (line != null) {
-				if (line.charAt(0) != '#') {
+				if (line.length() > 0 && line.charAt(0) != '#') {
 					try {
 						URL track = new URL(line);
 					    playlist.add(track.toExternalForm());
