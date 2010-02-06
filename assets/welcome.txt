@@ -1,0 +1,9 @@
+Welcome to Jinzora Mobile! Jinzora Mobile lets you stream your music on the go. It requires a Jinzora Media Server to connect to. 
+
+The server software is free, and can be found at http://jinzora.org. Your server must be of version 3.0 or higher.
+
+If you don't want to set up your own server, you can still enjoy Jinzora Mobile! We have provided a selection of live music, provided by archive.org's Live Music Archive.
+
+Jinzora Mobile has a few hard-to-find features. Be sure to use the menu button, and also try long-pressing playable entries for advanced features.
+
+Thanks for using Jinzora Mobile!

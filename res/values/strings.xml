@@ -36,4 +36,9 @@
 <string name="emptyplaylist">Selected playlist is empty.</string>
 <string name="cancel_all_downloads">Cancel All</string>
 
+<string name="connection_failed">Could not connect to media server. Please ensure your settings are correct and the server is available.</string>
+<string name="loading">Loading. Please wait...</string>
+<string name="continue_txt">Continue</string>
+<string name="jinzora_welcome">Welcome to Jinzora Mobile!</string>
+
 </resources>
