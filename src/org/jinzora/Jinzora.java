@@ -62,7 +62,9 @@ public class Jinzora extends TabActivity {
 	public static String INTENT_SWITCH_TAB = "org.jinzora.switch_tab";
 	
 	private static Jinzora instance = null;
-	private static SharedPreferences preferences = null;
+	private static SharedPreferences sSessionPreferences = null;
+	private static SharedPreferences sAppPreferences = null;
+	
 	private static String baseurl;
 	
 	private static boolean sServiceStarted = false;
@@ -93,7 +95,7 @@ public class Jinzora extends TabActivity {
 	
 	public static String getBaseURL() {
 		if (baseurl == null) {
-    		setBaseURL(preferences);
+    		setBaseURL(sSessionPreferences);
     	}
 		return baseurl;
 	}
@@ -106,32 +108,60 @@ public class Jinzora extends TabActivity {
 		return selectedAddType;
 	}
 	
+	private boolean isFirstRun() {
+		return (sAppPreferences.getAll().size() == 0 || sSessionPreferences.getString("site", null) == null);
+	}
+	
+	private void handleFirstRun() {
+		final String JZ_LIVE_SITE = "http://live.jinzora.org";
+		Preferences.addProfile(sAppPreferences,JZ_LIVE_SITE,"","");
+		Preferences.loadSettingsFromProfile(sAppPreferences, sSessionPreferences, JZ_LIVE_SITE);
+		
+		// TODO
+		/*
+		 * Alert dialog about Jinzora?
+		 */
+	}
+	
+	
 	private static void setBaseURL(SharedPreferences preferences) {
 		String site = preferences.getString("site", null);
 		String username = preferences.getString("username",null);
 		String password = preferences.getString("password",null);
 		
-		if (site == null || username == null || password == null) {
-			baseurl = null;
+		if (username != null && username.length() == 0) {
+			username = null;
 		}
 		
-		baseurl = site + "/api.php?user=" + username;
+		if (site == null) {
+			Log.w("jinzora","no server specified.");
+			return;
+		}
 		
-		// disable until enough people upgrade.
-		boolean pwPrehash=true;
-		if (pwPrehash) {
-			try {
-			    MessageDigest md5=MessageDigest.getInstance("MD5");
-			    md5.update(password.getBytes(),0,password.length());
-			    
-			    baseurl += "&pass=" + new BigInteger(1,md5.digest()).toString(16);
-				baseurl += "&pw_hashed=true";
-			} catch (Exception e) {
-				Log.w("jinzora","Error computing password hash");
+		if (site.endsWith("/")) {
+			site = site.substring(0, site.length()-1);
+		}
+		if (username == null) {
+			baseurl = site + "/api.php?1=1";
+		} else {
+			baseurl = site + "/api.php?user=" + username;
+		
+			// disable until enough people upgrade.
+			boolean pwPrehash=true;
+			if (pwPrehash) {
+				try {
+				    MessageDigest md5=MessageDigest.getInstance("MD5");
+				    md5.update(password.getBytes(),0,password.length());
+				    
+				    baseurl += "&pass=" + new BigInteger(1,md5.digest()).toString(16);
+					baseurl += "&pw_hashed=true";
+				} catch (Exception e) {
+					Log.w("jinzora","Error computing password hash");
+					baseurl += "&pass=" + password;
+				}
+			} else {
 				baseurl += "&pass=" + password;
 			}
-		} else {
-			baseurl += "&pass=" + password;
 		}
 		
 		if (sPbConnection != null) {
@@ -186,12 +216,17 @@ public class Jinzora extends TabActivity {
         super.onCreate(savedInstanceState);
         
         try {
-    		if (preferences == null) {
-        		preferences = getSharedPreferences("main", 0);
+    		if (sSessionPreferences == null) {
+        		sSessionPreferences = getSharedPreferences("main", 0);
+        		sAppPreferences = getSharedPreferences("profiles", 0);
         	}
     		
+    		if (isFirstRun()) {
+    			handleFirstRun();
+    		}
+    		
     		if (baseurl == null) {
-        		setBaseURL(preferences);
+        		setBaseURL(sSessionPreferences);
         	}
         	
         	setContentView(R.layout.tabs);

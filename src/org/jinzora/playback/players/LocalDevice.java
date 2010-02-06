@@ -73,6 +73,13 @@ public class LocalDevice extends PlaybackDevice {
 			public boolean onError(MediaPlayer arg0, int arg1, int arg2) {
 				Log.d("jinzora","media player error " + arg1 + ", " + arg2);
 				Log.d("jinzora", "error track was " + pos + ", " + playlist.get(pos));
+				
+				try {
+					LocalDevice.this.mService.notifyPaused();
+				} catch (Exception e) {
+					Log.w("jinzora","Error killing notifications",e);
+				}
+				
 				return true;
 			}
 		});

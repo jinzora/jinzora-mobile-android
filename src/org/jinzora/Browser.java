@@ -16,9 +16,11 @@ import org.xmlpull.v1.XmlPullParserFactory;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -45,6 +47,7 @@ public class Browser extends ListActivity {
 	protected static String browsing;
 	protected static LayoutInflater sInflater = null;
 	private String curQuery = "";
+	private boolean mContentLoaded=false;
 	
 	Handler mAddEntriesHandler = new Handler() {
 		@Override
@@ -71,6 +74,22 @@ public class Browser extends ListActivity {
 	public void onResume() {
 		super.onResume();
 		
+		String newBrowsing=null;
+		if (null != getIntent().getStringExtra(getPackageName()+".browse")) {
+			// todo: get rid of this static.
+			newBrowsing = getIntent().getStringExtra(getPackageName()+".browse");
+		} else {
+	   		newBrowsing = getHomeURL();
+	   		if (null  == newBrowsing) {
+	   			startActivity(new Intent(this, Preferences.class));
+	   			return;
+	   		}
+       }
+		
+		if (browsing == null || !browsing.equals(newBrowsing) || !mContentLoaded) {
+			browsing = newBrowsing;
+			doBrowsing();
+		}
 	}
 	
 	
@@ -84,18 +103,6 @@ public class Browser extends ListActivity {
         
         allEntriesAdapter = new JzMediaAdapter(Browser.this);
         visibleEntriesAdapter = allEntriesAdapter;
-        
-        if (null != getIntent().getStringExtra(getPackageName()+".browse")) {
-			// todo: get rid of this static.
-			browsing = getIntent().getStringExtra(getPackageName()+".browse");
-		} else {
-	   		browsing = getHomeURL();
-	   		if (null  == browsing) {
-	   			startActivity(new Intent(this, Preferences.class));
-	   			return;
-	   		}
-       }
-        doBrowsing();
     }
     
     private String getHomeURL() {
@@ -109,6 +116,18 @@ public class Browser extends ListActivity {
 
     private void doBrowsing() {
     	try {
+    		
+    		ProgressDialog dialog = ProgressDialog.show(Browser.this, "", 
+                    Browser.this.getResources().getText(R.string.loading), 
+                    true, true, new DialogInterface.OnCancelListener() {
+						
+						@Override
+						public void onCancel(DialogInterface arg0) {
+							Browser.this.finish();
+						}
+					});
+
+    		
     		allEntriesAdapter.clear();
     		XmlPullParser xpp;
     		InputStream inStream;
@@ -125,13 +144,24 @@ public class Browser extends ListActivity {
     			xpp = factory.newPullParser();
     			xpp.setInput(inStream, conn.getContentEncoding());
     		} catch (Exception e) {
-        		JzMediaAdapter adapter = new JzMediaAdapter(this, new ArrayList<Bundle>());
+    			dialog.hide();
+    			Log.w("jinzora","could not connect to server",e);
+    			
+    			JzMediaAdapter adapter = new JzMediaAdapter(this, new ArrayList<Bundle>());
         		setContentView(R.layout.browse);
         		setListAdapter(adapter);
+        		
+        		((TextView)findViewById(R.id.browse_notice)).setText(R.string.connection_failed);
+        		findViewById(R.id.browse_notice).setVisibility(View.VISIBLE);
     			return;
     		}
-
-    		setContentView(R.layout.browse);
+    		
+    		// Not completely done loading, but have something to display
+			dialog.hide();
+			
+			mContentLoaded=true;
+			setContentView(R.layout.browse);
+			((ListView)findViewById(android.R.id.list)).setVisibility(View.VISIBLE);
     		setListAdapter(allEntriesAdapter);
 
     		final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next", "Download to device" };

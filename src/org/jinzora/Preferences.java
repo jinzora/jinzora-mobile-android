@@ -76,16 +76,7 @@ public class Preferences extends PreferenceActivity {
     		String user = settings.getString("username",null);
     		String pass = settings.getString("password",null);
     		
-    		String key;
-    		if (user != null && user.length() > 0){
-    			key = user + "@" + site;
-    		} else {
-    			key = site;
-    		}
-    		
-    		SharedPreferences.Editor editor = preferences.edit();
-    		editor.putString(key, pass);
-    		editor.commit();
+    		addProfile(preferences, site, user, pass);
     		
     		break;
     	case MenuItems.LOAD:
@@ -118,18 +109,8 @@ public class Preferences extends PreferenceActivity {
 							int position, long id) {
 						
 						String key = (String)profiles.keySet().toArray()[position];
-						SharedPreferences.Editor editor = settings.edit();
+						loadSettingsFromProfile(preferences, settings, key);
 						
-						if (key.contains("@")) {
-							editor.putString("site", key.substring(key.indexOf("@")+1));
-							editor.putString("username", key.substring(0,key.indexOf("@")));
-						} else {
-							editor.putString("site", key);
-							editor.putString("username","");
-						}
-						editor.putString("password", (String)profiles.get(key));
-						
-						editor.commit();
 						dl.hide();
 						
 						Jinzora.resetBaseURL();
@@ -192,5 +173,33 @@ public class Preferences extends PreferenceActivity {
         }
         
         return null;
+    }
+    
+    public static void addProfile(SharedPreferences preferences, String site, String user, String pass) {
+    	String key;
+		if (user != null && user.length() > 0){
+			key = user + "@" + site;
+		} else {
+			key = site;
+		}
+		
+		SharedPreferences.Editor editor = preferences.edit();
+		editor.putString(key, pass);
+		editor.commit();
+    }
+    
+    public static void loadSettingsFromProfile(SharedPreferences appSettings, SharedPreferences sessionSettings, String key) {
+    	SharedPreferences.Editor editor = sessionSettings.edit();
+    	final Map<String,?>profiles = appSettings.getAll();
+    	
+		if (key.contains("@")) {
+			editor.putString("site", key.substring(key.indexOf("@")+1));
+			editor.putString("username", key.substring(0,key.indexOf("@")));
+		} else {
+			editor.putString("site", key);
+			editor.putString("username","");
+		}
+		editor.putString("password", (String)profiles.get(key));
+		editor.commit();
     }
 }
