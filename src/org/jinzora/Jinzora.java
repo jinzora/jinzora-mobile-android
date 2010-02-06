@@ -2,7 +2,10 @@ package org.jinzora;
 
 
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -45,6 +48,7 @@ import android.widget.TabHost;
 
 public class Jinzora extends TabActivity {
 	
+	private static final String ASSET_WELCOME = "welcome.txt";
 	
 	protected class MenuItems { 
 		final static int HOME = 1;
@@ -117,11 +121,35 @@ public class Jinzora extends TabActivity {
 		Preferences.addProfile(sAppPreferences,JZ_LIVE_SITE,"","");
 		Preferences.loadSettingsFromProfile(sAppPreferences, sSessionPreferences, JZ_LIVE_SITE);
 		
-		// TODO
-		/*
-		 * Alert dialog about Jinzora?
-		 */
+		final AlertDialog.Builder builder = new AlertDialog.Builder(Jinzora.this);
+        builder.setTitle(R.string.jinzora_welcome);
+        builder.setMessage(readAsset(this, ASSET_WELCOME));
+        builder.setPositiveButton(R.string.continue_txt, null);
+        builder.show();
+        
+        
 	}
+	
+	private static CharSequence readAsset(Activity activity, String asset) {
+        BufferedReader in = null;
+        try {
+            in = new BufferedReader(new InputStreamReader(activity.getAssets().open(asset)));
+            String line;
+            StringBuilder buffer = new StringBuilder();
+            while ((line = in.readLine()) != null) buffer.append(line).append('\n');
+            return buffer;
+        } catch (IOException e) {
+            return "";
+        } finally {
+        	if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    // Ignore
+                }
+            }
+        }   
+    }
 	
 	
 	private static void setBaseURL(SharedPreferences preferences) {
@@ -259,28 +287,25 @@ public class Jinzora extends TabActivity {
 	        		queryString=queryString.substring(5);
 	        	}
 	        	
-	        	// TODO: This does not work with the server search
-	        	// parameters. Format in a way that does, preferably using different fields.
-	        	//Log.d("jinzora","unformatted query: " + queryString);
+
+	        	// TODO: use 'power search' to populate appropriate fields.
+	        	
 	        	if (queryString.contains(" by artist ")) {
-	        		queryString.replace(" by artist ", " @artist ");
+	        		queryString.replace(" by artist ", " ");
 	        	} else if (queryString.contains(" artist ")) {
-	        		queryString.replace(" artist ", " @artist " );
+	        		queryString.replace(" artist ", " " );
 	        	} else if (queryString.startsWith("artist ")) {
 	        		queryString = "@artist " + queryString.substring(7);
 	        	} else if (queryString.contains(" by ")) {
-	        		queryString.replace(" by ", " @artist ");
+	        		queryString.replace(" by ", " ");
 	        	}
 	        	
 	        	if (queryString.contains(" album ")) {
-	        		queryString.replace(" album ", " @album " );
+	        		queryString.replace(" album ", " " );
 	        	} else if (queryString.startsWith("album ")) {
 	        		queryString = "@album " + queryString.substring(6);
 	        	}
-	        	
-	        	//Log.d("jinzora","reformatted query: " + queryString + " (quickplay " + quickplay + ")");
-	        	
-	            
+	     
 	            // Handle search
 	            
 	            // Quick search
