@@ -44,6 +44,7 @@ public class LocalDevice extends PlaybackDevice {
 			
 			public void onCompletion(MediaPlayer arg0) {
 				try {
+					LocalDevice.this.mService.killNotifications();
 					next();
 				} catch (RemoteException e) {
 
@@ -125,6 +126,7 @@ public class LocalDevice extends PlaybackDevice {
 			jumpTo(i);
 		}
 		else if (++pos >= playlist.size()) {
+			// reset
 			pos = 0;
 		} else {
 			jumpTo(pos);
