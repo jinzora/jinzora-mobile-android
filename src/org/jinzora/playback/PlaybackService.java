@@ -195,21 +195,13 @@ public class PlaybackService extends Service {
 	public void notifyPaused() {
 		try {
 			nm.cancel(NOTIFY_ID);
-			/*
-			Notification notification = new Notification(
-					android.R.drawable.ic_media_pause, "Paused", System.currentTimeMillis());
-			PendingIntent pending = PendingIntent.getActivity(this.service, 0,
-	                								new Intent(this.service, Jinzora.class), 0);
-			notification.setLatestEventInfo(this.service, "Jinzora Mobile", "Paused", pending);
-			
-			nm.notify(NOTIFY_ID, notification);
-			*/
 			
 			Intent playlistIntent = new Intent(PLAYSTATE_CHANGED);
 			playlistIntent.putExtra("position", player.getPlaylistPos());
 			playlistIntent.putExtra("artist", player.getArtistName());
 			playlistIntent.putExtra("track",player.getTrackName());
 			sendBroadcast(playlistIntent);
+			
 			mAppWidgetProvider.notifyChange(this, PLAYSTATE_CHANGED);
 		} catch (Exception e) {
 			Log.d("jinzora","notification error",e);
@@ -217,7 +209,7 @@ public class PlaybackService extends Service {
 	}
 	
 	public void killNotifications() {
-		nm.cancel(NOTIFY_ID);
+		notifyPaused(); // same thing (for now)
 	}
 	
 	/**
