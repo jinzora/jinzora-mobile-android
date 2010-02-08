@@ -216,6 +216,10 @@ public class PlaybackService extends Service {
 		}
 	}
 	
+	public void killNotifications() {
+		nm.cancel(NOTIFY_ID);
+	}
+	
 	/**
 	 * This service and the associated PlaybackServices
 	 * are in a different process from the main Jinzora activity,

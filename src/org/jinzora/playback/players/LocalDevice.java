@@ -75,7 +75,7 @@ public class LocalDevice extends PlaybackDevice {
 				Log.d("jinzora", "error track was " + pos + ", " + playlist.get(pos));
 				
 				try {
-					LocalDevice.this.mService.notifyPaused();
+					LocalDevice.this.mService.killNotifications();
 				} catch (Exception e) {
 					Log.w("jinzora","Error killing notifications",e);
 				}
@@ -114,7 +114,7 @@ public class LocalDevice extends PlaybackDevice {
 	public void clear() throws RemoteException {
 		playlist.clear();
 		mp.stop();
-		mService.notifyPaused();
+		mService.killNotifications();
 	}
 
 	@Override
@@ -161,7 +161,13 @@ public class LocalDevice extends PlaybackDevice {
 			mp.prepareAsync();
 		} catch (Exception e) {
 			Log.e("jinzora","Error changing media (pos=" + pos + ", len=" + playlist.size() + ")",e);
-			if (pos < playlist.size()) Log.e("jinzora", "Content: " + playlist.get(pos));
+			if (0 <= pos && pos < playlist.size()) Log.e("jinzora", "Content: " + playlist.get(pos));
+			
+			try {
+				LocalDevice.this.mService.killNotifications();
+			} catch (Exception e2) {
+				Log.w("jinzora","Error killing notifications",e);
+			}
 		}
 	}
 
@@ -275,8 +281,11 @@ public class LocalDevice extends PlaybackDevice {
 
 	@Override
 	public String getArtistName() throws RemoteException {
+		if (!(0 <= pos && pos <= trackNames.size())) {
+			return null;
+		}
 		String entry = trackNames.get(pos);
-		if (entry.contains(" - ")) {
+		if (entry != null && entry.contains(" - ")) {
 			return entry.substring(0,entry.indexOf(" - "));
 		} else {
 			return null;
@@ -285,8 +294,11 @@ public class LocalDevice extends PlaybackDevice {
 
 	@Override
 	public String getTrackName() throws RemoteException {
+		if (!(0 <= pos && pos <= trackNames.size())) {
+			return null;
+		}
 		String entry = trackNames.get(pos);
-		if (entry.contains(" - ")) {
+		if (entry != null && entry.contains(" - ")) {
 			return entry.substring(3+entry.indexOf(" - "));
 		} else {
 			return entry;
