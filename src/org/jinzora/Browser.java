@@ -1,6 +1,7 @@
 package org.jinzora;
 
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.SectionIndexer;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
@@ -391,7 +393,6 @@ public class Browser extends ListActivity {
     		}
     	}
     	
-    	Log.d("jinzora","trying to set new list of size " + newList.size());
     	visibleEntriesAdapter = new JzMediaAdapter(this, newList);
         setListAdapter(visibleEntriesAdapter);
     	return super.onKeyUp(keyCode,event);
@@ -412,7 +413,14 @@ public class Browser extends ListActivity {
     	browsing=null;
     }
     
-    class JzMediaAdapter extends ArrayAdapter<Bundle> {
+    
+    private static List<Character> mSections = new ArrayList<Character>();
+    int[] sectionHeaders = new int[26];
+    int[] sectionPositions = new int[26];
+    
+    class JzMediaAdapter extends ArrayAdapter<Bundle> implements SectionIndexer {
+    	private boolean isAlphabetical = true;
+    	
     	Browser context;
     	public JzMediaAdapter(Browser context) {
     		super(context, R.layout.media_element);
@@ -481,19 +489,95 @@ public class Browser extends ListActivity {
 
     	public Bundle getEntry(int pos) {
     		if (this.getCount() <= pos ) return null;
-    		return (Bundle)visibleEntriesAdapter.getItem(pos);
+    		return (Bundle)this.getItem(pos);
     	}
     	
     	public String getEntryTitle(int pos) {
     		if (this.getCount() <= pos ) return null;
-    		Bundle item = (Bundle)visibleEntriesAdapter.getItem(pos);
+    		Bundle item = (Bundle)this.getItem(pos);
     		return item.getString("name");
     	}
     	
     	public boolean isPlayable(int pos) {
     		if (this.getCount() <= pos ) return false;
-    		Bundle item = (Bundle)visibleEntriesAdapter.getItem(pos);
+    		Bundle item = (Bundle)this.getItem(pos);
     		return item.containsKey("playlink");
     	}
+
+    	
+    	
+    	// SectionIndexer
+    	
+    	@Override 
+    	public void clear() {
+    		super.clear();
+    		
+    		mSections.clear();
+    		sectionHeaders = new int[26];
+    	};
+    	
+    	@Override
+    	public void add(Bundle object) {
+    		super.add(object);
+    		
+    		int len = this.getCount();
+    		String entry2 = getEntryTitle(len-1).toUpperCase();
+    		if (len == 1) {
+    			char c2 = entry2.charAt(0);
+    			if (c2 <= 'A')
+    				mSections.add('A');
+    			else
+    				mSections.add(c2);
+    			return;
+    		}
+    		
+    		String entry1 = getEntryTitle(len-2).toUpperCase();
+    		if (entry1.length() == 0 || entry2.length() == 0) {
+    			// what happened?
+    			isAlphabetical = false;
+    			return;
+    		}
+    		
+    		if (entry1.compareTo(entry2) > 0) {
+    			isAlphabetical = false;
+    		} else if (isAlphabetical) {
+    				char c = entry2.charAt(0);
+    				if (entry1.charAt(0) != c) {
+    					mSections.add(c);
+    					sectionHeaders[mSections.size()-1]=len-1;
+    					sectionPositions[c-'A']=mSections.size()-1;
+    				}
+    		}
+    	}
+    	
+		@Override
+		public int getPositionForSection(int sec) {
+			return sectionHeaders[sec];
+		}
+
+		@Override
+		public int getSectionForPosition(int pos) {
+			String entry = getEntryTitle(pos);
+			if (entry != null && entry.length() > 0) {
+				char c = Character.toUpperCase(entry.charAt(0));
+				if (c <= 'A') {
+					return 0;
+				}
+				if (c >= 'Z') {
+					return sectionHeaders.length-1;
+				}
+				
+				return sectionPositions[c-'A'];
+			}
+			return 0;
+		}
+
+		@Override
+		public Object[] getSections() {
+			if (isAlphabetical) {
+				return mSections.toArray();
+			}
+			return null;
+		}
     }
 }
