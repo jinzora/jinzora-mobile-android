@@ -63,6 +63,13 @@ public class Browser extends ListActivity {
 		}
 	};
 	
+	Handler mEntriesCompleteHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			allEntriesAdapter.finalize();
+		}
+	};
+	
 	
 	@Override
 	protected void onStart() {
@@ -318,6 +325,8 @@ public class Browser extends ListActivity {
 						inStream.close();
 					} catch (Exception e) {}
 				}
+				
+				mEntriesCompleteHandler.sendEmptyMessage(0);
     		}
     	}.start();
     }
@@ -542,10 +551,14 @@ public class Browser extends ListActivity {
     			isAlphabetical = false;
     		} else if (isAlphabetical) {
     				char c = entry2.charAt(0);
-    				if (entry1.charAt(0) != c) {
+    				if (c < 'A') c = 'A';
+					else if (c > 'Z') c = 'Z';
+    				
+    				if (mSections.get(mSections.size()-1) != c) {
     					mSections.add(c);
     					sectionHeaders[mSections.size()-1]=len-1;
     					sectionPositions[c-'A']=mSections.size()-1;
+    					Log.d("jinzora","just added");
     				}
     		}
     	}
@@ -574,10 +587,17 @@ public class Browser extends ListActivity {
 
 		@Override
 		public Object[] getSections() {
+			Log.d("jinzora","getting sections");
 			if (isAlphabetical) {
 				return mSections.toArray();
 			}
 			return null;
+		}
+		
+		// Called when all data has been loaded
+		public void finalize() {
+			// TODO: invalidate doesn't trigger call to getSections();
+			// this.notifyDataSetInvalidated();
 		}
     }
 }
