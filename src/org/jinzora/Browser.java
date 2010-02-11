@@ -1,28 +1,19 @@
 package org.jinzora;
 
 import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.jinzora.download.DownloadServiceConnection;
-import org.jinzora.playback.PlaybackService;
-import org.jinzora.playback.PlaybackServiceConnection;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.res.Resources;
-import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -39,15 +30,14 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SectionIndexer;
-import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 public class Browser extends ListActivity {
 	private JzMediaAdapter allEntriesAdapter = null;
 	private JzMediaAdapter visibleEntriesAdapter = null;
 	
-	protected static String browsing;
-	protected static LayoutInflater sInflater = null;
+	protected String browsing;
+	protected LayoutInflater mInflater = null;
 	private String curQuery = "";
 	private boolean mContentLoaded=false;
 	
@@ -101,7 +91,11 @@ public class Browser extends ListActivity {
 		}
 	}
 	
-	
+	@Override
+	protected void onPause() {
+		super.onPause();
+		
+	}
 	
     /** Called when the activity is first created. */
     @Override
@@ -279,6 +273,19 @@ public class Browser extends ListActivity {
 			            			  item.putString("subfield1", item.getString("artist"));
 			            		  }
 			
+			            		  /*
+			            		  if (isActivityPaused) {
+			            			  // A fairly gross hack to fix the bug
+			            			  // when a user presses 'back'
+			            			  // while the page is still loading.
+			            			  // Probably a better way to handle it.
+			            			  inStream.close();
+			            			  Log.d("jinzora","killed it");
+			            			  mContentLoaded=false; // force refresh on resume
+			            			  return;
+			            		  }
+			            		  */
+			            		  
 			            		  Message m = mAddEntriesHandler.obtainMessage();
 			            		  m.setData(item);
 			            		  mAddEntriesHandler.sendMessage(m);
@@ -323,7 +330,9 @@ public class Browser extends ListActivity {
 				} finally {
 					try {
 						inStream.close();
-					} catch (Exception e) {}
+					} catch (Exception e) {
+						Log.w("jinzora","Error closing stream",e);
+					}
 				}
 				
 				mEntriesCompleteHandler.sendEmptyMessage(0);
@@ -418,17 +427,13 @@ public class Browser extends ListActivity {
     	return super.onMenuItemSelected(featureId, item);
     }
     
-    public static void clearBrowsing() {
-    	browsing=null;
-    }
-    
-    
     private static List<Character> mSections = new ArrayList<Character>();
     int[] sectionHeaders = new int[26];
     int[] sectionPositions = new int[26];
     
     class JzMediaAdapter extends ArrayAdapter<Bundle> implements SectionIndexer {
     	private boolean isAlphabetical = true;
+    	private boolean isFinishedLoading = false;
     	
     	Browser context;
     	public JzMediaAdapter(Browser context) {
@@ -444,10 +449,10 @@ public class Browser extends ListActivity {
     	public View getView(int position, View convertView, ViewGroup parent) {
     		View row;
     		if (convertView == null) {
-    			if (Browser.sInflater == null) {
-    				Browser.sInflater = LayoutInflater.from(context);
+    			if (Browser.this.mInflater == null) {
+    				Browser.this.mInflater = LayoutInflater.from(context);
     			}
-    			row=Browser.sInflater.inflate(R.layout.media_element, null);
+    			row=Browser.this.mInflater.inflate(R.layout.media_element, null);
     		} else {
     			row = convertView;
     		}
@@ -535,6 +540,8 @@ public class Browser extends ListActivity {
     			char c2 = entry2.charAt(0);
     			if (c2 <= 'A')
     				mSections.add('A');
+    			else if (c2 >= 'Z')
+    				mSections.add('Z');
     			else
     				mSections.add(c2);
     			return;
@@ -558,7 +565,6 @@ public class Browser extends ListActivity {
     					mSections.add(c);
     					sectionHeaders[mSections.size()-1]=len-1;
     					sectionPositions[c-'A']=mSections.size()-1;
-    					Log.d("jinzora","just added");
     				}
     		}
     	}
@@ -587,8 +593,7 @@ public class Browser extends ListActivity {
 
 		@Override
 		public Object[] getSections() {
-			Log.d("jinzora","getting sections");
-			if (isAlphabetical) {
+			if (isAlphabetical && isFinishedLoading) {
 				return mSections.toArray();
 			}
 			return null;
@@ -596,8 +601,7 @@ public class Browser extends ListActivity {
 		
 		// Called when all data has been loaded
 		public void finalize() {
-			// TODO: invalidate doesn't trigger call to getSections();
-			// this.notifyDataSetInvalidated();
+			isFinishedLoading=true;
 		}
     }
 }
