@@ -11,13 +11,14 @@
 
   <groupId>org.jinzora</groupId>
   <artifactId>JinzoraMobile-android</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>1.5</version>
   <packaging>apk</packaging>
   <name>JinzoraMobile</name>
   <description>Jinzora client for the Android OS</description>
 
   <properties>
-    <android.version>1.5</android.version>
+    <android.version>1.6</android.version>
+    <ANDROID_HOME>${env.ANDROID_SDK_15}</ANDROID_HOME>
   </properties>
 
  <build>
@@ -30,7 +31,7 @@
         <configuration>
           <sdk>
             <path>${env.ANDROID_SDK_15}</path>
-            <platform>1.6</platform>
+            <platform>${android.version}</platform>
           </sdk>
           <deleteConflictingFiles>true</deleteConflictingFiles>
         </configuration>
@@ -73,5 +74,77 @@
       <url>http://prpl.stanford.edu:8081/nexus/content/groups/public</url>
     </repository>
   </repositories>
+
+  <profiles>
+          <profile>
+              <id>sign</id>
+              <build>
+                  <plugins>
+                 
+                      <plugin>
+                          <groupId>org.apache.maven.plugins</groupId>
+                          <artifactId>maven-jarsigner-plugin</artifactId>
+                          <version>1.2</version>
+                          <executions>
+                              <execution>
+                                  <id>signing</id>
+                                  <goals>
+                                      <goal>sign</goal>
+                                  </goals>
+                                  <phase>package</phase>
+                                  <inherited>true</inherited>
+                                  <configuration>
+                                      <archiveDirectory></archiveDirectory>
+                                      <includes>
+                                          <include>target/*.apk</include>
+                                      </includes>
+                                      <keystore>C:\Users\Ben\android.keystore</keystore>
+                                      <storepass></storepass>
+                                      <keypass></keypass>
+                                      <alias>android</alias>
+                                  </configuration>
+                              </execution>
+                              
+                          </executions>
+                      </plugin>
+                      
+                       <plugin>
+			  <groupId>org.codehaus.mojo</groupId>
+			  <artifactId>exec-maven-plugin</artifactId>
+			  <version>1.1.1</version>
+			  <executions>
+			      <execution>
+				  <id>zipalign</id>
+				  <goals>
+				      <goal>exec</goal>
+				  </goals>
+				  <phase>package</phase>
+				  <configuration>
+				      <executable>${ANDROID_HOME}/tools/zipalign</executable>
+				       <arguments>
+					  <argument>-f</argument>
+					  <argument>4</argument>
+					  <argument>target/${project.build.finalName}.apk</argument>
+					  <argument>target/${project.build.finalName}-zipped.apk</argument>
+				      </arguments>
+				  </configuration>
+			      </execution>
+			  </executions>
+                    </plugin>
+                      <plugin>
+                          <groupId>com.jayway.maven.plugins.android.generation2</groupId>
+                          <artifactId>maven-android-plugin</artifactId>
+                          <inherited>true</inherited>
+                          <configuration>
+                              <sign>
+                                  <debug>false</debug>
+                              </sign>
+                          </configuration>
+                      </plugin>
+                      
+                  </plugins>
+              </build>
+          </profile>
+    </profiles>
 
 </project>
