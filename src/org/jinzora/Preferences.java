@@ -44,7 +44,6 @@ public class Preferences extends PreferenceActivity {
     	
     	/* should be a better method to override.. but this works. */
     	Jinzora.resetBaseURL();
-    	Browser.clearBrowsing();
     	
     	return super.onPreferenceTreeClick(preferenceScreen, preference);
     }
@@ -114,7 +113,6 @@ public class Preferences extends PreferenceActivity {
 						dl.hide();
 						
 						Jinzora.resetBaseURL();
-						Browser.clearBrowsing();
 						startActivity(new Intent(Preferences.this,Jinzora.class)); // ?
 					}
 
