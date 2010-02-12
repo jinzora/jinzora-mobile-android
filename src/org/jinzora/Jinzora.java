@@ -405,7 +405,6 @@ public class Jinzora extends TabActivity {
     protected static void menuItemSelected(int featureId, MenuItem item, Activity activity) {
     	switch (item.getItemId()) {
     	case MenuItems.HOME:
-    		Browser.clearBrowsing();
     		Intent goHome = 
     			new Intent(instance,Jinzora.class);
     					//.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -419,12 +418,10 @@ public class Jinzora extends TabActivity {
     		
     	case MenuItems.QUIT:
     		try {
-    			Browser.clearBrowsing();
     			
     			Intent etphonehome = new Intent(Intent.ACTION_MAIN);
     			etphonehome.addCategory(Intent.CATEGORY_HOME);
     			instance.startActivity(etphonehome);
-    			
     			//activity.finish();
     		} catch (Exception e) {
     			
