@@ -241,7 +241,6 @@ public class Browser extends ListActivity {
     	}
     }
 
-    
     public void populateList(final XmlPullParser xpp, final InputStream inStream) {
     	new Thread() {
     		@Override
@@ -253,6 +252,14 @@ public class Browser extends ListActivity {
 			
 						} else if(eventType == XmlPullParser.END_DOCUMENT) {
 			
+						} else if(eventType == XmlPullParser.START_TAG && 
+								(xpp.getName().equals("login"))) {
+							
+							
+			        		((TextView)findViewById(R.id.browse_notice)).setText(R.string.bad_login);
+			        		findViewById(R.id.browse_notice).setVisibility(View.VISIBLE);
+			        		
+							return;
 						} else if(eventType == XmlPullParser.START_TAG && 
 								(xpp.getName().equals("nodes") || xpp.getName().equals("browse") || xpp.getName().equals("tracks"))) {
 			

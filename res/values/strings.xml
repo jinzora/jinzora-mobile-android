@@ -37,6 +37,7 @@
 <string name="cancel_all_downloads">Cancel All</string>
 
 <string name="connection_failed">Could not connect to media server. Please ensure your settings are correct and the server is available.</string>
+<string name="bad_login">Could not log in to media server. Please check your username and password.</string>
 <string name="loading">Loading. Please wait...</string>
 <string name="continue_txt">Continue</string>
 <string name="jinzora_welcome">Welcome to Jinzora Mobile!</string>
