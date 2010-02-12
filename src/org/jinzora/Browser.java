@@ -427,7 +427,7 @@ public class Browser extends ListActivity {
     	return super.onMenuItemSelected(featureId, item);
     }
     
-    private static List<Character> mSections = new ArrayList<Character>();
+    private List<Character> mSections = new ArrayList<Character>();
     int[] sectionHeaders = new int[26];
     int[] sectionPositions = new int[26];
     
