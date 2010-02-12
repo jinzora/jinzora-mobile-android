@@ -188,12 +188,13 @@ public class DownloadService extends Service {
 			URL dlURL = downloadURLs.get(0);
 			
 			String dlName = downloadLabels.get(0)+".mp3"; // TODO: fix extension; better file name choice.
+			
 			//String dlMimeType = "audio/mpeg"; // TODO: read from headers
 			
 			File tempFile = null;
 			
 		    try {
-		    	tempFile = File.createTempFile(dlName, null);
+		    	tempFile = File.createTempFile(dlName, ".tmp",dlDir);
 		    	tempFile.deleteOnExit();
 			} catch (IOException e) {
 				Log.e("jinzora","could not create temporary file",e);
@@ -248,6 +249,11 @@ public class DownloadService extends Service {
 		        }
 			} catch (Exception e) {
 				Log.e("jinzora","failed to download file " + dlURL.toExternalForm(),e);
+				if (tempFile != null) {
+					try {
+						tempFile.delete();
+					} catch (Exception e2) {}
+				}
 			}
 		
 			// if cleared, no entries left. Otherwise, remove first.
