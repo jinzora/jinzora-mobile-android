@@ -17,8 +17,7 @@
   <description>Jinzora client for the Android OS</description>
 
   <properties>
-    <android.version>1.6</android.version>
-    <ANDROID_HOME>${env.ANDROID_SDK_15}</ANDROID_HOME>
+    <ANDROID_HOME>${env.ANDROID_SDK}</ANDROID_HOME>
   </properties>
 
  <build>
@@ -30,8 +29,8 @@
         <version>2.2.0</version>
         <configuration>
           <sdk>
-            <path>${env.ANDROID_SDK_15}</path>
-            <platform>${android.version}</platform>
+            <path>${env.ANDROID_SDK}</path>
+            <platform>7</platform>
           </sdk>
           <deleteConflictingFiles>true</deleteConflictingFiles>
         </configuration>
@@ -54,7 +53,7 @@
     <dependency>
       <groupId>android</groupId>
       <artifactId>android</artifactId>
-      <version>${android.version}</version>
+      <version>1.6</version>
       <scope>provided</scope>
     </dependency>
     <!-- 
