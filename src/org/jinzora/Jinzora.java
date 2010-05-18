@@ -65,7 +65,7 @@ public class Jinzora extends TabActivity {
 	
 	public static String INTENT_SWITCH_TAB = "org.jinzora.switch_tab";
 	
-	private static Jinzora instance = null;
+	protected static Jinzora instance = null;
 	private static SharedPreferences sSessionPreferences = null;
 	private static SharedPreferences sAppPreferences = null;
 	
@@ -351,7 +351,7 @@ public class Jinzora extends TabActivity {
 	        // View M3U?
 	        Intent inboundIntent = getIntent(); 
 	        if (Intent.ACTION_VIEW.equals(inboundIntent.getAction())) {
-	        	sPbConnection.playbackBinding.playlist( inboundIntent.getData().toString(), Jinzora.getAddType() );
+	        	Jinzora.doPlaylist( inboundIntent.getData().toString(), Jinzora.getAddType() );
 	        	curTab = "playback";
 	        }
 	        
@@ -514,7 +514,7 @@ public class Jinzora extends TabActivity {
 	        		 eventType = xpp.next();
 	        		 
 	        		 // found a match; play it.
-	        		 sPbConnection.playbackBinding.playlist( xpp.getText(), Jinzora.getAddType() );
+	        		Jinzora.doPlaylist( xpp.getText(), Jinzora.getAddType() );
 	        		 return;
 	        	 }
 	        	 eventType = xpp.next();
@@ -524,5 +524,24 @@ public class Jinzora extends TabActivity {
 		} catch (Exception e) {
 			Log.e("jinzora","Error during quicksearch",e);
 		}
+	}
+	
+	public static void doPlaylist(String playlist, int addtype) {
+		// New-school way of doing it: send an intent.
+		// Can then make this remotable.
+		Intent plIntent = new Intent(PlaybackService.Intents.ACTION_PLAYLIST);
+		plIntent.addCategory(PlaybackService.Intents.CATEGORY_REMOTABLE);
+		plIntent.putExtra("playlist", playlist);
+		plIntent.putExtra("addtype", addtype);
+
+		instance.sendOrderedBroadcast(plIntent,null);
+		
+		// Old method: service binding.
+		/*
+		try {
+			sPbConnection.playbackBinding.updatePlaylist(playlist, addtype);
+		} catch (RemoteException e) {
+			Log.e("jinzora","Error sending playlist",e);
+		}*/
 	}
 }

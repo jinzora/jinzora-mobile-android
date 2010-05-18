@@ -55,10 +55,8 @@
 		
 		
 		
-		<service 
-    			android:name="org.jinzora.playback.PlaybackService"
-    			android:exported="true" 
-    	>
+		<service android:name="org.jinzora.playback.PlaybackService"
+    			 android:exported="true" >
     	</service>
     	
     	<!--  Downloading -->

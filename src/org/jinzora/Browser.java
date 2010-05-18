@@ -6,6 +6,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.management.modelmbean.XMLParseException;
+
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
@@ -14,6 +16,7 @@ import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -59,6 +62,179 @@ public class Browser extends ListActivity {
 			allEntriesAdapter.finalize();
 		}
 	};
+	
+	
+	class PopulateListAsyncTask extends AsyncTask<Void, String, Void> {
+		private ProgressDialog mDialog=null;
+		private InputStream inStream=null;
+		private String mEncoding;
+		private boolean waitingForConn=true;
+		
+		public PopulateListAsyncTask() {
+			
+		}
+		
+		@Override
+		protected void onPreExecute() {
+			if (mDialog == null) {
+				mDialog = new ProgressDialog(Browser.this);
+				mDialog.setTitle("Connecting to media server");
+				mDialog.setMessage(Browser.this.getResources().getText(R.string.loading));
+				mDialog.setIndeterminate(true);
+				mDialog.setCancelable(true);
+				mDialog.setOnCancelListener(
+						new DialogInterface.OnCancelListener() {
+							
+							@Override
+							public void onCancel(DialogInterface arg0) {
+								
+							}
+						});
+			}	
+			
+			// wait a bit before showing dialog
+			new Thread() {
+				public void run() {
+					try {
+						Thread.sleep(2000);
+					} catch (Exception e){}
+					
+					if (waitingForConn) {
+						Browser.this.runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								mDialog.show();
+							}
+						});
+					}
+				};
+			}.start();
+		}
+		
+		/**
+		 * Our background task is to connect to the remote host.
+		 * Populating the list occurs during postExecute.
+		 */
+		@Override
+		protected Void doInBackground(Void... arg0) {
+			try {
+				URL url = new URL(browsing);
+    			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+    			conn.setConnectTimeout(20000);
+    			inStream = conn.getInputStream();
+    			conn.connect();
+    			mEncoding = conn.getContentEncoding();
+    			
+    			mContentLoaded=true;
+    			waitingForConn=false;
+    			return null;
+    		} catch (Exception e) {
+    			waitingForConn=false;
+    			return null;
+    		}
+		}
+		
+		@Override
+		protected void onPostExecute(Void result) {
+			mDialog.hide();
+			if (inStream == null) {
+				try {
+	    			Log.w("jinzora","could not connect to server");
+	    			
+	    			JzMediaAdapter adapter = new JzMediaAdapter(Browser.this, new ArrayList<Bundle>());
+	        		setContentView(R.layout.browse);
+	        		setListAdapter(adapter);
+	        		
+	        		((TextView)findViewById(R.id.browse_notice)).setText(R.string.connection_failed);
+	        		findViewById(R.id.browse_notice).setVisibility(View.VISIBLE);
+    			} catch (Exception e2) {
+    				Log.e("jinzora","error clearing view",e2);
+    			}
+			}
+			
+			((ListView)findViewById(android.R.id.list)).setVisibility(View.VISIBLE);
+    		setListAdapter(allEntriesAdapter);
+
+    		final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next", "Download to device" };
+    		((ListView)findViewById(android.R.id.list))
+				.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+
+					@Override
+					public boolean onItemLongClick(AdapterView<?> parent,
+							View view, final int listPosition, long id) {
+
+						if (!visibleEntriesAdapter.isPlayable(listPosition)) return false;
+						
+						new AlertDialog.Builder(Browser.this)
+							.setTitle(visibleEntriesAdapter.getEntryTitle(listPosition))
+							.setItems(entryOptions, 
+									new AlertDialog.OnClickListener() {
+										@Override
+										public void onClick(final DialogInterface dialog, final int entryPos) {
+											final Bundle item = visibleEntriesAdapter.getEntry(listPosition);
+											switch (entryPos) {
+											case 0:
+												// Share
+												Intent share = new Intent("android.intent.action.SEND");
+												share.setType("audio/x-mpegurl")
+													.putExtra(Intent.EXTRA_TEXT, item.getString("playlink"));
+												Browser.this
+													.startActivity(Intent.createChooser(share, "Share playlist..."));
+												break;
+											case 1:
+											case 2:
+											case 3:
+												// Play, Queue
+												new Thread() {
+													@Override
+													public void run() {
+														try {
+															Jinzora.doPlaylist(item.getString("playlink"), entryPos-1);
+														} catch (Exception e) {
+															Log.e("jinzora","Error in longpress event",e);
+														} finally {
+															dialog.dismiss();
+														}
+													}
+												}.start();
+												break;
+											case 4:
+												// Download to device
+												try {
+													Jinzora
+													  .sDlConnection
+													  .getBinding()
+													  .downloadPlaylist(item.getString("playlink"));
+												} catch (Exception e) {
+													Log.d("jinzora","Error downloading playlist",e);
+												}
+												// Add menu entry
+											}
+										}
+									}
+							)
+							.create().show();
+						
+						return true;
+					}
+					
+				});
+			
+    		try {
+	    		// Asynchronous, but no ProgressDialog.
+	    		XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+				factory.setNamespaceAware(true);
+				XmlPullParser xpp;
+	    		xpp = factory.newPullParser();
+				xpp.setInput(inStream, mEncoding);
+				
+				populateList(xpp, inStream);
+    		} catch  (Exception e) {
+    			Log.e("jinzora","could not populate list",e);
+    		}
+		}
+		
+	}
 	
 	
 	@Override
@@ -119,122 +295,10 @@ public class Browser extends ListActivity {
 
     private void doBrowsing() {
     	try {
-    		
-    		ProgressDialog dialog = ProgressDialog.show(Browser.this, "", 
-                    Browser.this.getResources().getText(R.string.loading), 
-                    true, true, new DialogInterface.OnCancelListener() {
-						
-						@Override
-						public void onCancel(DialogInterface arg0) {
-							Browser.this.finish();
-						}
-					});
-
-    		
     		allEntriesAdapter.clear();
-    		XmlPullParser xpp;
-    		InputStream inStream;
-    		try {
-    			
-    			URL url = new URL(browsing);
-    			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-    			conn.setConnectTimeout(30000);
-    			inStream = conn.getInputStream();
-    			conn.connect();
-
-    			XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-    			factory.setNamespaceAware(true);
-    			xpp = factory.newPullParser();
-    			xpp.setInput(inStream, conn.getContentEncoding());
-    		} catch (Exception e) {
-    			dialog.hide();
-    			Log.w("jinzora","could not connect to server",e);
-    			
-    			JzMediaAdapter adapter = new JzMediaAdapter(this, new ArrayList<Bundle>());
-        		setContentView(R.layout.browse);
-        		setListAdapter(adapter);
-        		
-        		((TextView)findViewById(R.id.browse_notice)).setText(R.string.connection_failed);
-        		findViewById(R.id.browse_notice).setVisibility(View.VISIBLE);
-    			return;
-    		}
-    		
-    		// Not completely done loading, but have something to display
-			dialog.hide();
-			
-			mContentLoaded=true;
-			setContentView(R.layout.browse);
-			((ListView)findViewById(android.R.id.list)).setVisibility(View.VISIBLE);
-    		setListAdapter(allEntriesAdapter);
-
-    		final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next", "Download to device" };
-    		((ListView)findViewById(android.R.id.list))
-				.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-
-					@Override
-					public boolean onItemLongClick(AdapterView<?> parent,
-							View view, final int listPosition, long id) {
-
-						if (!visibleEntriesAdapter.isPlayable(listPosition)) return false;
-						
-						new AlertDialog.Builder(Browser.this)
-							.setTitle(visibleEntriesAdapter.getEntryTitle(listPosition))
-							.setItems(entryOptions, 
-									new AlertDialog.OnClickListener() {
-										@Override
-										public void onClick(final DialogInterface dialog, final int entryPos) {
-											final Bundle item = visibleEntriesAdapter.getEntry(listPosition);
-											switch (entryPos) {
-											case 0:
-												// Share
-												Intent share = new Intent("android.intent.action.SEND");
-												share.setType("audio/x-mpegurl")
-													.putExtra(Intent.EXTRA_TEXT, item.getString("playlink"));
-												Browser.this
-													.startActivity(Intent.createChooser(share, "Share playlist..."));
-												break;
-											case 1:
-											case 2:
-											case 3:
-												// Play, Queue
-												new Thread() {
-													@Override
-													public void run() {
-														try {
-															Jinzora.sPbConnection
-															.playbackBinding
-															.playlist(item.getString("playlink"), entryPos-1);
-														} catch (Exception e) {
-															Log.e("jinzora","Error in longpress event",e);
-														} finally {
-															dialog.dismiss();
-														}
-													}
-												}.start();
-												break;
-											case 4:
-												// Download to device
-												try {
-													Jinzora
-													  .sDlConnection
-													  .getBinding()
-													  .downloadPlaylist(item.getString("playlink"));
-												} catch (Exception e) {
-													Log.d("jinzora","Error downloading playlist",e);
-												}
-												// Add menu entry
-											}
-										}
-									}
-							)
-							.create().show();
-						
-						return true;
-					}
-					
-				});
-
-    		populateList(xpp, inStream);
+    		setContentView(R.layout.browse);
+    		PopulateListAsyncTask connect = new PopulateListAsyncTask();
+    		connect.execute();
     		
     	} catch (Exception e) {
     		Log.e("jinzora", "error", e);
@@ -328,7 +392,7 @@ public class Browser extends ListActivity {
 						} else if(eventType == XmlPullParser.END_TAG) {
 			
 						} else if(eventType == XmlPullParser.TEXT) {
-			
+
 						}
 						eventType = xpp.next();
 					}
@@ -358,8 +422,7 @@ public class Browser extends ListActivity {
 					new Thread() {
 						public void run() {
 							try {
-								Jinzora.sPbConnection.playbackBinding
-									.playlist(visibleEntriesAdapter.getItem(position).getString("playlink"),
+								Jinzora.doPlaylist(visibleEntriesAdapter.getItem(position).getString("playlink"),
 											  Jinzora.getAddType());
 							} catch (Exception e) {
 								Log.e("jinzora","Error playing media",e);
@@ -495,7 +558,7 @@ public class Browser extends ListActivity {
     					new Thread() {
     						public void run() {
     							try {
-    								Jinzora.sPbConnection.playbackBinding.playlist(item.getString("playlink"), Jinzora.getAddType());
+    								Jinzora.doPlaylist(item.getString("playlink"), Jinzora.getAddType());
     							} catch (Exception e) {
     								Log.e("jinzora","Error playing media",e);
     							}

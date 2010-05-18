@@ -151,7 +151,7 @@ public class Search extends Activity {
 	        		 eventType = xpp.next();
 	        		 
 	        		 // found a match; play it.
-	        		 sPbConnection.playbackBinding.playlist( xpp.getText(), Jinzora.getAddType() );
+	        		 Jinzora.doPlaylist( xpp.getText(), Jinzora.getAddType() );
 	        		 return;
 	        	 }
 	        	 eventType = xpp.next();

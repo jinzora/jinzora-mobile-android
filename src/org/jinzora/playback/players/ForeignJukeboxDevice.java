@@ -35,7 +35,7 @@ public class ForeignJukeboxDevice extends JukeboxDevice {
 	
 	
 	@Override
-	public void playlist(String urlstr, int currentAddType) {
+	public void updatePlaylist(String urlstr, int currentAddType) {
 		try {
 			String addtype;
 			switch (currentAddType) {

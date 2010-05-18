@@ -1,7 +1,7 @@
 package org.jinzora.playback;
 
 interface PlaybackInterface {
-	void playlist( in String pl, in int addtype );
+	void updatePlaylist( in String pl, in int addtype );
 	void pause();
 	void stop();
 	void prev();

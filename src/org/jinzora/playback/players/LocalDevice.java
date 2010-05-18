@@ -34,7 +34,7 @@ public class LocalDevice extends PlaybackDevice {
 	protected List<String> trackNames;
 	
 	protected static String UNKNOWN_TRACK = "Unknown Track";
-	
+	private boolean mPrepared=false;
 	
 	public LocalDevice() {
 		this.mService = PlaybackService.getInstance();
@@ -55,8 +55,9 @@ public class LocalDevice extends PlaybackDevice {
 		mp.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
 			@Override
 			public void onPrepared(MediaPlayer _mp) {
+				mPrepared=true;
 				_mp.start();
-				mService.notifyPlaying();
+				mService.notifyPlaying(true);
 			}
 		});
 		
@@ -135,10 +136,9 @@ public class LocalDevice extends PlaybackDevice {
 
 	@Override
 	public synchronized void pause() throws RemoteException {
-		if (!mp.isPlaying()) {
+		if (mPrepared && !mp.isPlaying()) {
 			mp.start();
-			mService.notifyPlaying();
-			
+			mService.notifyPlaying(false);
 		} else {
 			mp.pause();
 			mService.notifyPaused();
@@ -157,6 +157,7 @@ public class LocalDevice extends PlaybackDevice {
 	public synchronized void jumpTo(final int pos) throws RemoteException {
 		try {
 			this.pos=pos;
+			mPrepared=false;
 			mp.reset();
 			mp.setDataSource(playlist.get(pos));
 			mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
@@ -173,7 +174,8 @@ public class LocalDevice extends PlaybackDevice {
 		}
 	}
 
-	public synchronized void playlist(String urlstr, int addType) {
+	@Override
+	public synchronized void updatePlaylist(String urlstr, int addType) {
 		try {
 			
 			InputStream inStream = null;

@@ -9,6 +9,10 @@ import org.jinzora.R;
 import org.jinzora.playback.players.LocalDevice;
 import org.jinzora.playback.players.PlaybackDevice;
 
+import edu.stanford.spout.lib.AndroidSpout;
+import edu.stanford.spout.lib.NowPlayingSpout;
+import edu.stanford.spout.lib.Spoutable;
+
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -54,6 +58,11 @@ public class PlaybackService extends Service {
 	public static final String PREVIOUS_ACTION = "org.jinzora.musicservicecommand.previous";
 	public static final String PAUSE_ACTION = "org.jinzora.musicservicecommand.pause";
 	
+	public static class Intents {
+		public static final String ACTION_PLAYLIST = "org.jinzora.jukebox.PLAYLIST";
+		
+		public static final String CATEGORY_REMOTABLE = "junction.remoteintent.REMOTABLE";
+	}
 	
 	public static PlaybackService getInstance() {
 		if (instance == null) {
@@ -64,7 +73,7 @@ public class PlaybackService extends Service {
 	}
 	
 	
-	private BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
+	private BroadcastReceiver mCommandReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
         	if (player == null) {
@@ -74,6 +83,7 @@ public class PlaybackService extends Service {
         	try {
 	            String action = intent.getAction();
 	            String cmd = intent.getStringExtra("command");
+	            
 	            if (CMDNEXT.equals(cmd) || NEXT_ACTION.equals(action)) {
 	                player.next();
 	            } else if (CMDPREVIOUS.equals(cmd) || PREVIOUS_ACTION.equals(action)) {
@@ -101,27 +111,59 @@ public class PlaybackService extends Service {
         }
     };
 	
+    private BroadcastReceiver mRemotableReceiver
+    	= new BroadcastReceiver() {
+			
+			@Override
+			public void onReceive(Context arg0, Intent intent) {
+				String action = intent.getAction();
+	            
+	            if (Intents.ACTION_PLAYLIST.equals(action)) {
+	            	String playlist = intent.getStringExtra("playlist");
+	    			int addtype = intent.getIntExtra("addtype", 0);
+	    			
+	    			try {
+	    				mBinder.updatePlaylist(playlist, addtype);
+	    				abortBroadcast();
+	    				return;
+	    			} catch (RemoteException e) {
+	    				Log.e("jinzora","Could not update playlist",e);
+	    			}
+	            }
+			}
+		};
+    
 	
 	@Override
 	public void onCreate() {
 		super.onCreate();
 		nm = (NotificationManager) this.getSystemService(Service.NOTIFICATION_SERVICE);
 		
+		/** Playback commands (internal use) **/
 		IntentFilter commandFilter = new IntentFilter();
         commandFilter.addAction(SERVICECMD);
         commandFilter.addAction(TOGGLEPAUSE_ACTION);
         commandFilter.addAction(PAUSE_ACTION);
         commandFilter.addAction(NEXT_ACTION);
         commandFilter.addAction(PREVIOUS_ACTION);
+
+        registerReceiver(mCommandReceiver, commandFilter);
+
+        /** Remotable commands (experimental) **/
+        IntentFilter remotableFilter = new IntentFilter();
+        remotableFilter.addAction(Intents.ACTION_PLAYLIST);
+        remotableFilter.addCategory(Intents.CATEGORY_REMOTABLE);
         
-        registerReceiver(mIntentReceiver, commandFilter);
+        registerReceiver(mRemotableReceiver,remotableFilter);
+        
 	}
 	
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
 		
-		unregisterReceiver(mIntentReceiver);
+		unregisterReceiver(mCommandReceiver);
+		unregisterReceiver(mRemotableReceiver);
 	}
 	
 	public boolean isPlaying() {
@@ -149,7 +191,7 @@ public class PlaybackService extends Service {
 	}
 	
 	
-	public void notifyPlaying() {
+	public void notifyPlaying(boolean firstPlay) {
 		String artist = null, track = null;
 		
 		try {
@@ -157,6 +199,7 @@ public class PlaybackService extends Service {
 			track = player.getTrackName();
 		} catch (Exception e ) {
 			Log.e("jinzora","could not get artist/track info",e);
+			return;
 		}
 		try {
 			String notice;
@@ -185,6 +228,12 @@ public class PlaybackService extends Service {
 			playlistIntent.putExtra("artist",artist);
 			playlistIntent.putExtra("track",track);
 			sendBroadcast(playlistIntent);
+			
+			/* Spout */
+			if (firstPlay) {
+				Spoutable spoutable = new NowPlayingSpout(artist,track);
+				AndroidSpout.spout(this, spoutable);
+			}
 			
 			mAppWidgetProvider.notifyChange(this, PLAYSTATE_CHANGED);
 		} catch (Exception e) {
@@ -263,8 +312,8 @@ public class PlaybackService extends Service {
 		}
 		
 		@Override
-		public void playlist(String pl, int addType) throws RemoteException {
-			player.playlist(pl, addType);
+		public void updatePlaylist(String pl, int addType) throws RemoteException {
+			player.updatePlaylist(pl, addType);
 			
 			/* Assumes synchronous player.playlist(). Might have to change this. */
 			try {
