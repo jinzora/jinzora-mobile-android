@@ -78,7 +78,7 @@ public class Browser extends ListActivity {
 		protected void onPreExecute() {
 			if (mDialog == null) {
 				mDialog = new ProgressDialog(Browser.this);
-				mDialog.setTitle("Connecting to media server");
+				//mDialog.setTitle("Connecting to media server");
 				mDialog.setMessage(Browser.this.getResources().getText(R.string.loading));
 				mDialog.setIndeterminate(true);
 				mDialog.setCancelable(true);

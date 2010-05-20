@@ -22,6 +22,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.IntentSender.SendIntentException;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telephony.PhoneStateListener;
@@ -53,13 +54,20 @@ public class PlaybackService extends Service {
 	public static final String PLAYBACK_COMPLETE = "org.jinzora.playbackcomplete";
 	public static final String PLAYLIST_UPDATED = "org.jinzora.playlistupdated";
 	
-	public static final String TOGGLEPAUSE_ACTION = "org.jinzora.musicservicecommand.togglepause";
-	public static final String NEXT_ACTION = "org.jinzora.musicservicecommand.next";
-	public static final String PREVIOUS_ACTION = "org.jinzora.musicservicecommand.previous";
-	public static final String PAUSE_ACTION = "org.jinzora.musicservicecommand.pause";
+	//public static final String TOGGLEPAUSE_ACTION = "org.jinzora.musicservicecommand.togglepause";
+	//public static final String NEXT_ACTION = "org.jinzora.musicservicecommand.next";
+	//public static final String PREVIOUS_ACTION = "org.jinzora.musicservicecommand.previous";
+	//public static final String PAUSE_ACTION = "org.jinzora.musicservicecommand.pause";
 	
 	public static class Intents {
 		public static final String ACTION_PLAYLIST = "org.jinzora.jukebox.PLAYLIST";
+		public static final String ACTION_CMD_PLAY = "org.jinzora.jukebox.cmd.PLAY";
+		public static final String ACTION_CMD_PAUSE = "org.jinzora.jukebox.cmd.PAUSE";
+		public static final String ACTION_CMD_NEXT = "org.jinzora.jukebox.cmd.NEXT";
+		public static final String ACTION_CMD_PREV = "org.jinzora.jukebox.cmd.PREV";
+		public static final String ACTION_CMD_STOP = "org.jinzora.jukebox.cmd.STOP";
+		public static final String ACTION_CMD_CLEAR = "org.jinzora.jukebox.cmd.CLEAR";
+		public static final String ACTION_CMD_PLAYPAUSE = "org.jinzora.jukebox.cmd.PLAYPAUSE";
 		
 		public static final String CATEGORY_REMOTABLE = "junction.remoteintent.REMOTABLE";
 	}
@@ -80,23 +88,42 @@ public class PlaybackService extends Service {
         		Log.w("jinzora","Receieved a command but have a null player");
         		return;
         	}
+        	
+        	// If we received it, abort it.
+        	try {
+        		abortBroadcast();
+        	} catch (Exception e) {}
+        	
         	try {
 	            String action = intent.getAction();
 	            String cmd = intent.getStringExtra("command");
+	            Log.d("jinzora","command: " + action);
 	            
-	            if (CMDNEXT.equals(cmd) || NEXT_ACTION.equals(action)) {
+	            if (Intents.ACTION_PLAYLIST.equals(action)) {
+	            	String playlist = intent.getStringExtra("playlist");
+	    			int addtype = intent.getIntExtra("addtype", 0);
+	    			
+	    			try {
+	    				mBinder.updatePlaylist(playlist, addtype);
+	    				return;
+	    			} catch (RemoteException e) {
+	    				Log.e("jinzora","Could not update playlist",e);
+	    			}
+	    			
+	    			return;
+	            }
+	            
+	            
+	            if (CMDNEXT.equals(cmd) || Intents.ACTION_CMD_NEXT.equals(action)) {
 	                player.next();
-	            } else if (CMDPREVIOUS.equals(cmd) || PREVIOUS_ACTION.equals(action)) {
+	            } else if (CMDPREVIOUS.equals(cmd) || Intents.ACTION_CMD_PREV.equals(action)) {
 	                player.prev();
-	            } else if (CMDTOGGLEPAUSE.equals(cmd) || TOGGLEPAUSE_ACTION.equals(action)) {
+	            } else if (CMDTOGGLEPAUSE.equals(cmd) || Intents.ACTION_CMD_PLAYPAUSE.equals(action)) {
+	                player.playpause();
+	            } else if (CMDPAUSE.equals(cmd) || Intents.ACTION_CMD_PAUSE.equals(action)) {
 	                player.pause();
-	            	/*if (player.isPlaying()) {
-	                    player.pause();
-	                } else {
-	                    player.play();
-	                }*/
-	            } else if (CMDPAUSE.equals(cmd) || PAUSE_ACTION.equals(action)) {
-	                player.pause();
+	            } else if (Intents.ACTION_CMD_PLAY.equals(action)) {
+	                player.play();
 	            } else if (CMDSTOP.equals(cmd)) {
 	                player.stop();
 	            } else if (JinzoraAppWidgetProvider.CMDAPPWIDGETUPDATE.equals(cmd)) {
@@ -105,34 +132,13 @@ public class PlaybackService extends Service {
 	                int[] appWidgetIds = intent.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS);
 	                mAppWidgetProvider.performUpdate(PlaybackService.this, appWidgetIds);
 	            }
+	            
         	} catch (Exception e) {
         		Log.e("jinzora","Error handling broadcast",e);
         	}
         }
     };
 	
-    private BroadcastReceiver mRemotableReceiver
-    	= new BroadcastReceiver() {
-			
-			@Override
-			public void onReceive(Context arg0, Intent intent) {
-				String action = intent.getAction();
-	            
-	            if (Intents.ACTION_PLAYLIST.equals(action)) {
-	            	String playlist = intent.getStringExtra("playlist");
-	    			int addtype = intent.getIntExtra("addtype", 0);
-	    			
-	    			try {
-	    				mBinder.updatePlaylist(playlist, addtype);
-	    				abortBroadcast();
-	    				return;
-	    			} catch (RemoteException e) {
-	    				Log.e("jinzora","Could not update playlist",e);
-	    			}
-	            }
-			}
-		};
-    
 	
 	@Override
 	public void onCreate() {
@@ -142,19 +148,18 @@ public class PlaybackService extends Service {
 		/** Playback commands (internal use) **/
 		IntentFilter commandFilter = new IntentFilter();
         commandFilter.addAction(SERVICECMD);
-        commandFilter.addAction(TOGGLEPAUSE_ACTION);
-        commandFilter.addAction(PAUSE_ACTION);
-        commandFilter.addAction(NEXT_ACTION);
-        commandFilter.addAction(PREVIOUS_ACTION);
-
-        registerReceiver(mCommandReceiver, commandFilter);
-
-        /** Remotable commands (experimental) **/
-        IntentFilter remotableFilter = new IntentFilter();
-        remotableFilter.addAction(Intents.ACTION_PLAYLIST);
-        remotableFilter.addCategory(Intents.CATEGORY_REMOTABLE);
+        commandFilter.addAction(Intents.ACTION_CMD_PLAYPAUSE);
+        commandFilter.addAction(Intents.ACTION_CMD_PAUSE);
+        commandFilter.addAction(Intents.ACTION_CMD_PLAY);
+        commandFilter.addAction(Intents.ACTION_CMD_PREV);
+        commandFilter.addAction(Intents.ACTION_CMD_NEXT);
+        commandFilter.addAction(Intents.ACTION_CMD_STOP);
+        commandFilter.addAction(Intents.ACTION_CMD_CLEAR);
+        commandFilter.addAction(Intents.ACTION_PLAYLIST);
         
-        registerReceiver(mRemotableReceiver,remotableFilter);
+        commandFilter.addCategory(Intents.CATEGORY_REMOTABLE);
+        
+        registerReceiver(mCommandReceiver, commandFilter);
         
 	}
 	
@@ -163,7 +168,6 @@ public class PlaybackService extends Service {
 		super.onDestroy();
 		
 		unregisterReceiver(mCommandReceiver);
-		unregisterReceiver(mRemotableReceiver);
 	}
 	
 	public boolean isPlaying() {
@@ -294,6 +298,15 @@ public class PlaybackService extends Service {
 		}
 	}
 	
+	
+	/**
+	 * Note: We switched from a service-binding 
+	 * approach for IPC to a broadcast-based
+	 * approach, to support remote playback.
+	 * This class is mostly unnecessary.
+	 * 
+	 * BJD 5/20/2010
+	 */
 	private final PlaybackInterface.Stub mBinder = new PlaybackInterface.Stub() {
 		
 		@Override
@@ -329,26 +342,32 @@ public class PlaybackService extends Service {
 		
 		@Override
 		public void clear() throws RemoteException {
-			player.clear();
-			
+			broadcastCommand(PlaybackService.this,Intents.ACTION_CMD_CLEAR);
 		}
 		
 		@Override
 		public void next() throws RemoteException {
-			player.next();
-			
+			broadcastCommand(PlaybackService.this,Intents.ACTION_CMD_NEXT);
 		}
 		
 		@Override
 		public void pause() throws RemoteException {
-			player.pause();
-			
+			broadcastCommand(PlaybackService.this,Intents.ACTION_CMD_PAUSE);
 		}
 		
 		@Override
 		public void prev() throws RemoteException {
-			player.prev();
-			
+			broadcastCommand(PlaybackService.this,Intents.ACTION_CMD_PREV);
+		}
+		
+		@Override
+		public void play() throws RemoteException {
+			broadcastCommand(PlaybackService.this,Intents.ACTION_CMD_PLAY);
+		}
+		
+		@Override
+		public void playpause() throws RemoteException {
+			broadcastCommand(PlaybackService.this,Intents.ACTION_CMD_PLAYPAUSE);
 		}
 		
 		@Override
@@ -359,8 +378,7 @@ public class PlaybackService extends Service {
 		
 		@Override
 		public void stop() throws RemoteException {
-			player.stop();
-			
+			broadcastCommand(PlaybackService.this,Intents.ACTION_CMD_STOP);
 		}
 		
 		@Override
@@ -426,6 +444,11 @@ public class PlaybackService extends Service {
 		}
 	};
 	
+	public static void broadcastCommand(Context c, String cmd) {
+		Intent i = new Intent(cmd);
+		i.addCategory(Intents.CATEGORY_REMOTABLE);
+		c.sendOrderedBroadcast(i, null);
+	}
 	
 	@Override
 	public IBinder onBind(Intent arg0) {

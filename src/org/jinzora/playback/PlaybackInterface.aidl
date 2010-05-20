@@ -3,6 +3,8 @@ package org.jinzora.playback;
 interface PlaybackInterface {
 	void updatePlaylist( in String pl, in int addtype );
 	void pause();
+	void play();
+	void playpause();
 	void stop();
 	void prev();
 	void next();

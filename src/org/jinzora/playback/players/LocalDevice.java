@@ -135,7 +135,8 @@ public class LocalDevice extends PlaybackDevice {
 	}
 
 	@Override
-	public synchronized void pause() throws RemoteException {
+	public synchronized void playpause() throws RemoteException {
+		Log.d("jinzora","playpause");
 		if (mPrepared && !mp.isPlaying()) {
 			mp.start();
 			mService.notifyPlaying(false);
@@ -144,6 +145,21 @@ public class LocalDevice extends PlaybackDevice {
 			mService.notifyPaused();
 		}
 	}
+	
+	@Override
+	public synchronized void pause() throws RemoteException {
+		mp.pause();
+		mService.notifyPaused();
+	}
+	
+	@Override
+	public synchronized void play() throws RemoteException {
+		if (mPrepared && !mp.isPlaying()) {
+			mp.start();
+			mService.notifyPlaying(false);
+		}
+	}
+	
 
 	@Override
 	public synchronized void prev() throws RemoteException {

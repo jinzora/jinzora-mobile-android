@@ -92,6 +92,23 @@ public class JukeboxDevice extends PlaybackDevice {
 			Log.e("jinzora","Error sending jukebox command",e);
 		}
 	}
+	
+	@Override
+	public synchronized void playpause() throws RemoteException {
+		pause();
+	}
+	
+	@Override
+	public synchronized void play() throws RemoteException {
+		try {
+			URL cmd = new URL(getBaseURL() + "&command=play");
+			HttpURLConnection conn = (HttpURLConnection)cmd.openConnection();
+			/*InputStream inStream =*/ conn.getInputStream();
+			conn.connect();
+		} catch (Exception e) {
+			Log.e("jinzora","Error sending jukebox command",e);
+		}
+	}
 
 	@Override
 	public synchronized void prev() throws RemoteException {

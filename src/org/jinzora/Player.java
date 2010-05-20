@@ -158,7 +158,8 @@ public class Player extends ListActivity {
 					@Override
 					public void run() {
 						try {
-							Jinzora.sPbConnection.playbackBinding.pause();
+							// also supports playpause();
+							Jinzora.sPbConnection.playbackBinding.play();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
 						}

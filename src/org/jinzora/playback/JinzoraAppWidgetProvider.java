@@ -179,13 +179,13 @@ public class JinzoraAppWidgetProvider extends AppWidgetProvider {
             views.setOnClickPendingIntent(R.id.album_appwidget, pendingIntent);
         }
         
-        intent = new Intent(PlaybackService.TOGGLEPAUSE_ACTION);
+        intent = new Intent(PlaybackService.Intents.ACTION_CMD_PLAYPAUSE);
         //intent.setComponent(serviceName);
         pendingIntent = PendingIntent.getBroadcast(context,
                 0 /* no requestCode */, intent, 0 /* no flags */);
         views.setOnClickPendingIntent(R.id.control_play, pendingIntent);
         
-        intent = new Intent(PlaybackService.NEXT_ACTION);
+        intent = new Intent(PlaybackService.Intents.ACTION_CMD_NEXT);
         //intent.setComponent(serviceName);
         pendingIntent = PendingIntent.getBroadcast(context,
                 0 /* no requestCode */, intent, 0 /* no flags */);
