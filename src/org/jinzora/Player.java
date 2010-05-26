@@ -336,7 +336,7 @@ public class Player extends ListActivity {
 		
 		
 		try {
-			List<String>tracks = Jinzora.sPbConnection.playbackBinding.getPlaylist();
+			List<String>tracks = Jinzora.sPbConnection.playbackBinding.getPlaylistNames();
 			if (tracks != null) {
 				int pos = Jinzora.sPbConnection.playbackBinding.getPlaylistPos();
 				mPlaylistAdapter.setEntries(tracks,pos);
@@ -362,7 +362,7 @@ public class Player extends ListActivity {
 			@Override
 			public void onReceive(Context context, Intent intent) {
 				try {
-					List<String>tracks = Jinzora.sPbConnection.playbackBinding.getPlaylist();
+					List<String>tracks = Jinzora.sPbConnection.playbackBinding.getPlaylistNames();
 					if (tracks != null) {
 						int pos = Jinzora.sPbConnection.playbackBinding.getPlaylistPos();
 						mPlaylistAdapter.setEntries(tracks,pos);

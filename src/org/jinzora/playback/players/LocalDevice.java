@@ -290,18 +290,28 @@ public class LocalDevice extends PlaybackDevice {
 	}
 
 	@Override
-	public List<String> getPlaylist() throws RemoteException {
+	public List<String> getPlaylistNames() throws RemoteException {
 		return trackNames;
 	}
 
 	@Override
+	public List<String> getPlaylistURLs() throws RemoteException {
+		return playlist;
+	}
+	
+	@Override
 	public int getPlaylistPos() throws RemoteException {
 		return pos;
+	}
+	
+	@Override
+	public int getSeekPos() throws RemoteException {
+		return mp.getCurrentPosition();
 	}
 
 	@Override
 	public String getArtistName() throws RemoteException {
-		if (!(0 <= pos && pos <= trackNames.size())) {
+		if (!(0 <= pos && pos < trackNames.size())) {
 			return null;
 		}
 		String entry = trackNames.get(pos);
@@ -314,7 +324,7 @@ public class LocalDevice extends PlaybackDevice {
 
 	@Override
 	public String getTrackName() throws RemoteException {
-		if (!(0 <= pos && pos <= trackNames.size())) {
+		if (!(0 <= pos && pos < trackNames.size())) {
 			return null;
 		}
 		String entry = trackNames.get(pos);

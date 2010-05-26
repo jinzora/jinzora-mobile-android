@@ -47,7 +47,7 @@ import android.widget.ArrayAdapter;
 import android.widget.TabHost;
 
 public class Jinzora extends TabActivity {
-	
+	public static final String PACKAGE = "org.jinzora";
 	private static final String ASSET_WELCOME = "welcome.txt";
 	
 	protected class MenuItems { 
@@ -74,6 +74,7 @@ public class Jinzora extends TabActivity {
 	private static boolean sServiceStarted = false;
     public static PlaybackServiceConnection sPbConnection = new PlaybackServiceConnection();
     public static DownloadServiceConnection sDlConnection = new DownloadServiceConnection();
+    private boolean amConnectingToJukebox=false;
 	
 	private static String[] addTypes = {"Replace current playlist","End of list","After current track"};
     private static int selectedAddType = 0;
@@ -212,6 +213,12 @@ public class Jinzora extends TabActivity {
 		
 		bindIntent = new Intent(this,DownloadService.class);
 		bindService(bindIntent,sDlConnection,0);
+		
+		if (amConnectingToJukebox) {
+			amConnectingToJukebox=false;
+			
+			
+		}
 	}
 	
 	@Override
@@ -236,6 +243,12 @@ public class Jinzora extends TabActivity {
 		
 		instance = this;
 		//playbackBinding = sPbConnection.playbackBinding;
+		
+		if ("junction.intent.action.JOIN".equalsIgnoreCase(getIntent().getAction())) {
+			amConnectingToJukebox=true;
+		} else {
+			amConnectingToJukebox=false;
+		}
 	}
 	
     /** Called when the activity is first created. */
@@ -269,10 +282,9 @@ public class Jinzora extends TabActivity {
 	        
 	        final Intent queryIntent = getIntent();
 	        final String queryAction = queryIntent.getAction();
+	        
 	        if (Intent.ACTION_SEARCH.equals(queryAction)) {
 	        	String queryString = queryIntent.getStringExtra(SearchManager.QUERY);
-	        	//Log.d("jinzora","got query " + queryString);
-	        	
 	        	
 	        	// Track history
 	        	SearchRecentSuggestions suggestions = new SearchRecentSuggestions(this, 
@@ -286,7 +298,6 @@ public class Jinzora extends TabActivity {
 	        		quickplay=true;
 	        		queryString=queryString.substring(5);
 	        	}
-	        	
 
 	        	// TODO: use 'power search' to populate appropriate fields.
 	        	
@@ -310,7 +321,9 @@ public class Jinzora extends TabActivity {
 	            
 	            // Quick search
 	            if (quickplay) {
-	            	this.quickplay(queryString);
+	            	Intent qp = PlaybackService.getQuickplayIntent();
+	            	qp.putExtra("query", queryString);
+	            	startService(qp);
 	            	finish();
 	            } else {
 		            // Open Browse activity
@@ -337,16 +350,6 @@ public class Jinzora extends TabActivity {
 	        host.addTab(host.newTabSpec("settings")
 	        		.setIndicator(getString(R.string.settings))
 	        		.setContent(new Intent(this, Preferences.class)));
-	        
-	       
-	        /*
-	        if (AndroidJunctionMaker.getInstance().isJoinable(this)) {
-	        	Log.d("jinzora","setting playback target from Junction");
-	        	this.sPbConnection.playbackBinding
-	        		.setPlaybackDevice(JunctionBox.class.getName(), 
-	        							AndroidJunctionMaker.getInstance().getInvitationForActivity(this).toString());
-	        }
-	        */
 	        
 	        // View M3U?
 	        Intent inboundIntent = getIntent(); 
@@ -485,47 +488,13 @@ public class Jinzora extends TabActivity {
             	
             	// hacky:
             	// double hacky cut&paste:
-            	quickplay("@id " + contents);
+            	Intent qp = PlaybackService.getQuickplayIntent();
+            	qp.putExtra("query", "@id " + contents);
+            	startService(qp);
             }            
         }
     }
-    
-    /**
-     * Performs a search and sends the
-     * result directly to the player.
-     */
-	private void quickplay(String query) {
-		try {
-			String urlStr = Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query);
-	    	URL url = new URL(urlStr);
-	        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-	        //conn.setConnectTimeout(5000);
-			InputStream inStream = conn.getInputStream();
-			conn.connect();
-	
-			 XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-	         factory.setNamespaceAware(true);
-	         XmlPullParser xpp = factory.newPullParser();
-	         xpp.setInput(inStream, conn.getContentEncoding());
-	
-	         int eventType = xpp.getEventType();
-	         while (eventType != XmlPullParser.END_DOCUMENT) {
-	        	 if (eventType == XmlPullParser.START_TAG && xpp.getName().equals("playlink")) {
-	        		 eventType = xpp.next();
-	        		 
-	        		 // found a match; play it.
-	        		Jinzora.doPlaylist( xpp.getText(), Jinzora.getAddType() );
-	        		 return;
-	        	 }
-	        	 eventType = xpp.next();
-	         }
-	    	
-	    	
-		} catch (Exception e) {
-			Log.e("jinzora","Error during quicksearch",e);
-		}
-	}
-	
+
 	public static void doPlaylist(String playlist, int addtype) {
 		// New-school way of doing it: send an intent.
 		// Can then make this remotable.

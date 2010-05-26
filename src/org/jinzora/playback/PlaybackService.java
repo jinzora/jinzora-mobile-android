@@ -1,6 +1,10 @@
 package org.jinzora.playback;
 
+import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
@@ -8,6 +12,9 @@ import org.jinzora.Jinzora;
 import org.jinzora.R;
 import org.jinzora.playback.players.LocalDevice;
 import org.jinzora.playback.players.PlaybackDevice;
+import org.json.JSONObject;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserFactory;
 
 import edu.stanford.spout.lib.AndroidSpout;
 import edu.stanford.spout.lib.NowPlayingSpout;
@@ -19,10 +26,12 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.appwidget.AppWidgetManager;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender.SendIntentException;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telephony.PhoneStateListener;
@@ -58,15 +67,74 @@ public class PlaybackService extends Service {
 	//public static final String NEXT_ACTION = "org.jinzora.musicservicecommand.next";
 	//public static final String PREVIOUS_ACTION = "org.jinzora.musicservicecommand.previous";
 	//public static final String PAUSE_ACTION = "org.jinzora.musicservicecommand.pause";
+		
+		/**
+		 * TODO: Get rid of quickplay() in Jinzora and Search classes
+		 * make this a sane API (not spoutable)
+		 * @param query
+		 */
+		private void quickplay(final Intent intent) {
+			
+			new Thread() {
+				public void run() {
+					try {
+						StringBuffer query = new StringBuffer();
+						if (intent.hasExtra("artist")) {
+							query.append(" " + intent.getStringExtra("artist"));
+						}
+						if (intent.hasExtra("album")) {
+							query.append(" " + intent.getStringExtra("album"));
+						}
+						if (query.length() == 0) {
+							if (intent.hasExtra("query")) {
+								query.append(intent.getStringExtra("query"));
+							}
+						}
+						
+						String urlStr = Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query.toString().trim());
+				    	URL url = new URL(urlStr);
+				        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+				        //conn.setConnectTimeout(5000);
+						InputStream inStream = conn.getInputStream();
+						conn.connect();
+				
+						 XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+				         factory.setNamespaceAware(true);
+				         XmlPullParser xpp = factory.newPullParser();
+				         xpp.setInput(inStream, conn.getContentEncoding());
+				
+				         int eventType = xpp.getEventType();
+				         while (eventType != XmlPullParser.END_DOCUMENT) {
+				        	 if (eventType == XmlPullParser.START_TAG && xpp.getName().equals("playlink")) {
+				        		 eventType = xpp.next();
+				        		 
+				        		 // found a match; play it.
+				        		 Jinzora.doPlaylist( xpp.getText(), Jinzora.getAddType() );
+				        		 return;
+				        	 }
+				        	 eventType = xpp.next();
+				         }
+					} catch (Exception e) {
+						Log.e("jinzora","Error during quicksearch",e);
+					}
+				};
+			}.start();
+		}
+	
 	
 	public static class Intents {
+		public static final String ACTION_QUICKPLAY = "org.jinzora.action.QUICKPLAY";
+		
 		public static final String ACTION_PLAYLIST = "org.jinzora.jukebox.PLAYLIST";
+		public static final String ACTION_PLAYLIST_SYNC_REQUEST = "org.jinzora.jukebox.PLAYLIST_SYNC_REQUEST";
+		public static final String ACTION_PLAYLIST_SYNC_RESPONSE = "org.jinzora.jukebox.PLAYLIST_SYNC_RESPONSE";
 		public static final String ACTION_CMD_PLAY = "org.jinzora.jukebox.cmd.PLAY";
 		public static final String ACTION_CMD_PAUSE = "org.jinzora.jukebox.cmd.PAUSE";
 		public static final String ACTION_CMD_NEXT = "org.jinzora.jukebox.cmd.NEXT";
 		public static final String ACTION_CMD_PREV = "org.jinzora.jukebox.cmd.PREV";
 		public static final String ACTION_CMD_STOP = "org.jinzora.jukebox.cmd.STOP";
 		public static final String ACTION_CMD_CLEAR = "org.jinzora.jukebox.cmd.CLEAR";
+		public static final String ACTION_CMD_JUMPTO = "org.jinzora.jukebox.cmd.JUMPTO";
 		public static final String ACTION_CMD_PLAYPAUSE = "org.jinzora.jukebox.cmd.PLAYPAUSE";
 		
 		public static final String CATEGORY_REMOTABLE = "junction.remoteintent.REMOTABLE";
@@ -97,7 +165,6 @@ public class PlaybackService extends Service {
         	try {
 	            String action = intent.getAction();
 	            String cmd = intent.getStringExtra("command");
-	            Log.d("jinzora","command: " + action);
 	            
 	            if (Intents.ACTION_PLAYLIST.equals(action)) {
 	            	String playlist = intent.getStringExtra("playlist");
@@ -113,8 +180,44 @@ public class PlaybackService extends Service {
 	    			return;
 	            }
 	            
+	            if (Intents.ACTION_PLAYLIST_SYNC_REQUEST.equals(action)) {
+	            	final int SYNC_BUFFER_WAIT = 5250;
+	            	List<String>names = player.getPlaylistNames();
+	            	List<String>urls = player.getPlaylistURLs();
+	            	if (urls.size()==0) {
+	            		return;
+	            	}
+	            	int plPos = player.getPlaylistPos();
+	            	int seekPos = player.getSeekPos();
+	            	
+	            	Intent sync = new Intent(Intents.ACTION_PLAYLIST_SYNC_RESPONSE);
+	            	sync.addCategory(Intents.CATEGORY_REMOTABLE);
+	            	sync.putExtra("names", names.toArray(new String[]{}));
+	            	sync.putExtra("urls", urls.toArray(new String[]{}));
+	            	sync.putExtra("pl_pos",plPos);
+	            	sync.putExtra("seek_pos",seekPos+SYNC_BUFFER_WAIT);
+	            	
+	            	sendBroadcast(sync);
+	            	
+	            	new Thread() {
+	            		public void run() {
+	            			try {
+	            				Thread.sleep(SYNC_BUFFER_WAIT);
+	            				player.pause();
+	            			} catch (Exception e) {
+	            				
+	            			}
+	            		};
+	            	}.start();
+	            	
+	            	return;
+	            }
 	            
-	            if (CMDNEXT.equals(cmd) || Intents.ACTION_CMD_NEXT.equals(action)) {
+	            if (Intents.ACTION_CMD_JUMPTO.equals(action)) {
+	            	int pos = intent.getIntExtra("pos", 0);
+	            	if (pos>0)
+	            		player.jumpTo(pos);
+	            } else if (CMDNEXT.equals(cmd) || Intents.ACTION_CMD_NEXT.equals(action)) {
 	                player.next();
 	            } else if (CMDPREVIOUS.equals(cmd) || Intents.ACTION_CMD_PREV.equals(action)) {
 	                player.prev();
@@ -139,6 +242,30 @@ public class PlaybackService extends Service {
         }
     };
 	
+    /**
+     * Returns an intent that issues a quickplay request.
+     * Can be broadcasted or used via startService.
+     * Accepts string extras: query, artist, album
+     * @return
+     */
+    public static Intent getQuickplayIntent() {
+    	Intent i = new Intent();
+    	i.setAction(Intents.ACTION_QUICKPLAY);
+    	
+    	// service only:
+    	i.setComponent(new ComponentName(Jinzora.PACKAGE, PlaybackService.class.getName()));
+    	
+    	// for broadcasting:
+    	//i.setPackage(Jinzora.PACKAGE);
+    	
+    	return i;
+    }
+    
+    public void onStart(Intent intent, int startId) {
+    	if (Intents.ACTION_QUICKPLAY.equalsIgnoreCase(intent.getAction())) {
+    		quickplay(intent);
+    	}
+    };
 	
 	@Override
 	public void onCreate() {
@@ -155,13 +282,14 @@ public class PlaybackService extends Service {
         commandFilter.addAction(Intents.ACTION_CMD_NEXT);
         commandFilter.addAction(Intents.ACTION_CMD_STOP);
         commandFilter.addAction(Intents.ACTION_CMD_CLEAR);
+        commandFilter.addAction(Intents.ACTION_CMD_JUMPTO);
         commandFilter.addAction(Intents.ACTION_PLAYLIST);
+        commandFilter.addAction(Intents.ACTION_PLAYLIST_SYNC_REQUEST);
         
         commandFilter.addCategory(Intents.CATEGORY_REMOTABLE);
         
         registerReceiver(mCommandReceiver, commandFilter);
-        
-	}
+    }
 	
 	@Override
 	public void onDestroy() {
@@ -372,8 +500,9 @@ public class PlaybackService extends Service {
 		
 		@Override
 		public void jumpTo(int pos) throws RemoteException {
-			player.jumpTo(pos);
-			
+			Bundle extras = new Bundle();
+			extras.putInt("pos",pos);
+			broadcastCommand(PlaybackService.this,Intents.ACTION_CMD_JUMPTO,extras);
 		}
 		
 		@Override
@@ -418,13 +547,23 @@ public class PlaybackService extends Service {
 		}
 
 		@Override
-		public List<String> getPlaylist() throws RemoteException {
-			return player.getPlaylist();
+		public List<String> getPlaylistNames() throws RemoteException {
+			return player.getPlaylistNames();
+		}
+		
+		@Override
+		public List<String> getPlaylistURLs() throws RemoteException {
+			return player.getPlaylistURLs();
 		}
 
 		@Override
 		public int getPlaylistPos() throws RemoteException {
 			return player.getPlaylistPos();
+		}
+		
+		@Override
+		public int getSeekPos() throws RemoteException {
+			return player.getSeekPos();
 		}
 
 		@Override
@@ -447,6 +586,14 @@ public class PlaybackService extends Service {
 	public static void broadcastCommand(Context c, String cmd) {
 		Intent i = new Intent(cmd);
 		i.addCategory(Intents.CATEGORY_REMOTABLE);
+		Log.d("junction","broadcasting " + i);
+		c.sendOrderedBroadcast(i, null);
+	}
+	
+	public static void broadcastCommand(Context c, String cmd, Bundle extras) {
+		Intent i = new Intent(cmd);
+		i.addCategory(Intents.CATEGORY_REMOTABLE);
+		i.putExtras(extras);
 		c.sendOrderedBroadcast(i, null);
 	}
 	

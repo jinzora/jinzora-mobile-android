@@ -179,12 +179,22 @@ public class JukeboxDevice extends PlaybackDevice {
 	}
 
 	@Override
-	public List<String> getPlaylist() throws RemoteException {
+	public List<String> getPlaylistNames() throws RemoteException {
 		return null;
 	}
 
 	@Override
+	public List<String> getPlaylistURLs() throws RemoteException {
+		return playlist;
+	}
+	
+	@Override
 	public int getPlaylistPos() throws RemoteException {
+		return -1;
+	}
+	
+	@Override
+	public int getSeekPos() throws RemoteException {
 		return -1;
 	}
 	

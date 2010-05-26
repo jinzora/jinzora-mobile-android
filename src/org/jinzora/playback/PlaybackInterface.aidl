@@ -18,8 +18,10 @@ interface PlaybackInterface {
 	void onCallBegin();
 	void onCallEnd();
 	
-	List<String> getPlaylist();
+	List<String> getPlaylistNames();
+	List<String> getPlaylistURLs();
 	int getPlaylistPos();
+	int getSeekPos();
 	
 	// TODO: make Playable parcel and return it here and in getPlaylist()
 	String getArtistName();

@@ -80,11 +80,26 @@
     		/>
     	</receiver>
     	
-		
 		 <!-- Content provider for search suggestions -->
 	     <provider android:name=".SearchHistoryProvider"
                android:authorities="org.jinzora"
          />
+         
+         <!-- Remotable -->
+         <!-- get rid of me! -->
+         <!-- use junction internally -->
+         <receiver android:name="edu.stanford.junction.remoteintents.IntentFilterInstaller">
+         	<intent-filter>
+         		<action android:name="junction.notify.JOINED_ACTIVITY" />
+         	</intent-filter>
+         </receiver>
+         
+         <!-- Quickplay broadcast receiver -->
+         <receiver android:name="org.jinzora.playback.QuickplayBroadcastReceiver">
+         	<intent-filter>
+         		<action android:name="org.jinzora.action.QUICKPLAY"/>
+         	</intent-filter>
+         </receiver>
 </application>
 <uses-permission android:name="android.permission.INTERNET"></uses-permission>
 <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>

@@ -11,6 +11,7 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import android.app.Activity;
+import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -54,24 +55,7 @@ public class Search extends Activity {
 	        		if (event.getAction() == KeyEvent.ACTION_UP &&
 	        			event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
 	        		
-	        			
-	        			new Thread() {
-		 					@Override
-		 					public void run() {
-		 						try {
-		 							String query = ((EditText)findViewById(R.id.search_box)).getText().toString();
-		 							if (query != null && query.length() > 0) {
-		 								Intent intent = new Intent(Search.this, Jinzora.class);
-		 								intent.putExtra(Search.this.getPackageName()+".browse",Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query, "UTF-8"));
-		 					    		startActivity(intent);
-		 							}
-		 						} catch (Exception e) {
-		 							Log.e("jinzora","Error during search",e);
-		 						}
-		 					}
-		 				}.start();
-	        			
-	        			
+	        			doSearch();
 	        		}
 	        		
 	        		return false;
@@ -83,21 +67,7 @@ public class Search extends Activity {
 	 			@Override
 	 			public void onClick(View v) {
 	 			
-	 				new Thread() {
-	 					@Override
-	 					public void run() {
-	 						try {
-	 							String query = ((EditText)findViewById(R.id.search_box)).getText().toString();
-	 							if (query != null && query.length() > 0) {
-	 								Intent intent = new Intent(Search.this, Jinzora.class);
-	 								intent.putExtra(Search.this.getPackageName()+".browse",Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query, "UTF-8"));
-	 					    		startActivity(intent);
-	 							}
-	 						} catch (Exception e) {
-	 							Log.e("jinzora","Error during search",e);
-	 						}
-	 					}
-	 				}.start();
+	 				doSearch();
 	 			}
 	 		});
 	         
@@ -112,7 +82,9 @@ public class Search extends Activity {
 		 						try {
 		 							String query = ((EditText)findViewById(R.id.search_box)).getText().toString();
 		 							if (query != null && query.length() > 0) {
-		 								quickplay(query);
+		 								Intent quickplay = PlaybackService.getQuickplayIntent();
+		 								quickplay.putExtra("query", query);
+		 								startService(quickplay);
 		 							}
 		 						} catch (Exception e) {
 		 							Log.e("jinzora","Error during search",e);
@@ -127,42 +99,6 @@ public class Search extends Activity {
         }
 	}
 	
-    /**
-     * Performs a search and sends the
-     * result directly to the player.
-     */
-	protected void quickplay(String query) {
-		try {
-			String urlStr = Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query);
-	    	URL url = new URL(urlStr);
-	        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-	        //conn.setConnectTimeout(5000);
-			InputStream inStream = conn.getInputStream();
-			conn.connect();
-	
-			 XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-	         factory.setNamespaceAware(true);
-	         XmlPullParser xpp = factory.newPullParser();
-	         xpp.setInput(inStream, conn.getContentEncoding());
-	
-	         int eventType = xpp.getEventType();
-	         while (eventType != XmlPullParser.END_DOCUMENT) {
-	        	 if (eventType == XmlPullParser.START_TAG && xpp.getName().equals("playlink")) {
-	        		 eventType = xpp.next();
-	        		 
-	        		 // found a match; play it.
-	        		 Jinzora.doPlaylist( xpp.getText(), Jinzora.getAddType() );
-	        		 return;
-	        	 }
-	        	 eventType = xpp.next();
-	         }
-	    	
-	    	
-		} catch (Exception e) {
-			Log.e("jinzora","Error during quicksearch",e);
-		}
-	}
-	
 	@Override
     public boolean onCreateOptionsMenu(Menu menu) {
     	return Jinzora.createMenu(menu);
@@ -172,5 +108,25 @@ public class Search extends Activity {
     public boolean onMenuItemSelected(int featureId, MenuItem item) {
     	Jinzora.menuItemSelected(featureId,item, this);
     	return super.onMenuItemSelected(featureId, item);
+    }
+    
+    private void doSearch() {
+    	new Thread() {
+				@Override
+				public void run() {
+					try {
+						String query = ((EditText)findViewById(R.id.search_box)).getText().toString();
+						if (query != null && query.length() > 0) {
+							Intent intent = new Intent(Search.this, Jinzora.class);
+							intent.setAction(Intent.ACTION_SEARCH);
+							intent.putExtra(SearchManager.QUERY, query);
+							//intent.putExtra(Search.this.getPackageName()+".browse",Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query, "UTF-8"));
+				    		startActivity(intent);
+						}
+					} catch (Exception e) {
+						Log.e("jinzora","Error during search",e);
+					}
+				}
+			}.start();
     }
 }
