@@ -74,7 +74,8 @@ public class LocalDevice extends PlaybackDevice {
 			@Override
 			public boolean onError(MediaPlayer arg0, int arg1, int arg2) {
 				Log.d("jinzora","media player error " + arg1 + ", " + arg2);
-				Log.d("jinzora", "error track was " + pos + ", " + playlist.get(pos));
+				if (playlist != null && pos<playlist.size())
+					Log.d("jinzora", "error track was " + pos + ", " + playlist.get(pos));
 				
 				try {
 					LocalDevice.this.mService.killNotifications();
