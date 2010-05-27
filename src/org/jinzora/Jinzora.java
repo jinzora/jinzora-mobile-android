@@ -4,24 +4,18 @@ package org.jinzora;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.util.List;
 
 import org.jinzora.download.DownloadActivity;
 import org.jinzora.download.DownloadService;
-import org.jinzora.download.DownloadServiceConnection;
+import org.jinzora.download.DownloaderInterface;
 import org.jinzora.playback.PlaybackInterface;
 import org.jinzora.playback.PlaybackService;
-import org.jinzora.playback.PlaybackServiceConnection;
 import org.json.JSONObject;
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserFactory;
 
 import com.google.zxing.integration.IntentIntegrator;
 import com.google.zxing.integration.IntentResult;
@@ -31,7 +25,6 @@ import android.app.AlertDialog;
 import android.app.SearchManager;
 import android.app.TabActivity;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -46,7 +39,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.TabHost;
-import android.widget.Toast;
 
 public class Jinzora extends TabActivity {
 	public static final String PACKAGE = "org.jinzora";
@@ -74,8 +66,8 @@ public class Jinzora extends TabActivity {
 	private static String baseurl;
 	
 	private static boolean sServiceStarted = false;
-    public static PlaybackServiceConnection sPbConnection = new PlaybackServiceConnection();
-    public static DownloadServiceConnection sDlConnection = new DownloadServiceConnection();
+    public static PlaybackServiceConnection sPbConnection = null;
+    public static DownloadServiceConnection sDlConnection = null;
     
 	private static String[] addTypes = {"Replace current playlist","End of list","After current track"};
     private static int selectedAddType = 0;
@@ -218,73 +210,6 @@ public class Jinzora extends TabActivity {
 		bindService(bindIntent,sDlConnection,0);
 	}
 	
-	
-	/**
-	 * This is disgusting, and stems from my use of a service
-	 * connection, and desire to perform this action
-	 * onResume.
-	 */
-	public static void onPbServiceConnection() {
-		if ("junction.intent.action.JOIN".equalsIgnoreCase(instance.getIntent().getAction())) {
-			// avoid re-posting on backwards navigation
-			instance.getIntent().setAction("");
-			
-			try {
-				AlertDialog.Builder builder =
-				new AlertDialog.Builder(instance)
-					.setTitle("Found a jukebox");
-				
-				List<String>urls = sPbConnection.playbackBinding.getPlaylistURLs();
-				if (urls != null && urls.size()>0) {
-					// Have a current playlist
-					builder
-						.setItems(new String[] {"Send my current playlist"
-							,"Connect without my playlist"
-							,"Do not connect"}
-								, new DialogInterface.OnClickListener() {
-									@Override
-									public void onClick(DialogInterface dialog, int selection) {
-										switch (selection) {
-										case 0:
-											instance.connectToJukebox(true);
-											break;
-											
-										case 1:
-											instance.connectToJukebox(false);
-											break;
-										case 2:
-											// do nothing
-											break;
-										}
-									}
-							});
-				} else {
-					// No playlist loaded
-					builder.setMessage("Would you like to connect to this jukebox?")
-					.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-						@Override
-						public void onClick(DialogInterface arg0, int arg1) {
-							instance.connectToJukebox(false);
-						}
-					})
-					.setNegativeButton("No", new DialogInterface.OnClickListener() {
-						@Override
-						public void onClick(DialogInterface arg0, int arg1) {
-							// Do nothing
-						}
-					});
-				}
-				
-				builder.create().show();
-			
-			} catch (Exception e) {
-				Log.e("jinzora","could not connect to jukebox",e);
-			}
-		}
-	}
-	
-	
-	
 	@Override
 	protected void onPause() {
 		super.onPause();
@@ -312,6 +237,10 @@ public class Jinzora extends TabActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        
+        sPbConnection = new PlaybackServiceConnection();
+        sDlConnection = new DownloadServiceConnection();
         
         try {
     		if (sSessionPreferences == null) {
@@ -433,7 +362,7 @@ public class Jinzora extends TabActivity {
     
     protected static boolean createMenu(Menu menu) {
     	menu.add(0,MenuItems.HOME,1,R.string.home)
-    	.setIcon(android.R.drawable.ic_menu_revert)
+    	.setIcon(R.drawable.ic_menu_home)
     	.setAlphabeticShortcut('h');
     	
     	menu.add(0,MenuItems.ADDWHERE,2,"Queue Mode")
@@ -571,6 +500,92 @@ public class Jinzora extends TabActivity {
 		}*/
 	}
 	
+	
+	private void doJukeboxConnectionPrompt() {
+		
+		// Connect
+		if ("junction.intent.action.JOIN".equalsIgnoreCase(getIntent().getAction())) {
+			// avoid re-posting on backwards navigation
+			getIntent().setAction("");
+			
+			try {
+				AlertDialog.Builder builder =
+				new AlertDialog.Builder(Jinzora.this)
+					.setTitle("Found a jukebox");
+				
+				List<String>urls = sPbConnection.playbackBinding.getPlaylistURLs();
+				if (urls != null && urls.size()>0) {
+					// Have a current playlist
+					builder
+						.setItems(new String[] {"Send my current playlist"
+							,"Connect without my playlist"
+							,"Do not connect"}
+								, new DialogInterface.OnClickListener() {
+									@Override
+									public void onClick(DialogInterface dialog, int selection) {
+										switch (selection) {
+										case 0:
+											connectToJukebox(true);
+											break;
+											
+										case 1:
+											connectToJukebox(false);
+											break;
+										case 2:
+											// do nothing
+											break;
+										}
+									}
+							});
+				} else {
+					// No playlist loaded
+					builder.setMessage("Would you like to connect to this jukebox?")
+					.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface arg0, int arg1) {
+							connectToJukebox(false);
+						}
+					})
+					.setNegativeButton("No", new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface arg0, int arg1) {
+							// Do nothing
+						}
+					});
+				}
+				
+				builder.create().show();
+			
+			} catch (Exception e) {
+				Log.e("jinzora","could not connect to jukebox",e);
+			}
+		}
+		
+		// Disconnect
+		if (PlaybackService.Intents.ACTION_DISCONNECT_JUKEBOX.equalsIgnoreCase(getIntent().getAction())) {
+			final Intent bounce = new Intent(getIntent());
+			getIntent().setAction("");
+			
+			new AlertDialog.Builder(Jinzora.this)
+				.setTitle("Disconnect from jukebox?")
+				.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+					
+					@Override
+					public void onClick(DialogInterface arg0, int arg1) {
+						bounce.setClassName(getPackageName(), PlaybackService.class.getName());
+						startService(bounce);
+					}
+				})
+				.setNegativeButton("No", new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface arg0, int arg1) {
+						// Do nothing
+					}
+				}).create().show();
+		}
+	}
+	
+	
 	/**
 	 * Connect Jinzora to a remote jukebox.
 	 * @param transferPlaylist whether or not to bring the current playlist
@@ -586,5 +601,71 @@ public class Jinzora extends TabActivity {
 		jbIntent.setClassName(Jinzora.this, PlaybackService.class.getName());
 
 		startService(jbIntent);
+	}
+	
+	
+	
+	
+	public class PlaybackServiceConnection implements ServiceConnection {
+		public PlaybackInterface playbackBinding;
+		private String baseurl;
+
+		public synchronized void setBaseURL(String url) {
+			baseurl=url;
+			if (playbackBinding != null) {
+				try {
+					playbackBinding.setBaseURL(url);
+				} catch (RemoteException e) {
+					Log.e("jinzora","error setting baseurl on binding object",e);
+				}
+			}
+		}
+		
+		// service connection methods
+		public synchronized void onServiceConnected(ComponentName className, IBinder service) {
+			
+			if (playbackBinding == null) {
+				Log.d("jinzora","playback interface is null; creating instance.");
+				playbackBinding = PlaybackInterface.Stub.asInterface((IBinder)service);
+				
+				try {
+					if (baseurl != null) {
+						playbackBinding.setBaseURL(baseurl);
+					} else {
+						playbackBinding.setBaseURL(Jinzora.getBaseURL());
+					}
+				} catch (RemoteException e) {
+					Log.e("jinzora","Error setting remote baseURL",e);
+				}
+			} else {
+				//Log.w("jinzora","onServiceConnected called but playback object is not null");
+			}
+			
+			doJukeboxConnectionPrompt();
+		}
+		
+		@Override
+		public void onServiceDisconnected(ComponentName className) {
+			Log.w("jinzora", "service disconnected.");
+			playbackBinding = null;
+		}
+	}
+	
+	public class DownloadServiceConnection implements ServiceConnection {
+		private DownloaderInterface mDownloadServiceBinding;
+		
+		@Override
+		public void onServiceConnected(ComponentName componentName, IBinder service) {
+			mDownloadServiceBinding = DownloaderInterface.Stub.asInterface(service);
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName arg0) {
+			mDownloadServiceBinding = null;
+		}
+
+		public DownloaderInterface getBinding() {
+			return mDownloadServiceBinding;
+		}
 	}
 }

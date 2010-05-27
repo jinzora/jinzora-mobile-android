@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.jinzora.playback.PlaybackService;
-import org.jinzora.playback.PlaybackServiceConnection;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;

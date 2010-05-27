@@ -278,11 +278,11 @@ public class PlaybackService extends Service {
     		
     		// Notification so they can remove this jukebox
     		String notice = "Connected to remote jukebox. Click to disconnect.";
-    		Intent cancelIntent = new Intent(this, PlaybackService.class);
+    		Intent cancelIntent = new Intent(this, Jinzora.class);
     		cancelIntent.setAction(Intents.ACTION_DISCONNECT_JUKEBOX);
     		Notification notification = new Notification(
-					android.R.drawable.ic_media_play, notice, System.currentTimeMillis());
-			PendingIntent pending = PendingIntent.getService(this, JB_NOTIFY_ID, cancelIntent, 0);
+					android.R.drawable.ic_btn_speak_now, notice, System.currentTimeMillis());
+			PendingIntent pending = PendingIntent.getActivity(this, JB_NOTIFY_ID, cancelIntent, 0);
 			
 			notification.setLatestEventInfo(this, "Jinzora Mobile", notice, pending);
 			notification.flags |= Notification.FLAG_ONGOING_EVENT;

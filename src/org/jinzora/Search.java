@@ -1,18 +1,9 @@
 package org.jinzora;
 
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-
 import org.jinzora.playback.PlaybackService;
-import org.jinzora.playback.PlaybackServiceConnection;
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserFactory;
 
 import android.app.Activity;
 import android.app.SearchManager;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -25,19 +16,15 @@ import android.widget.EditText;
 
 
 public class Search extends Activity {
-	private PlaybackServiceConnection sPbConnection = new PlaybackServiceConnection();
 	
 	@Override
 	protected void onStart() {
 		super.onStart();
-		
-		bindService(new Intent(this,PlaybackService.class), sPbConnection, Context.BIND_AUTO_CREATE);
 	}
 	
 	@Override
 	protected void onStop() {
 		super.onStop();
-		unbindService(sPbConnection);
 	}
 	
 	@Override
