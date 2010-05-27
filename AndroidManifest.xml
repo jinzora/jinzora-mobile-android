@@ -90,7 +90,8 @@
          <!-- use junction internally -->
          <receiver android:name="edu.stanford.junction.remoteintents.IntentFilterInstaller">
          	<intent-filter>
-         		<action android:name="junction.notify.JOINED_ACTIVITY" />
+         		<!--<action android:name="junction.notify.JOINED_ACTIVITY" /> -->
+         		
          	</intent-filter>
          </receiver>
          

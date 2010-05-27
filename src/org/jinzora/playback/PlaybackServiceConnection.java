@@ -44,6 +44,8 @@ public class PlaybackServiceConnection implements ServiceConnection {
 		} else {
 			//Log.w("jinzora","onServiceConnected called but playback object is not null");
 		}
+		
+		Jinzora.onPbServiceConnection();
 	}
 	
 	@Override

@@ -45,7 +45,8 @@ public class PlaybackService extends Service {
 	
 	protected NotificationManager nm;
 	protected static final int NOTIFY_ID = R.layout.player;
-
+	protected static final int JB_NOTIFY_ID = R.layout.playlist_item; // stupid
+	
 	private JinzoraAppWidgetProvider mAppWidgetProvider = JinzoraAppWidgetProvider.getInstance();
 	
 	
@@ -124,6 +125,8 @@ public class PlaybackService extends Service {
 	
 	public static class Intents {
 		public static final String ACTION_QUICKPLAY = "org.jinzora.action.QUICKPLAY";
+		public static final String ACTION_CONNECT_JUKEBOX = "org.jinzora.action.CONNECT_JUKEBOX";
+		public static final String ACTION_DISCONNECT_JUKEBOX = "org.jinzora.action.DISCONNECT_JUKEBOX";
 		
 		public static final String ACTION_PLAYLIST = "org.jinzora.jukebox.PLAYLIST";
 		public static final String ACTION_PLAYLIST_SYNC_REQUEST = "org.jinzora.jukebox.PLAYLIST_SYNC_REQUEST";
@@ -264,6 +267,34 @@ public class PlaybackService extends Service {
     public void onStart(Intent intent, int startId) {
     	if (Intents.ACTION_QUICKPLAY.equalsIgnoreCase(intent.getAction())) {
     		quickplay(intent);
+    	}
+    	
+    	if (Intents.ACTION_CONNECT_JUKEBOX.equalsIgnoreCase(intent.getAction())) {
+    		// TODO: this is where the remote intent stuff is.
+    		// we'd like to remove it.
+    		// TODO: props. Mad props.
+    		// TODO: instead of just passing "transfer=true|false", support queuing/replacing/etc
+    		installRemoteIntentFilter(intent);
+    		
+    		// Notification so they can remove this jukebox
+    		String notice = "Connected to remote jukebox. Click to disconnect.";
+    		Intent cancelIntent = new Intent(this, PlaybackService.class);
+    		cancelIntent.setAction(Intents.ACTION_DISCONNECT_JUKEBOX);
+    		Notification notification = new Notification(
+					android.R.drawable.ic_media_play, notice, System.currentTimeMillis());
+			PendingIntent pending = PendingIntent.getService(this, JB_NOTIFY_ID, cancelIntent, 0);
+			
+			notification.setLatestEventInfo(this, "Jinzora Mobile", notice, pending);
+			notification.flags |= Notification.FLAG_ONGOING_EVENT;
+			nm.notify(JB_NOTIFY_ID, notification);
+    	}
+    	
+    	if (Intents.ACTION_DISCONNECT_JUKEBOX.equalsIgnoreCase(intent.getAction())) {
+    		nm.cancel(JB_NOTIFY_ID);
+    		// hacky end to a hacky beginning (remote intents)
+    		Intent holla = new Intent("profile.tag.LOAD");
+			holla.putExtra("tag", "later");
+			sendBroadcast(holla);
     	}
     };
 	
@@ -636,5 +667,49 @@ public class PlaybackService extends Service {
 		}
 		//player = JukeboxDevice.getInstance("0");
 		return mBinder;
+	}
+	
+	private /* hacky */ void installRemoteIntentFilter(Intent inbound) {
+		if (!(inbound.hasExtra("invitationURI"))) {
+			Log.d("jinzora","could not set up remote jukebox; no activity given");
+			return;
+		}
+
+		// Ugh. Should have made one org.jinzora.jukebox.COMMAND action.
+		IntentFilter filter = new IntentFilter();
+		filter.addAction("org.jinzora.jukebox.PLAYLIST");
+		filter.addAction("org.jinzora.jukebox.PLAYLIST_SYNC_RESPONSE");
+		filter.addAction("org.jinzora.jukebox.cmd.PLAY");
+		filter.addAction("org.jinzora.jukebox.cmd.PAUSE");
+		filter.addAction("org.jinzora.jukebox.cmd.NEXT");
+		filter.addAction("org.jinzora.jukebox.cmd.PREV");
+		filter.addAction("org.jinzora.jukebox.cmd.STOP");
+		filter.addAction("org.jinzora.jukebox.cmd.CLEAR");
+		filter.addAction("org.jinzora.jukebox.cmd.JUMPTO");
+		filter.addAction("org.jinzora.jukebox.cmd.PLAYPAUSE");
+		filter.addCategory("junction.remoteintent.REMOTABLE");
+		
+		Intent intent = new Intent("junction.remoteintent.INSTALL_FILTER");
+		intent.putExtra("activityURI",inbound.getStringExtra("invitationURI"));
+		intent.putExtra("activityID","org.jinzora.jukebox");
+		intent.putExtra("intentFilter", filter);
+		intent.putExtra("method", "junction"); // vs REST
+		
+		//Log.d("junction","sending intent " + intent);
+		sendBroadcast(intent);
+		
+		/* Sync request */
+		boolean tx = inbound.getBooleanExtra("transfer", false);
+		if (tx) {
+			Intent sync = new Intent(PlaybackService.Intents.ACTION_PLAYLIST_SYNC_REQUEST);
+			sync.addCategory(PlaybackService.Intents.CATEGORY_REMOTABLE);
+			sendBroadcast(sync);
+		} else {
+			try {
+				player.clear();
+			} catch (RemoteException e) {
+				Log.e("jinzora","failed to clear playlist while connecting to jukebox");
+			}
+		}
 	}
 }

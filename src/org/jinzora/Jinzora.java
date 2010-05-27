@@ -11,6 +11,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
+import java.util.List;
 
 import org.jinzora.download.DownloadActivity;
 import org.jinzora.download.DownloadService;
@@ -45,6 +46,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.TabHost;
+import android.widget.Toast;
 
 public class Jinzora extends TabActivity {
 	public static final String PACKAGE = "org.jinzora";
@@ -74,8 +76,7 @@ public class Jinzora extends TabActivity {
 	private static boolean sServiceStarted = false;
     public static PlaybackServiceConnection sPbConnection = new PlaybackServiceConnection();
     public static DownloadServiceConnection sDlConnection = new DownloadServiceConnection();
-    private boolean amConnectingToJukebox=false;
-	
+    
 	private static String[] addTypes = {"Replace current playlist","End of list","After current track"};
     private static int selectedAddType = 0;
 	private static DialogInterface.OnClickListener addTypeClickListener 
@@ -208,18 +209,81 @@ public class Jinzora extends TabActivity {
 	public void onResume() {
 		super.onResume();
 		
+		instance = this;
+		
 		Intent bindIntent = new Intent(this,PlaybackService.class);
 		bindService(bindIntent,sPbConnection,0);
 		
 		bindIntent = new Intent(this,DownloadService.class);
 		bindService(bindIntent,sDlConnection,0);
-		
-		if (amConnectingToJukebox) {
-			amConnectingToJukebox=false;
+	}
+	
+	
+	/**
+	 * This is disgusting, and stems from my use of a service
+	 * connection, and desire to perform this action
+	 * onResume.
+	 */
+	public static void onPbServiceConnection() {
+		if ("junction.intent.action.JOIN".equalsIgnoreCase(instance.getIntent().getAction())) {
+			// avoid re-posting on backwards navigation
+			instance.getIntent().setAction("");
 			
+			try {
+				AlertDialog.Builder builder =
+				new AlertDialog.Builder(instance)
+					.setTitle("Found a jukebox");
+				
+				List<String>urls = sPbConnection.playbackBinding.getPlaylistURLs();
+				if (urls != null && urls.size()>0) {
+					// Have a current playlist
+					builder
+						.setItems(new String[] {"Send my current playlist"
+							,"Connect without my playlist"
+							,"Do not connect"}
+								, new DialogInterface.OnClickListener() {
+									@Override
+									public void onClick(DialogInterface dialog, int selection) {
+										switch (selection) {
+										case 0:
+											instance.connectToJukebox(true);
+											break;
+											
+										case 1:
+											instance.connectToJukebox(false);
+											break;
+										case 2:
+											// do nothing
+											break;
+										}
+									}
+							});
+				} else {
+					// No playlist loaded
+					builder.setMessage("Would you like to connect to this jukebox?")
+					.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface arg0, int arg1) {
+							instance.connectToJukebox(false);
+						}
+					})
+					.setNegativeButton("No", new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface arg0, int arg1) {
+							// Do nothing
+						}
+					});
+				}
+				
+				builder.create().show();
 			
+			} catch (Exception e) {
+				Log.e("jinzora","could not connect to jukebox",e);
+			}
 		}
 	}
+	
+	
 	
 	@Override
 	protected void onPause() {
@@ -241,14 +305,7 @@ public class Jinzora extends TabActivity {
     		sServiceStarted = true;
     	}
 		
-		instance = this;
 		//playbackBinding = sPbConnection.playbackBinding;
-		
-		if ("junction.intent.action.JOIN".equalsIgnoreCase(getIntent().getAction())) {
-			amConnectingToJukebox=true;
-		} else {
-			amConnectingToJukebox=false;
-		}
 	}
 	
     /** Called when the activity is first created. */
@@ -512,5 +569,22 @@ public class Jinzora extends TabActivity {
 		} catch (RemoteException e) {
 			Log.e("jinzora","Error sending playlist",e);
 		}*/
+	}
+	
+	/**
+	 * Connect Jinzora to a remote jukebox.
+	 * @param transferPlaylist whether or not to bring the current playlist
+	 */
+	private void connectToJukebox(boolean transferPlaylist) {
+		// TODO: remove remote intents.
+			// currently, this is using the edu.stanford.junction.remoteintents stuff
+			// which was experimental and should be removed
+		// TODO: support different playlist transfer modes (replace, queue, etc.)
+		Intent jbIntent = getIntent();
+		jbIntent.setAction(PlaybackService.Intents.ACTION_CONNECT_JUKEBOX);
+		jbIntent.putExtra("transfer", transferPlaylist);
+		jbIntent.setClassName(Jinzora.this, PlaybackService.class.getName());
+
+		startService(jbIntent);
 	}
 }
