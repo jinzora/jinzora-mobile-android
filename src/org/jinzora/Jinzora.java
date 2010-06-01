@@ -67,7 +67,6 @@ public class Jinzora extends TabActivity {
 	
 	private static boolean sServiceStarted = false;
     public static PlaybackServiceConnection sPbConnection = null;
-    public static DownloadServiceConnection sDlConnection = null;
     
 	private static String[] addTypes = {"Replace current playlist","End of list","After current track"};
     private static int selectedAddType = 0;
@@ -205,9 +204,6 @@ public class Jinzora extends TabActivity {
 		
 		Intent bindIntent = new Intent(this,PlaybackService.class);
 		bindService(bindIntent,sPbConnection,0);
-		
-		bindIntent = new Intent(this,DownloadService.class);
-		bindService(bindIntent,sDlConnection,0);
 	}
 	
 	@Override
@@ -215,7 +211,6 @@ public class Jinzora extends TabActivity {
 		super.onPause();
 		
 		unbindService(sPbConnection);
-		unbindService(sDlConnection);
 	}
 	
 	@Override
@@ -225,8 +220,6 @@ public class Jinzora extends TabActivity {
 		/* Start the playback service */
     	if (!sServiceStarted) {
     		startService(new Intent(this, PlaybackService.class));
-    		startService(new Intent(this, DownloadService.class));
-    		
     		sServiceStarted = true;
     	}
 		
@@ -237,10 +230,7 @@ public class Jinzora extends TabActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        
         sPbConnection = new PlaybackServiceConnection();
-        sDlConnection = new DownloadServiceConnection();
         
         try {
     		if (sSessionPreferences == null) {
@@ -648,24 +638,6 @@ public class Jinzora extends TabActivity {
 		public void onServiceDisconnected(ComponentName className) {
 			Log.w("jinzora", "service disconnected.");
 			playbackBinding = null;
-		}
-	}
-	
-	public class DownloadServiceConnection implements ServiceConnection {
-		private DownloaderInterface mDownloadServiceBinding;
-		
-		@Override
-		public void onServiceConnected(ComponentName componentName, IBinder service) {
-			mDownloadServiceBinding = DownloaderInterface.Stub.asInterface(service);
-		}
-
-		@Override
-		public void onServiceDisconnected(ComponentName arg0) {
-			mDownloadServiceBinding = null;
-		}
-
-		public DownloaderInterface getBinding() {
-			return mDownloadServiceBinding;
 		}
 	}
 }

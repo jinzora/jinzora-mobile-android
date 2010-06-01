@@ -13,7 +13,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Environment;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -21,6 +23,9 @@ import android.util.Log;
 import android.widget.Toast;
 
 public class DownloadService extends Service {
+	public static class Intents {
+		public static final String ACTION_DOWNLOAD_PLAYLIST = "DOWNLOAD_PLAYLIST";
+	}
 	public static final String UPDATE_DOWNLOAD_LIST = "org.jinzora.dllistupdated";
 	
 	LinkedList<String>downloadLabels;
@@ -39,70 +44,6 @@ public class DownloadService extends Service {
 	private File dlDir;
 	
 	private final DownloaderInterface.Stub mBinder = new DownloaderInterface.Stub() {
-
-		@Override
-		public void downloadPlaylist(final String urlstr) throws RemoteException {
-			Toast.makeText(DownloadService.this, "Downloading playlist", Toast.LENGTH_SHORT).show();
-			new Thread() {
-				public void run() {
-							
-						try {
-							URL url = new URL(urlstr);
-							HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-							InputStream inStream = conn.getInputStream();
-							conn.connect();
-		
-							BufferedReader br = new BufferedReader(new InputStreamReader(inStream));
-							String line = null; 
-							String lastLine = null;
-							
-							line = br.readLine();
-							while (line != null) {
-								if (line.length() > 0 && line.charAt(0) != '#') {
-									try {
-										URL track = new URL(line);
-										String trackname;
-										
-									    if (lastLine.charAt(0) == '#') {
-									    	int pos;
-									    	if (-1 != (pos = lastLine.indexOf(','))) {
-									    		trackname = lastLine.substring(pos+1,lastLine.length());
-									    	} else {
-									    		trackname = UNKNOWN_TRACK;
-									    	}
-									    } else {
-									    	trackname = UNKNOWN_TRACK;
-									    }
-
-									    synchronized(mBinder) {
-										    downloadLabels.add(trackname);
-										    downloadURLs.add(track);
-										    
-										    //mBinder.notifyAll();
-									    }
-									    
-									    if (!amDownloading) {
-										    new Thread() {
-										    	public void run() {
-										    		doDownload();		
-										    	};
-										    }.start();
-									    }
-									} catch (Exception e) {
-										// probably a comment line
-									}
-								}
-								
-								lastLine = line;
-								line = br.readLine();
-							}
-						} catch (Exception e) {
-							Log.e("jinzora","Error downloading media",e);
-						}
-				}
-			}.start();
-		}
-
 		@Override
 		public List<String> getPendingDownloads() throws RemoteException {
 			return downloadLabels;
@@ -166,6 +107,14 @@ public class DownloadService extends Service {
 		dlDir = new File(Environment.getExternalStorageDirectory(), ROOT_DIR);
 		if (!dlDir.exists()) {
 			dlDir.mkdir();
+		}
+	}
+	
+	@Override
+	public void onStart(Intent intent, int startId) {
+		if (Intents.ACTION_DOWNLOAD_PLAYLIST.equals(intent.getAction())) {
+			String pl = intent.getStringExtra("playlist");
+			downloadPlaylist(pl);
 		}
 	}
 	
@@ -276,5 +225,72 @@ public class DownloadService extends Service {
 		}
 
 		amDownloading = false;
+		
+		// breaks stuff now... make it work.
+		//stopSelf();
+		//Log.d("jinzora","stopping download service");
+	}
+	
+	
+	private void downloadPlaylist(final String urlstr) {
+		Toast.makeText(DownloadService.this, "Downloading playlist", Toast.LENGTH_SHORT).show();
+		new Thread() {
+			public void run() {
+						
+					try {
+						URL url = new URL(urlstr);
+						HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+						InputStream inStream = conn.getInputStream();
+						conn.connect();
+	
+						BufferedReader br = new BufferedReader(new InputStreamReader(inStream));
+						String line = null; 
+						String lastLine = null;
+						
+						line = br.readLine();
+						while (line != null) {
+							if (line.length() > 0 && line.charAt(0) != '#') {
+								try {
+									URL track = new URL(line);
+									String trackname;
+									
+								    if (lastLine.charAt(0) == '#') {
+								    	int pos;
+								    	if (-1 != (pos = lastLine.indexOf(','))) {
+								    		trackname = lastLine.substring(pos+1,lastLine.length());
+								    	} else {
+								    		trackname = UNKNOWN_TRACK;
+								    	}
+								    } else {
+								    	trackname = UNKNOWN_TRACK;
+								    }
+
+								    synchronized(mBinder) {
+									    downloadLabels.add(trackname);
+									    downloadURLs.add(track);
+									    
+									    //mBinder.notifyAll();
+								    }
+								    
+								    if (!amDownloading) {
+									    new Thread() {
+									    	public void run() {
+									    		doDownload();		
+									    	};
+									    }.start();
+								    }
+								} catch (Exception e) {
+									// probably a comment line
+								}
+							}
+							
+							lastLine = line;
+							line = br.readLine();
+						}
+					} catch (Exception e) {
+						Log.e("jinzora","Error downloading media",e);
+					}
+			}
+		}.start();
 	}
 }

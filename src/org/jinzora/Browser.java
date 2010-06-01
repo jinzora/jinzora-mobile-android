@@ -8,6 +8,7 @@ import java.util.List;
 
 import javax.management.modelmbean.XMLParseException;
 
+import org.jinzora.download.DownloadService;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
@@ -201,10 +202,14 @@ public class Browser extends ListActivity {
 											case 4:
 												// Download to device
 												try {
-													Jinzora
+													Intent dlIntent = new Intent(DownloadService.Intents.ACTION_DOWNLOAD_PLAYLIST);
+													dlIntent.putExtra("playlist", item.getString("playlink"));
+													dlIntent.setClass(Browser.this, DownloadService.class);
+													startService(dlIntent);
+													/*Jinzora
 													  .sDlConnection
 													  .getBinding()
-													  .downloadPlaylist(item.getString("playlink"));
+													  .downloadPlaylist(item.getString("playlink"));*/
 												} catch (Exception e) {
 													Log.d("jinzora","Error downloading playlist",e);
 												}

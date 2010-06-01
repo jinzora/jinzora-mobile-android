@@ -2,17 +2,20 @@ package org.jinzora.download;
 
 import java.util.List;
 
-import org.jinzora.Jinzora;
 import org.jinzora.R;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -33,10 +36,25 @@ public class DownloadActivity extends ListActivity {
 	final static int MENU_CANCEL_ALL = 1;
 	
 	@Override
+	protected void onResume() {
+		super.onResume();
+		
+		Intent bindIntent = new Intent(this,DownloadService.class);
+		bindService(bindIntent,mDlConnection,Service.BIND_AUTO_CREATE);
+	}
+	
+	@Override
+	protected void onPause() {
+		super.onPause();
+		unbindService(mDlConnection);
+	}
+	
+	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
 		setContentView(R.layout.download);
+		mDlConnection = new DownloadServiceConnection();
 		
 		((Button)findViewById(R.id.launch_music_app)).setOnClickListener(new View.OnClickListener() {
 			
@@ -75,8 +93,7 @@ public class DownloadActivity extends ListActivity {
 								case 0:
 									// Cancel download
 									try {
-										Jinzora
-										.sDlConnection
+										mDlConnection
 										.getBinding()
 										.cancelDownload(listPosition, selectedEntry);
 									} catch (Exception e) {
@@ -92,19 +109,6 @@ public class DownloadActivity extends ListActivity {
 				return true;
 			}
 		});
-		
-		try {
-			List<String>pendingDownloads = 
-			   Jinzora
-				.sDlConnection
-				.getBinding()
-				.getPendingDownloads();
-			
-			mAdapter = new DownloadListAdapter(DownloadActivity.this,pendingDownloads);
-			setListAdapter(mAdapter);
-		} catch (Exception e) {
-			Log.e("jinzora","failed to get download list",e);
-		}
 	}
 	
 	@Override
@@ -116,8 +120,7 @@ public class DownloadActivity extends ListActivity {
 			public void onReceive(Context context, Intent intent) {
 				try {
 					List<String>pendingDownloads = 
-					   Jinzora
-						.sDlConnection
+					   mDlConnection
 						.getBinding()
 						.getPendingDownloads();
 					
@@ -159,8 +162,7 @@ public class DownloadActivity extends ListActivity {
 		switch (id) {
 		case MENU_CANCEL_ALL:
 			try {
-			  Jinzora
-				.sDlConnection
+			  mDlConnection
 				.getBinding()
 				.cancelAllDownloads();
 			} catch (Exception e) {
@@ -169,6 +171,33 @@ public class DownloadActivity extends ListActivity {
 			break;
 		}
 		return true;
+	}
+	
+	private DownloadServiceConnection mDlConnection;
+	private class DownloadServiceConnection implements ServiceConnection {
+		private DownloaderInterface mDownloadServiceBinding;
+		
+		@Override
+		public void onServiceConnected(ComponentName componentName, IBinder service) {
+			mDownloadServiceBinding = DownloaderInterface.Stub.asInterface(service);
+			
+			try {
+				List<String>pendingDownloads = mDownloadServiceBinding.getPendingDownloads();
+				mAdapter = new DownloadListAdapter(DownloadActivity.this,pendingDownloads);
+				setListAdapter(mAdapter);
+			} catch (Exception e) {
+				Log.e("jinzora","failed to get download list",e);
+			}
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName arg0) {
+			mDownloadServiceBinding = null;
+		}
+
+		public DownloaderInterface getBinding() {
+			return mDownloadServiceBinding;
+		}
 	}
 }
 

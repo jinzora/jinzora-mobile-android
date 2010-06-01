@@ -40,5 +40,8 @@ class MediaScannerNotifier implements MediaScannerConnectionClient {
             mContext = null; 
         } 
         */
+    	
+    	mConnection.disconnect();
+    	mContext = null;
     } 
 } 
