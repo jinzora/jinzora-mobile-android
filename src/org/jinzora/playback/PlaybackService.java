@@ -79,12 +79,13 @@ public class PlaybackService extends Service {
 			new Thread() {
 				public void run() {
 					try {
+						// TODO: support rich queries server-side ("power search") 
 						StringBuffer query = new StringBuffer();
 						if (intent.hasExtra("artist")) {
 							query.append(" " + intent.getStringExtra("artist"));
 						}
 						if (intent.hasExtra("album")) {
-							query.append(" " + intent.getStringExtra("album"));
+							query.append(" @album " + intent.getStringExtra("album"));
 						}
 						if (query.length() == 0) {
 							if (intent.hasExtra("query")) {
@@ -92,7 +93,7 @@ public class PlaybackService extends Service {
 							}
 						}
 						
-						String urlStr = Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query.toString().trim());
+						String urlStr = Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query.toString().trim(),"UTF-8");
 				    	URL url = new URL(urlStr);
 				        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 				        //conn.setConnectTimeout(5000);
