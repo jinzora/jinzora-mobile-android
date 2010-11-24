@@ -20,15 +20,22 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.WifiLock;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.os.RemoteException;
 import android.util.Log;
 
 public class LocalDevice extends PlaybackDevice {
 	protected PlaybackService mService;
+	protected WifiManager mWifiManager;
+	protected WifiLock mWifiLock;
+	
 	protected MediaPlayer mp = null;
 	protected int pos;
 	protected List<String> trackNames;
@@ -40,10 +47,14 @@ public class LocalDevice extends PlaybackDevice {
 		this.mService = PlaybackService.getInstance();
 		mp = new MediaPlayer();
 		
+		mWifiManager = (WifiManager)mService.getSystemService(Context.WIFI_SERVICE);
+		mWifiLock = mWifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, "jinzora");
+		mWifiLock.setReferenceCounted(false);
+		
 		mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-			
 			public void onCompletion(MediaPlayer arg0) {
 				try {
+					mWifiLock.release();
 					LocalDevice.this.mService.killNotifications();
 					next();
 				} catch (RemoteException e) {
@@ -60,6 +71,8 @@ public class LocalDevice extends PlaybackDevice {
 				mService.notifyPlaying(true);
 			}
 		});
+
+		mp.setWakeMode(mService, PowerManager.PARTIAL_WAKE_LOCK);
 		
 		/*
 		mp.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
@@ -73,9 +86,9 @@ public class LocalDevice extends PlaybackDevice {
 		mp.setOnErrorListener(new MediaPlayer.OnErrorListener() {
 			@Override
 			public boolean onError(MediaPlayer arg0, int arg1, int arg2) {
-				Log.d("jinzora","media player error " + arg1 + ", " + arg2);
+				Log.e("jinzora","media player error " + arg1 + ", " + arg2);
 				if (playlist != null && pos<playlist.size())
-					Log.d("jinzora", "error track was " + pos + ", " + playlist.get(pos));
+					Log.e("jinzora", "error track was " + pos + ", " + playlist.get(pos));
 				
 				try {
 					LocalDevice.this.mService.killNotifications();
@@ -118,6 +131,7 @@ public class LocalDevice extends PlaybackDevice {
 		playlist.clear();
 		mp.stop();
 		mService.killNotifications();
+		mWifiLock.release();
 	}
 
 	@Override
@@ -141,9 +155,11 @@ public class LocalDevice extends PlaybackDevice {
 		if (mPrepared && !mp.isPlaying()) {
 			mp.start();
 			mService.notifyPlaying(false);
+			mWifiLock.acquire();
 		} else {
 			mp.pause();
 			mService.notifyPaused();
+			mWifiLock.release();
 		}
 	}
 	
@@ -151,6 +167,7 @@ public class LocalDevice extends PlaybackDevice {
 	public synchronized void pause() throws RemoteException {
 		mp.pause();
 		mService.notifyPaused();
+		mWifiLock.release();
 	}
 	
 	@Override
@@ -158,6 +175,7 @@ public class LocalDevice extends PlaybackDevice {
 		if (mPrepared && !mp.isPlaying()) {
 			mp.start();
 			mService.notifyPlaying(false);
+			mWifiLock.acquire();
 		}
 	}
 	
@@ -179,6 +197,7 @@ public class LocalDevice extends PlaybackDevice {
 			mp.setDataSource(playlist.get(pos));
 			mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
 			mp.prepareAsync();
+			mWifiLock.acquire();
 		} catch (Exception e) {
 			Log.e("jinzora","Error changing media (pos=" + pos + ", len=" + playlist.size() + ")",e);
 			if (0 <= pos && pos < playlist.size()) Log.e("jinzora", "Content: " + playlist.get(pos));
@@ -276,6 +295,7 @@ public class LocalDevice extends PlaybackDevice {
 	public void stop() throws RemoteException {
 		mp.stop();
 		mService.notifyPaused();
+		mWifiLock.release();
 	}
 
 	@Override
