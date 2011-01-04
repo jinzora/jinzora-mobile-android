@@ -266,7 +266,7 @@ public class PlaybackService extends Service {
     }
     
     public void onStart(Intent intent, int startId) {
-    	if (Intents.ACTION_QUICKPLAY.equalsIgnoreCase(intent.getAction())) {
+    	if (intent != null && Intents.ACTION_QUICKPLAY.equalsIgnoreCase(intent.getAction())) {
     		quickplay(intent);
     	}
     	

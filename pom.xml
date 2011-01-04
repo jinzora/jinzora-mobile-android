@@ -53,9 +53,21 @@
     <dependency>
       <groupId>android</groupId>
       <artifactId>android</artifactId>
-      <version>4</version>
+      <version>7</version>
       <scope>provided</scope>
     </dependency>
+    
+    <dependency>
+      <groupId>org.teleal.cling</groupId>
+      <artifactId>cling-core</artifactId>
+      <version>1.0-beta9</version>
+    </dependency>
+    <dependency>
+      <groupId>org.teleal.cling</groupId>
+      <artifactId>cling-support</artifactId>
+      <version>1.0-beta9</version>
+    </dependency>
+    
     <!-- 
     <dependency>
       <groupId>edu.stanford.prpl.junction</groupId>
@@ -72,7 +84,25 @@
       <name>PrPl Public Files</name>
       <url>http://prpl.stanford.edu:8081/nexus/content/groups/public</url>
     </repository>
+    
+    <repository>
+        <id>teleal.org-repo</id>
+        <url>http://teleal.org/m2</url>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+    </repository>
   </repositories>
+  
+  <pluginRepositories>
+    <pluginRepository>
+        <id>teleal.org-repo</id>
+        <url>http://teleal.org/m2</url>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+    </pluginRepository>
+  </pluginRepositories>
 
   <profiles>
           <profile>

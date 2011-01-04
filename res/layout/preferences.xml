@@ -22,4 +22,10 @@
   android:dialogTitle="Your account's password:"
   android:singleLine="true"
   />
+  
+  <CheckBoxPreference
+	  android:key="use_dlna"
+	  android:title="DLNA media server"
+	  android:summary="Makes your content available on DLNA-compatible devices"
+  />
 </PreferenceScreen>  

@@ -2,6 +2,8 @@ package org.jinzora;
 
 import java.util.Map;
 
+import org.jinzora.upnp.UpnpService;
+
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -9,6 +11,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.CheckBoxPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
@@ -44,6 +47,15 @@ public class Preferences extends PreferenceActivity {
     	
     	/* should be a better method to override.. but this works. */
     	Jinzora.resetBaseURL();
+    	
+    	if ("use_dlna".equals(preference.getKey())) {
+    		CheckBoxPreference dlna = (CheckBoxPreference)preference;
+    		if (dlna.isChecked()) {
+    			UpnpService.start(this);
+    		} else {
+    			UpnpService.stop(this);
+    		}
+    	}
     	
     	return super.onPreferenceTreeClick(preferenceScreen, preference);
     }

@@ -67,6 +67,11 @@
     	<activity android:name="org.jinzora.download.DownloadActivity">
     	</activity>
     	
+    	<!--  DLNA -->
+    	<service android:name="org.jinzora.upnp.UpnpService"
+    			 android:exported="true" >
+    	</service>
+    	
     	<!--  Widget -->
     	<receiver
     		android:name="org.jinzora.playback.JinzoraAppWidgetProvider">
@@ -96,10 +101,15 @@
 <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
 <uses-permission android:name="android.permission.WAKE_LOCK"></uses-permission>
 
+<!--  DLNA -->
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+<uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
 
 
-<uses-sdk android:minSdkVersion="4"></uses-sdk>
+
+<uses-sdk android:minSdkVersion="8"></uses-sdk>
 
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
 </manifest> 
