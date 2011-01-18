@@ -333,6 +333,13 @@ public class Player extends ListActivity {
 		// then put the below in a runnable
 		// and post it.
 		
+		// TODO: ServiceConnection model doesn't work well with
+		// tabs of activities.
+		while (Jinzora.sPbConnection.playbackBinding == null) {
+			try {
+				Thread.sleep(20);
+			} catch (Exception e) {}
+		}
 		
 		try {
 			List<String>tracks = Jinzora.sPbConnection.playbackBinding.getPlaylistNames();

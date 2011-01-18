@@ -335,7 +335,7 @@ public class Jinzora extends TabActivity {
 	        }
 	        
 	        if (inboundIntent.hasExtra(INTENT_SWITCH_TAB)) {
-	        	curTab = getIntent().getStringExtra(INTENT_SWITCH_TAB);
+	        	curTab = inboundIntent.getStringExtra(INTENT_SWITCH_TAB);
 	        }
 
 	        host.setCurrentTabByTag(curTab);
