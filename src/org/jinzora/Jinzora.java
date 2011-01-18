@@ -203,7 +203,7 @@ public class Jinzora extends TabActivity {
 		instance = this;
 		
 		Intent bindIntent = new Intent(this,PlaybackService.class);
-		bindService(bindIntent,sPbConnection,0);
+		bindService(bindIntent, sPbConnection, 0);
 	}
 	
 	@Override
@@ -613,7 +613,6 @@ public class Jinzora extends TabActivity {
 		
 		// service connection methods
 		public synchronized void onServiceConnected(ComponentName className, IBinder service) {
-			
 			if (playbackBinding == null) {
 				Log.d("jinzora","playback interface is null; creating instance.");
 				playbackBinding = PlaybackInterface.Stub.asInterface((IBinder)service);
@@ -627,10 +626,12 @@ public class Jinzora extends TabActivity {
 				} catch (RemoteException e) {
 					Log.e("jinzora","Error setting remote baseURL",e);
 				}
-			} else {
-				//Log.w("jinzora","onServiceConnected called but playback object is not null");
 			}
 			
+			try {
+				sPbConnection.playbackBinding.registerRemoteControl();
+			} catch (RemoteException e) {}
+
 			doJukeboxConnectionPrompt();
 		}
 		

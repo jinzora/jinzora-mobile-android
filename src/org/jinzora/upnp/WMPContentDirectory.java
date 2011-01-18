@@ -4,11 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 
-import org.jinzora.Jinzora;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -20,16 +17,10 @@ import org.teleal.cling.support.model.BrowseFlag;
 import org.teleal.cling.support.model.BrowseResult;
 import org.teleal.cling.support.model.DIDLContent;
 import org.teleal.cling.support.model.DIDLObject;
-import org.teleal.cling.support.model.PersonWithRole;
 import org.teleal.cling.support.model.ProtocolInfo;
 import org.teleal.cling.support.model.Res;
 import org.teleal.cling.support.model.SortCriterion;
-import org.teleal.cling.support.model.DIDLObject.Property.UPNP.ALBUM_ART_URI;
-import org.teleal.cling.support.model.DIDLObject.Property.UPNP.GENRE;
 import org.teleal.cling.support.model.container.Container;
-import org.teleal.cling.support.model.container.MusicAlbum;
-import org.teleal.cling.support.model.container.MusicArtist;
-import org.teleal.cling.support.model.container.MusicGenre;
 import org.teleal.cling.support.model.container.StorageFolder;
 import org.teleal.cling.support.model.item.MusicTrack;
 import org.teleal.common.util.MimeType;
@@ -43,7 +34,7 @@ import android.util.Log;
  */
 public class WMPContentDirectory extends AbstractContentDirectoryService {
 	private static final String TAG = "jinzora";
-	
+	private final UpnpConfiguration mConfig = UpnpService.getConfig();
 	public static class ID {
 		public static final String ROOT = "0";
 		public static final String MUSIC = "1";
@@ -53,7 +44,7 @@ public class WMPContentDirectory extends AbstractContentDirectoryService {
 		public static final String MUSIC_ALBUM = "7";
 	}
 	
-	private UpnpConfiguration upnpConfig = new UpnpConfiguration(null);
+	private JinzoraApi mApi = new JinzoraApi(mConfig);
 	
 	private class BrowseParameters {
 		String objectId;
@@ -76,6 +67,49 @@ public class WMPContentDirectory extends AbstractContentDirectoryService {
 	}
 	
 	@Override
+	public BrowseResult search(String containerId, String searchCriteria,
+			String filter, long firstResult, long maxResults,
+			SortCriterion[] orderBy) throws ContentDirectoryException {
+		Log.d(TAG, "SEARCH: " + searchCriteria);
+		
+		// This is a very hacky search method that covers the basics of what
+		// the XBox and WMP require.
+		
+		// can also determine query type by containerId.
+		
+		if (searchCriteria == null || searchCriteria.equalsIgnoreCase(
+				"upnp:class derivedfrom \"object.item.audioItem\" and @refID exists false")
+				|| searchCriteria.equalsIgnoreCase("(upnp:class derivedfrom \"object.item.audioItem\")")) {
+			
+			return mApi.getAllTracks(firstResult, maxResults);
+		}
+		
+		if (searchCriteria.equalsIgnoreCase("(upnp:class = \"object.container.album.musicAlbum\")")) {
+			return mApi.getAllAlbums(firstResult, maxResults);
+		}
+		
+		if (searchCriteria.equalsIgnoreCase("(upnp:class = \"object.container.person.musicArtist\")")) {
+			return mApi.getAllArtists(firstResult, maxResults);
+		}
+		
+		if (searchCriteria.equalsIgnoreCase("(upnp:class = \"object.container.genre.musicGenre\")")) {
+			return mApi.getAllGenres(firstResult, maxResults);
+		}
+		
+		if (searchCriteria.startsWith("(upnp:class = \"object.container.album.musicAlbum\") and (upnp:artist = \"")) {
+			String query = searchCriteria;
+			int lastQuote = query.lastIndexOf('"');
+			query = query.substring(0, lastQuote);
+			int secondToLast = query.lastIndexOf('"');
+			String artist = query.substring(secondToLast + 1);
+			return mApi.getAlbumsForArtist(artist, firstResult, maxResults);
+		}
+
+		return super.search(containerId, searchCriteria, filter, firstResult,
+				maxResults, orderBy);
+	}
+	
+	@Override
 	public BrowseResult browse(String objectId, BrowseFlag browseFlag, String filter,
 			long startingIndex, long requestedCount, SortCriterion[] sort)
 			throws ContentDirectoryException {
@@ -93,11 +127,7 @@ public class WMPContentDirectory extends AbstractContentDirectoryService {
 		if (BrowseFlag.DIRECT_CHILDREN.equals(browseFlag)) {
 			Log.d(TAG, "request to browse children: " + objectId);
 			try {
-				DIDLContent didl = getBrowseDidl(params);
-				int count = didl.getContainers().size() + didl.getItems().size();
-				Log.d(TAG, "response: " + new DIDLParser().generate(didl));
-				
-				return new BrowseResult(new DIDLParser().generate(didl), count, count);
+				return getBrowseResult(params);
 			} catch (Exception ex) {
 				throw new ContentDirectoryException(
 						ContentDirectoryErrorCode.CANNOT_PROCESS, ex.toString());
@@ -125,7 +155,7 @@ public class WMPContentDirectory extends AbstractContentDirectoryService {
 		// TODO: currently only supports tracks.
 		DIDLContent didl = new DIDLContent();
 		
-		String urlStr = Jinzora.getBaseURL();
+		String urlStr = mConfig.getJinzoraEndpoint();
 		if (urlStr == null) {
 			Log.w(TAG, "No jinzora service configured");
 			return null;
@@ -155,40 +185,40 @@ public class WMPContentDirectory extends AbstractContentDirectoryService {
 			Log.e(TAG, "Return type not json", e);
 			return null;
 		}
-		didl.addItem(jsonToMusicTrack(json));
+		didl.addItem(JinzoraApi.jsonToMusicTrack(json));
 		return didl;
 	}
 	
-	private DIDLContent getBrowseDidl(BrowseParameters params) {
+	private BrowseResult getBrowseResult(BrowseParameters params) {
 		String base;
 		boolean isHome = true;
 		String objectId = params.objectId;
 		
 		if (ID.ROOT.equals(objectId)) {
-			return didlForRoot();
+			return resultForRoot();
 		}
 		
 		if (ID.MUSIC.equals(objectId)) {
-			return didlForMusic();
+			return resultForMusic();
 		}
 		
 		if (ID.MUSIC_GENRE.equals(objectId)) {
-			return didlForGenre();
+			return mApi.getAllGenres(params.startingIndex, params.requestedCount);
 		}
 		
 		if (ID.MUSIC_ARTIST.equals(objectId)) {
-			return didlForArtist();
+			return mApi.getAllArtists(params.startingIndex, params.requestedCount);
 		}
 		
 		if (ID.MUSIC_ALBUM.equals(objectId)) {
-			return didlForAlbum(params);
+			return mApi.getAllAlbums(params.startingIndex, params.requestedCount);
 		}
 				
 		if (objectId != null && objectId.startsWith("http")) {
 			base = objectId;
 			isHome = false;
 		} else {
-			base = upnpConfig.getJinzoraEndpoint();
+			base = mConfig.getJinzoraEndpoint();
 			if (base == null) {
 				Log.w(TAG, "No jinzora service configured");
 				return null;
@@ -222,17 +252,18 @@ public class WMPContentDirectory extends AbstractContentDirectoryService {
 				}
 			}
 
-			return didl;
-		} catch (IOException e) {
-			Log.w(TAG, "Error reading content", e);
-			return null;
+			int count = didl.getContainers().size() + didl.getItems().size();
+			return new BrowseResult(new DIDLParser().generate(didl), count, count);
 		} catch (JSONException e) {
 			Log.d(TAG, "Json content not found", e);
+			return null;
+		} catch (Exception e) {
+			Log.w(TAG, "Error reading content", e);
 			return null;
 		}
 	}
 	
-	private DIDLContent didlForMusic() {
+	private BrowseResult resultForMusic() {
 		DIDLContent didl = new DIDLContent();
 		Container c;
 		
@@ -248,140 +279,29 @@ public class WMPContentDirectory extends AbstractContentDirectoryService {
 		c = new Container(ID.MUSIC_ALBUM, ID.MUSIC, "Album", "JZWMP", new DIDLObject.Class("object.container"), 0);
 		didl.addContainer(c);
 		
-		return didl;
+		int count = didl.getContainers().size() + didl.getItems().size();
+		try {
+		return new BrowseResult(new DIDLParser().generate(didl), count, count);
+		} catch (Exception e) {
+			Log.e(TAG, "Error generating result from didl", e);
+			return null;
+		}
 	}
 	
-	private DIDLContent didlForRoot() {
+	private BrowseResult resultForRoot() {
 		DIDLContent didl = new DIDLContent();
 		Container c = new Container(ID.MUSIC, ID.ROOT, "Music", "JZWMP", new DIDLObject.Class("object.container"), 3);
 		didl.addContainer(c);
-		return didl;
-	}
-	
-	private DIDLContent didlForGenre() {
-		JSONObject json;
+		
 		try {
-			String base = upnpConfig.getJinzoraEndpoint();
-			base += "&request=browse&output=json&resulttype=genre&jz_path=%2F";
-			String jsonStr = contentFromURL(new URL(base));
-			json = new JSONObject(jsonStr);
-		} catch (JSONException e) {
-			Log.e(TAG, "Invalid JSON", e);
-			return null;
+			int count = didl.getContainers().size() + didl.getItems().size();
+			return new BrowseResult(new DIDLParser().generate(didl), count, count);
 		} catch (Exception e) {
-			Log.e(TAG, "Unknown error", e);
+			Log.e(TAG, "Error generating result from didl", e);
 			return null;
 		}
-		
-		DIDLContent didl = new DIDLContent();
-		try {
-			String parent = ID.MUSIC_GENRE;
-			String creator = "JZWMP";
-			JSONArray nodes = json.getJSONArray("nodes");
-			for (int i = 0; i < nodes.length(); i++) {
-				JSONObject a = nodes.getJSONObject(i);
-				String id = a.getString("browse");
-				String title = a.getString("name");
-				int childCount = 0;
-				MusicGenre genre = new MusicGenre(id, parent, title, creator, childCount);
-				didl.addContainer(genre);
-			}
-		} catch (JSONException e) {
-			Log.e(TAG, "Invalid JSON", e);
-			return null;
-		}
-		
-		return didl;
 	}
 
-	private DIDLContent didlForArtist() {
-		JSONObject json;
-		try {
-			String base = upnpConfig.getJinzoraEndpoint();
-			base += "&request=browse&output=json&resulttype=artist&jz_path=%2F";
-			String jsonStr = contentFromURL(new URL(base));
-			json = new JSONObject(jsonStr);
-		} catch (JSONException e) {
-			Log.e(TAG, "Invalid JSON", e);
-			return null;
-		} catch (Exception e) {
-			Log.e(TAG, "Unknown error", e);
-			return null;
-		}
-		
-		DIDLContent didl = new DIDLContent();
-		try {
-			String parent = ID.MUSIC_ARTIST;
-			String creator = "JZWMP";
-			JSONArray nodes = json.getJSONArray("nodes");
-			for (int i = 0; i < nodes.length(); i++) {
-				JSONObject a = nodes.getJSONObject(i);
-				String id = a.getString("browse");
-				String title = a.getString("name");
-				int childCount = 0;
-				MusicArtist artist = new MusicArtist(id, parent, title, creator, childCount);
-				didl.addContainer(artist);
-			}
-		} catch (JSONException e) {
-			Log.e(TAG, "Invalid JSON", e);
-			return null;
-		}
-		
-		return didl;
-	}
-
-	private DIDLContent didlForAlbum(BrowseParameters params) {
-		JSONObject json;
-		try {
-			String base = upnpConfig.getJinzoraEndpoint();
-			base += "&request=browse&output=json&resulttype=album&jz_path=%2F";
-			if (params.startingIndex != 0 || params.requestedCount != 0) {
-				base += "&offset=" + params.startingIndex + "&limit=" + params.requestedCount;
-			}
-			String jsonStr = contentFromURL(new URL(base));
-			json = new JSONObject(jsonStr);
-		} catch (JSONException e) {
-			Log.e(TAG, "Invalid JSON", e);
-			return null;
-		} catch (Exception e) {
-			Log.e(TAG, "Unknown error", e);
-			return null;
-		}
-		
-		DIDLContent didl = new DIDLContent();
-		try {
-			String parent = ID.MUSIC_ALBUM;
-			String creator = "JZWMP";
-			JSONArray nodes = json.getJSONArray("nodes");
-			for (int i = 0; i < nodes.length(); i++) {
-				JSONObject a = nodes.getJSONObject(i);
-				String id = a.getString("browse");
-				String title = a.getString("name");
-				String thumbnail = a.optString("image");
-				
-				int childCount = 0;
-				MusicAlbum album = new MusicAlbum(id, parent, title, creator, childCount);
-				if (thumbnail != null && thumbnail.length() > 0) {
-		        	try {
-		        		URI uri = new URI(thumbnail);
-		        		ALBUM_ART_URI albumArt = new ALBUM_ART_URI(uri);
-		        		album.addProperty(albumArt);
-		        	} catch (URISyntaxException e) {
-		        		Log.w(TAG, "Found album art but bad URI", e);
-		        	}
-		        }
-				
-				didl.addContainer(album);
-			}
-		} catch (JSONException e) {
-			Log.e(TAG, "Invalid JSON", e);
-			return null;
-		}
-		
-		return didl;
-	}
-
-	
 	private String contentFromURL(URL url) throws IOException {
 		Log.d(TAG, "getting content from " + url);
 		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
@@ -424,116 +344,14 @@ public class WMPContentDirectory extends AbstractContentDirectoryService {
 	}
 	
 	private void addDidlTracks(DIDLContent didl, JSONArray browse) {
-		/*
-		 * {
-		 * "image":"..." [full size]
-		 * "thumbnail":"..." [75x75]
-		 * "name":"Vaka",
-		 * "album":"Hvarf-Heim",
-		 * "artist":"Sigur Ros",
-		 * "genre":"Alternative",
-		 * "playlink":"...", [m3u]
-		 * "download":"..." [mp3]
-		 * "metadata":
-		 *   {"title":"Vaka","bitrate":"192","frequency":"44.1",
-		 *   "filename":"03 Voka.mp3","size":"7.76","year":"2007",
-		 *   "comment":"","length":"321","number":"03","genre":"-",
-		 *   "artist":null,"album":"Hvarf-Heim [Disc Two] \"Heim\"","lyrics":""
-		 *   ,"type":"mp3"},
-		 * "path":"Alternative\/Sigur Ros\/Hvarf-Heim\/03 Voka.mp3",
-		 * "type":"Track"
-		 * }
-		 */
 		for (int i = 0; i < browse.length(); i++) {
 			try {
 				JSONObject track = browse.getJSONObject(i);
-				MusicTrack musicTrack = jsonToMusicTrack(track);
+				MusicTrack musicTrack = JinzoraApi.jsonToMusicTrack(track);
 		        didl.addItem(musicTrack);
 			} catch (Exception e) {
 				Log.w(TAG, "Bad json entry", e);
 			}
 		}
-	}
-	
-	private MusicTrack jsonToMusicTrack(JSONObject track) {
-		String genre = track.optString("genre");
-		String album = track.optString("album");
-        String creator = track.optString("artist"); // Required
-        PersonWithRole artist = new PersonWithRole(creator, "Performer");
-        MimeType mimeType = new MimeType("audio", "mpeg");
-        
-        String trackId = track.optString("id");
-        if (trackId == null || trackId.length() == 0) {
-        	trackId = track.optString("path");
-        }
-        String parentId = "0";
-        String trackTitle = track.optString("name");
-        String trackUrl = track.optString("download");
-        String duration = "";
-        String thumbnail = track.optString("image");
-        	// TODO: bigger image in "thumbnail" (75x75 too small)
-        long bitrate = 0;
-        long size = 0;
-        Integer trackNumber = null;
-        
-        if (track.has("metadata")) {
-        	JSONObject meta = track.optJSONObject("metadata");
-        	if (meta.has("bitrate")) {
-        		try {
-	        		double br = Double.parseDouble(meta.getString("bitrate"));
-	        		bitrate = Math.round(br*128);
-        		} catch (Exception e) {}
-        	}
-        	if (meta.has("size")) {
-        		try {
-	        		double sz = Double.parseDouble(meta.getString("size"));
-	        		size = Math.round(sz*1024*1024);
-        		} catch (Exception e) {}
-        	}
-        	if (meta.has("length")) {
-        		try {
-	        		int len = Integer.parseInt(meta.getString("length"));
-	        		duration += (len / 60);
-	        		len = (len % 60);
-	        		if (len == 0) {
-	        			duration += ":00";
-	        		} else if (len < 10) {
-	        			duration += ":0" + len;
-	        		} else {
-	        			duration += ":" + len;
-	        		}
-        		} catch (Exception e) {}
-        	}
-        	if (meta.has("number")) {
-        		try {
-        			trackNumber = Integer.parseInt(meta.optString("number"));
-        		} catch (Exception e) {}
-        	}
-        }
-        MusicTrack musicTrack = new MusicTrack(
-                trackId, parentId,
-                trackTitle,
-                creator, album, artist,
-                new Res(mimeType, size, duration, bitrate, trackUrl
-    		));
-        
-        if (trackNumber != null) {
-        	musicTrack.setOriginalTrackNumber(trackNumber);
-        }
-        if (thumbnail != null && thumbnail.length() > 0) {
-        	try {
-        		URI uri = new URI(thumbnail);
-        		ALBUM_ART_URI albumArt = new ALBUM_ART_URI(uri);
-        		musicTrack.addProperty(albumArt);
-        	} catch (URISyntaxException e) {
-        		Log.w(TAG, "Found album art but bad URI", e);
-        	}
-        }
-        if (genre != null && genre.length() > 0) {
-        	GENRE propGenre = new GENRE(genre);
-        	musicTrack.addProperty(propGenre);
-        }
-        
-        return musicTrack;
 	}
 }

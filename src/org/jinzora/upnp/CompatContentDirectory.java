@@ -15,19 +15,39 @@ import android.util.Log;
  */
 public class CompatContentDirectory extends AbstractContentDirectoryService {
 	public static final String TAG = "jinzora";
+	
+	protected AbstractContentDirectoryService getDirectoryImpl() {
+		String ua = ReceivingAction.getRequestMessage().getHeaders().getFirstHeader("User-agent");
+		Log.d(TAG, "agent: " + ua);
+		if (ua != null) {
+			ua = ua.toLowerCase();
+			if (ua.contains("windows-media-player")
+					|| ua.contains("xbox")) {
+				
+				Log.d(TAG, "using WMP compat");
+				return wmpService;
+			}
+		}
+		
+		Log.d(TAG, "using default compat");
+		return defaultService;
+	}
+	
 	@Override
 	public BrowseResult browse(String arg0, BrowseFlag arg1, String arg2,
 			long arg3, long arg4, SortCriterion[] arg5)
 			throws ContentDirectoryException {
 		
-		String ua = ReceivingAction.getRequestMessage().getHeaders().getFirstHeader("User-agent");
-		if (ua != null && ua.toLowerCase().contains("windows-media-player")) {
-			Log.d(TAG, "Browsing with WMP compat");
-			return wmpService.browse(arg0, arg1, arg2, arg3, arg4, arg5);
-		}
-		
-		Log.d(TAG, "Browsing default compat");
-		return defaultService.browse(arg0, arg1, arg2, arg3, arg4, arg5);
+		return getDirectoryImpl().browse(arg0, arg1, arg2, arg3, arg4, arg5);
+	}
+	
+	@Override
+	public BrowseResult search(String containerId, String searchCriteria,
+			String filter, long firstResult, long maxResults,
+			SortCriterion[] orderBy) throws ContentDirectoryException {
+
+		return getDirectoryImpl().search(containerId, searchCriteria, filter, firstResult,
+				maxResults, orderBy);
 	}
 	
 	private AbstractContentDirectoryService wmpService = new WMPContentDirectory();

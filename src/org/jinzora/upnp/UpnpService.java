@@ -40,12 +40,18 @@ public class UpnpService extends AndroidUpnpServiceImpl {
 	private WifiLock mWifiLock;
 	private static Context lastContext;
 
+	private static UpnpConfiguration sConfig;
+	public static UpnpConfiguration getConfig() {
+		return sConfig;
+	}
+	
 	@SuppressWarnings("unchecked")
 	LocalDevice createDevice() throws ValidationException,
 			LocalServiceBindingException, IOException {
 
 		DeviceType type = new UDADeviceType("MediaServer", 1);
 		UpnpConfiguration config = new UpnpConfiguration(this);
+		sConfig = config;
 		DeviceIdentity identity = config.getDeviceIdentity();
 		DeviceDetails details = config.getDeviceDetails();
 
@@ -57,10 +63,10 @@ public class UpnpService extends AndroidUpnpServiceImpl {
 
 		List<LocalService> localServices = new ArrayList<LocalService>();
 		
-			LocalService<JinzoraContentDirectory> jinzoraMediaService = new AnnotationLocalServiceBinder()
-					.read(JinzoraContentDirectory.class);
-			jinzoraMediaService.setManager(new DefaultServiceManager<JinzoraContentDirectory>(
-					jinzoraMediaService, JinzoraContentDirectory.class));
+			LocalService<CompatContentDirectory> jinzoraMediaService = new AnnotationLocalServiceBinder()
+					.read(CompatContentDirectory.class);
+			jinzoraMediaService.setManager(new DefaultServiceManager<CompatContentDirectory>(
+					jinzoraMediaService, CompatContentDirectory.class));
 			localServices.add(jinzoraMediaService);
 			
 		LocalService<ConnectionManagerService> connectionManagerService =
@@ -73,6 +79,12 @@ public class UpnpService extends AndroidUpnpServiceImpl {
 		);
 		localServices.add(connectionManagerService);
 	
+		LocalService<MSMediaReceiverRegistrarService> receiverService =
+			new AnnotationLocalServiceBinder().read(MSMediaReceiverRegistrarService.class);
+		receiverService.setManager(new DefaultServiceManager<MSMediaReceiverRegistrarService>(
+				receiverService, MSMediaReceiverRegistrarService.class));
+		localServices.add(receiverService);
+		
 		return new LocalDevice(identity, type, details, icon, localServices.toArray(new LocalService[] {}));
 	}
 

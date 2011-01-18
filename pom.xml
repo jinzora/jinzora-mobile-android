@@ -30,7 +30,7 @@
         <configuration>
           <sdk>
             <path>${env.ANDROID_SDK}</path>
-            <platform>7</platform>
+            <platform>8</platform>
           </sdk>
           <deleteConflictingFiles>true</deleteConflictingFiles>
         </configuration>

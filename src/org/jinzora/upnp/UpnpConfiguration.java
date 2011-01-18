@@ -24,7 +24,7 @@ public class UpnpConfiguration {
 	public DeviceDetails getDeviceDetails() {
 		return new DeviceDetails(getServiceName(),
 				new ManufacturerDetails("Jinzora"), 
-				new ModelDetails("Jinzora", "Provides access to a Jinzora media server.","v1"),
+				new ModelDetails("Windows Media Connect", "Provides access to a Jinzora media server.","1"),
 				new DLNADoc[]{
                     new DLNADoc("DMS", DLNADoc.Version.V1_5),
                     new DLNADoc("M-DMS", DLNADoc.Version.V1_5)
@@ -40,7 +40,7 @@ public class UpnpConfiguration {
 	}
 	
 	public String getServiceName() {
-		return mPreferences.getString("upnp.service.name", "Jinzora");
+		return mPreferences.getString("upnp.service.name", "Jinzora: Music:");
 	}
 	
 	public String getJinzoraEndpoint() {

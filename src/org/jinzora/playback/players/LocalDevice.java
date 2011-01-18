@@ -8,20 +8,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import org.jinzora.Jinzora;
-import org.jinzora.R;
 import org.jinzora.playback.PlaybackService;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.Service;
 import android.content.Context;
-import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.wifi.WifiManager;
@@ -151,7 +141,6 @@ public class LocalDevice extends PlaybackDevice {
 
 	@Override
 	public synchronized void playpause() throws RemoteException {
-		Log.d("jinzora","playpause");
 		if (mPrepared && !mp.isPlaying()) {
 			mp.start();
 			mService.notifyPlaying(false);

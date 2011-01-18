@@ -62,6 +62,16 @@ public abstract class PlaybackDevice implements PlaybackInterface {
 	}
 	
 	@Override
+	public void registerRemoteControl() {
+		
+	}
+	
+	@Override
+	public void unregisterRemoteControl() {
+		
+	}
+	
+	@Override
 	public void queueNext(int pos) throws RemoteException {
 		nextQueuedPos = pos;
 	}

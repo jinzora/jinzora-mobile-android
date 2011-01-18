@@ -18,6 +18,9 @@ interface PlaybackInterface {
 	void onCallBegin();
 	void onCallEnd();
 	
+	void registerRemoteControl();
+	void unregisterRemoteControl();
+	
 	List<String> getPlaylistNames();
 	List<String> getPlaylistURLs();
 	int getPlaylistPos();

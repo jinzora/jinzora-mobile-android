@@ -59,6 +59,12 @@
     			 android:exported="true" >
     	</service>
     	
+    	<receiver android:name="org.jinzora.playback.RemoteControlReceiver">
+		    <intent-filter>
+		        <action android:name="android.intent.action.MEDIA_BUTTON" />
+		    </intent-filter>
+		</receiver>
+    	
     	<!--  Downloading -->
     	<service 
     			android:name="org.jinzora.download.DownloadService"
