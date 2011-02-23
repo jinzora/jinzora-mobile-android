@@ -366,7 +366,7 @@ public class PlaybackService extends Service {
 			quickplay(intent);
 		}
 
-		if (Intents.ACTION_CONNECT_JUKEBOX.equalsIgnoreCase(intent.getAction())) {
+		if (intent != null && Intents.ACTION_CONNECT_JUKEBOX.equalsIgnoreCase(intent.getAction())) {
 			// TODO: this is where the remote intent stuff is.
 			// we'd like to remove it.
 			// TODO: props. Mad props.
@@ -390,8 +390,7 @@ public class PlaybackService extends Service {
 			nm.notify(JB_NOTIFY_ID, notification);
 		}
 
-		if (Intents.ACTION_DISCONNECT_JUKEBOX.equalsIgnoreCase(intent
-				.getAction())) {
+		if (intent != null && Intents.ACTION_DISCONNECT_JUKEBOX.equalsIgnoreCase(intent.getAction())) {
 			nm.cancel(JB_NOTIFY_ID);
 			// hacky end to a hacky beginning (remote intents)
 			Intent holla = new Intent("profile.tag.LOAD");

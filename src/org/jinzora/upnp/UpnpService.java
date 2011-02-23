@@ -117,7 +117,7 @@ public class UpnpService extends AndroidUpnpServiceImpl {
 				upnpService.getRegistry().addDevice(createDevice());
 				
 				mStarted = true;
-				Toast.makeText(this, "Started DLNA service.", Toast.LENGTH_SHORT).show();
+				//Toast.makeText(this, "Started DLNA service.", Toast.LENGTH_SHORT).show();
 			} catch (Exception e) {
 				mWifiLock.release();
 				
@@ -145,7 +145,7 @@ public class UpnpService extends AndroidUpnpServiceImpl {
 			mStarted = false;
 			mWifiLock.release();
 			
-			Toast.makeText(this, "Stopped DLNA service.", Toast.LENGTH_SHORT).show();
+			//Toast.makeText(this, "Stopped DLNA service.", Toast.LENGTH_SHORT).show();
 		}
 	}
 
