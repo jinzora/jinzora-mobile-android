@@ -64,7 +64,7 @@ public class Player extends ListActivity {
 					long arg3) {
 				
 				try {
-					Jinzora.sPbConnection.playbackBinding.jumpTo(pos);
+					Jinzora.sPbConnection.getPlaybackBinding().jumpTo(pos);
 				} catch (Exception e) {
 					Log.e("jinzora","Failed jumping in playlist",e);
 				}
@@ -90,14 +90,14 @@ public class Player extends ListActivity {
 										switch (entryPos) {
 										case 0:
 											try {
-												Jinzora.sPbConnection.playbackBinding.jumpTo(listPosition);
+												Jinzora.sPbConnection.getPlaybackBinding().jumpTo(listPosition);
 											} catch (RemoteException e) {
 												Log.e("jinzora", "Failed to play track",e);
 											}
 											break;
 										case 1:
 											try {
-												Jinzora.sPbConnection.playbackBinding.queueNext(listPosition);
+												Jinzora.sPbConnection.getPlaybackBinding().queueNext(listPosition);
 											} catch (RemoteException e) {
 												Log.e("jinzora", "Failed to queue track",e);
 											}
@@ -123,7 +123,7 @@ public class Player extends ListActivity {
 					@Override
 					public void run() {
 						try {
-							Jinzora.sPbConnection.playbackBinding.prev();
+							Jinzora.sPbConnection.getPlaybackBinding().prev();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
 						}
@@ -141,7 +141,7 @@ public class Player extends ListActivity {
 					@Override
 					public void run() {
 						try {
-							Jinzora.sPbConnection.playbackBinding.next();
+							Jinzora.sPbConnection.getPlaybackBinding().next();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
 						}
@@ -158,7 +158,7 @@ public class Player extends ListActivity {
 					public void run() {
 						try {
 							// also supports playpause();
-							Jinzora.sPbConnection.playbackBinding.play();
+							Jinzora.sPbConnection.getPlaybackBinding().play();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
 						}
@@ -174,7 +174,7 @@ public class Player extends ListActivity {
 					@Override
 					public void run() {
 						try {
-							Jinzora.sPbConnection.playbackBinding.pause();
+							Jinzora.sPbConnection.getPlaybackBinding().pause();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
 						}
@@ -329,28 +329,7 @@ public class Player extends ListActivity {
 	protected void onResume() {
 		super.onResume();
 		
-		// TODO: make async w/ handler in GUI thread,
-		// then put the below in a runnable
-		// and post it.
-		
-		// TODO: ServiceConnection model doesn't work well with
-		// tabs of activities.
-		while (Jinzora.sPbConnection.playbackBinding == null) {
-			try {
-				Thread.sleep(20);
-			} catch (Exception e) {}
-		}
-		
-		try {
-			List<String>tracks = Jinzora.sPbConnection.playbackBinding.getPlaylistNames();
-			if (tracks != null) {
-				int pos = Jinzora.sPbConnection.playbackBinding.getPlaylistPos();
-				mPlaylistAdapter.setEntries(tracks,pos);
-			}
-		} catch (Exception e) {
-			Log.e("jinzora" , "Could not build playlist", e);
-		}
-		
+		updateUi();
 		
 		mPositionReceiver = new BroadcastReceiver() {
 			@Override
@@ -368,9 +347,9 @@ public class Player extends ListActivity {
 			@Override
 			public void onReceive(Context context, Intent intent) {
 				try {
-					List<String>tracks = Jinzora.sPbConnection.playbackBinding.getPlaylistNames();
+					List<String>tracks = Jinzora.sPbConnection.getPlaybackBinding().getPlaylistNames();
 					if (tracks != null) {
-						int pos = Jinzora.sPbConnection.playbackBinding.getPlaylistPos();
+						int pos = Jinzora.sPbConnection.getPlaybackBinding().getPlaylistPos();
 						mPlaylistAdapter.setEntries(tracks,pos);
 					}
 				} catch (Exception e) {
@@ -382,6 +361,46 @@ public class Player extends ListActivity {
 		IntentFilter listIntentFilter = new IntentFilter(PlaybackService.PLAYLIST_UPDATED);
 		registerReceiver(mListUpdatedReceiver, listIntentFilter);
 		
+	}
+	
+	private void updateUi() {
+		if (Jinzora.sPbConnection.hasPlaybackBinding()) {
+			try {
+				List<String>tracks = Jinzora.sPbConnection.getPlaybackBinding().getPlaylistNames();
+				if (tracks != null) {
+					int pos = Jinzora.sPbConnection.getPlaybackBinding().getPlaylistPos();
+					mPlaylistAdapter.setEntries(tracks,pos);
+				}
+			} catch (Exception e) {
+				Log.e("jinzora" , "Could not build playlist", e);
+			}
+		} else {
+			// plan B
+			new Thread() {
+				public void run() {
+					while (!Jinzora.sPbConnection.hasPlaybackBinding()) {
+						try {
+							Thread.sleep(20);
+						} catch (InterruptedException e) {}
+					}
+					if (Jinzora.sPbConnection.hasPlaybackBinding()) {
+						runOnUiThread(new Runnable() {
+							public void run() {
+								try {
+									List<String>tracks = Jinzora.sPbConnection.getPlaybackBinding().getPlaylistNames();
+									if (tracks != null) {
+										int pos = Jinzora.sPbConnection.getPlaybackBinding().getPlaylistPos();
+										mPlaylistAdapter.setEntries(tracks,pos);
+									}
+								} catch (Exception e) {
+									Log.e("jinzora" , "Could not build playlist", e);
+								}
+							};
+						});
+					}
+				};
+			}.start();
+		}
 	}
 	
 	@Override

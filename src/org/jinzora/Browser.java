@@ -2,11 +2,13 @@ package org.jinzora;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.management.modelmbean.XMLParseException;
+import mobisocial.nfc.Nfc;
+import mobisocial.nfc.Nfc.NdefFactory;
 
 import org.jinzora.download.DownloadService;
 import org.xmlpull.v1.XmlPullParser;
@@ -17,6 +19,7 @@ import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.nfc.NfcAdapter;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -44,7 +47,7 @@ public class Browser extends ListActivity {
 	protected LayoutInflater mInflater = null;
 	private String curQuery = "";
 	private boolean mContentLoaded=false;
-	
+
 	Handler mAddEntriesHandler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
@@ -240,24 +243,22 @@ public class Browser extends ListActivity {
 		}
 		
 	}
-	
-	
-	@Override
-	protected void onStart() {
-		super.onStart();
-		
-		
-	}
-	
+
 	
 	@Override
 	public void onResume() {
 		super.onResume();
+
+		Intent inbound = getIntent();
+		/*if (inbound.hasExtra("playlink")) {
+			Log.d("jinzora", "Setting NFC tag");
+			Jinzora.instance.setSharing(NdefFactory.fromUri(URI.create(inbound.getStringExtra("playlink"))));
+		}*/
 		
-		String newBrowsing=null;
-		if (null != getIntent().getStringExtra(getPackageName()+".browse")) {
+		String newBrowsing = null;
+		if (null != inbound.getStringExtra(getPackageName()+".browse")) {
 			// todo: get rid of this static.
-			newBrowsing = getIntent().getStringExtra(getPackageName()+".browse");
+			newBrowsing = inbound.getStringExtra(getPackageName()+".browse");
 		} else {
 	   		newBrowsing = getHomeURL();
 	   		if (null  == newBrowsing) {
@@ -265,7 +266,7 @@ public class Browser extends ListActivity {
 	   			return;
 	   		}
        }
-		
+
 		if (browsing == null || !browsing.equals(newBrowsing) || !mContentLoaded) {
 			browsing = newBrowsing;
 			doBrowsing();
@@ -275,14 +276,12 @@ public class Browser extends ListActivity {
 	@Override
 	protected void onPause() {
 		super.onPause();
-		
 	}
-	
+
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         Jinzora.initContext(this);
         
         allEntriesAdapter = new JzMediaAdapter(Browser.this);
@@ -421,8 +420,8 @@ public class Browser extends ListActivity {
     @Override
     public void onListItemClick(ListView l, View v, final int position, long id) {
     	try {
-    		String mBrowse = null;
-    		if (null == (mBrowse = visibleEntriesAdapter.getItem(position).getString("browse"))) {
+    		String browse = null;
+    		if (null == (browse = visibleEntriesAdapter.getItem(position).getString("browse"))) {
     			if (visibleEntriesAdapter.getItem(position).containsKey("playlink")) {
 					new Thread() {
 						public void run() {
@@ -439,9 +438,12 @@ public class Browser extends ListActivity {
     			return;
     		}
 
-    		Intent intent = new Intent(this,Jinzora.class);
-    		intent.putExtra(getPackageName()+".browse", mBrowse);
-    		startActivity(intent);
+    		Intent outbound = new Intent(this,Jinzora.class);
+    		if (visibleEntriesAdapter.getItem(position).containsKey("playlink")) {
+    			outbound.putExtra("playlink", visibleEntriesAdapter.getItem(position).getString("playlink"));
+    		}
+    		outbound.putExtra(getPackageName()+".browse", browse);
+    		startActivity(outbound);
     		
     	} catch (Exception e) {
     		Log.e("jinzora","Error during listItemClick",e);

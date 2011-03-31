@@ -10,6 +10,8 @@ import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.util.List;
 
+import mobisocial.nfc.Nfc;
+
 import org.jinzora.download.DownloadActivity;
 import org.jinzora.download.DownloadService;
 import org.jinzora.download.DownloaderInterface;
@@ -30,6 +32,8 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
+import android.nfc.NdefMessage;
+import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -43,6 +47,7 @@ import android.widget.TabHost;
 public class Jinzora extends TabActivity {
 	public static final String PACKAGE = "org.jinzora";
 	private static final String ASSET_WELCOME = "welcome.txt";
+	private static final String TAG = "jinzora";
 	
 	protected class MenuItems { 
 		final static int HOME = 1;
@@ -199,30 +204,47 @@ public class Jinzora extends TabActivity {
 	@Override
 	public void onResume() {
 		super.onResume();
-		
 		instance = this;
-		
+		Log.d(TAG, "in Jinzora.onResume");
 		Intent bindIntent = new Intent(this,PlaybackService.class);
-		bindService(bindIntent, sPbConnection, 0);
+		Log.d(TAG, "calling service bind w auto create");
+		bindService(bindIntent, sPbConnection, BIND_AUTO_CREATE);
+		
+		String curTab = "browse";
+		// View M3U?
+        final Intent inboundIntent = getIntent(); 
+        if (Intent.ACTION_VIEW.equals(inboundIntent.getAction())) {
+        	// hack!
+        	new Thread() {
+        		public void run() {
+        			try {
+        				Thread.sleep(5000);
+        			} catch (InterruptedException e) {}
+                	Log.d(TAG, "calling Jinzora.doPlaylist");
+                	Jinzora.doPlaylist( inboundIntent.getData().toString(), Jinzora.getAddType() );
+        		};
+        	}.start();
+        	curTab = "playback";
+        }
+        
+        if (inboundIntent.hasExtra(INTENT_SWITCH_TAB)) {
+        	curTab = inboundIntent.getStringExtra(INTENT_SWITCH_TAB);
+        }
+
+        getTabHost().setCurrentTabByTag(curTab);
+        Log.d(TAG, "done with Jinzora.onResume");
 	}
 	
 	@Override
 	protected void onPause() {
 		super.onPause();
-		
 		unbindService(sPbConnection);
 	}
 	
 	@Override
 	protected void onStart() {
 		super.onStart();
-		
-		/* Start the playback service */
-    	if (!sServiceStarted) {
-    		startService(new Intent(this, PlaybackService.class));
-    		sServiceStarted = true;
-    	}
-		
+
 		//playbackBinding = sPbConnection.playbackBinding;
 	}
 	
@@ -231,7 +253,8 @@ public class Jinzora extends TabActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         sPbConnection = new PlaybackServiceConnection();
-        
+        instance = this;
+        Log.d(TAG, "called Jinzora.onCreate");
         try {
     		if (sSessionPreferences == null) {
         		sSessionPreferences = getSharedPreferences("main", 0);
@@ -247,12 +270,10 @@ public class Jinzora extends TabActivity {
         	}
         	
         	setContentView(R.layout.tabs);
-	        TabHost host = this.getTabHost();
 	        
 	        //ImageView icon = new ImageView(this);
 	        //icon.setImageResource(android.R.drawable.ic_menu_compass);
 	        
-	        String curTab = "browse";
 	        Intent intBrowse = new Intent(this,Browser.class);
 	        Intent playbackIntent = new Intent(this,Player.class);
 	        
@@ -310,6 +331,8 @@ public class Jinzora extends TabActivity {
 	        	intBrowse.putExtras(getIntent().getExtras());
 	        }
 
+	        TabHost host = this.getTabHost();
+
 	        host.addTab(host.newTabSpec("browse")
 	        		.setIndicator(getString(R.string.browser)/*,icon.getDrawable()*/)
 	        		.setContent(intBrowse));
@@ -326,20 +349,6 @@ public class Jinzora extends TabActivity {
 	        host.addTab(host.newTabSpec("settings")
 	        		.setIndicator(getString(R.string.settings))
 	        		.setContent(new Intent(this, Preferences.class)));
-	        
-	        // View M3U?
-	        Intent inboundIntent = getIntent(); 
-	        if (Intent.ACTION_VIEW.equals(inboundIntent.getAction())) {
-	        	Jinzora.doPlaylist( inboundIntent.getData().toString(), Jinzora.getAddType() );
-	        	curTab = "playback";
-	        }
-	        
-	        if (inboundIntent.hasExtra(INTENT_SWITCH_TAB)) {
-	        	curTab = inboundIntent.getStringExtra(INTENT_SWITCH_TAB);
-	        }
-
-	        host.setCurrentTabByTag(curTab);
-	        
         } catch (Exception e) {
         	Log.e("jinzora", "error", e);
         }
@@ -478,18 +487,17 @@ public class Jinzora extends TabActivity {
 		plIntent.addCategory(PlaybackService.Intents.CATEGORY_REMOTABLE);
 		plIntent.putExtra("playlist", playlist);
 		plIntent.putExtra("addtype", addtype);
-
+		Log.d(TAG, "sending playlist playback broadcast");
 		instance.sendOrderedBroadcast(plIntent,null);
 		
 		// Old method: service binding.
-		/*
+		
 		try {
-			sPbConnection.playbackBinding.updatePlaylist(playlist, addtype);
+			sPbConnection.getPlaybackBinding().updatePlaylist(playlist, addtype);
 		} catch (RemoteException e) {
 			Log.e("jinzora","Error sending playlist",e);
-		}*/
+		}
 	}
-	
 	
 	private void doJukeboxConnectionPrompt() {
 		
@@ -503,7 +511,7 @@ public class Jinzora extends TabActivity {
 				new AlertDialog.Builder(Jinzora.this)
 					.setTitle("Found a jukebox");
 				
-				List<String>urls = sPbConnection.playbackBinding.getPlaylistURLs();
+				List<String>urls = sPbConnection.getPlaybackBinding().getPlaylistURLs();
 				if (urls != null && urls.size()>0) {
 					// Have a current playlist
 					builder
@@ -597,9 +605,26 @@ public class Jinzora extends TabActivity {
 	
 	
 	public class PlaybackServiceConnection implements ServiceConnection {
-		public PlaybackInterface playbackBinding;
+		private PlaybackInterface playbackBinding;
 		private String baseurl;
 
+		public boolean hasPlaybackBinding() {
+			return playbackBinding != null;
+		}
+		public PlaybackInterface getPlaybackBinding() {
+			if (playbackBinding == null) {
+				if(true)return null;
+				synchronized (PlaybackServiceConnection.this) {
+					while (playbackBinding == null) {
+						try {
+							PlaybackServiceConnection.this.wait();
+						} catch (InterruptedException e) {}
+					}
+				}
+			}
+			return playbackBinding;
+		}
+		
 		public synchronized void setBaseURL(String url) {
 			baseurl=url;
 			if (playbackBinding != null) {
@@ -613,6 +638,7 @@ public class Jinzora extends TabActivity {
 		
 		// service connection methods
 		public synchronized void onServiceConnected(ComponentName className, IBinder service) {
+			Log.d(TAG, "connected to playback service");
 			if (playbackBinding == null) {
 				Log.d("jinzora","playback interface is null; creating instance.");
 				playbackBinding = PlaybackInterface.Stub.asInterface((IBinder)service);
@@ -626,6 +652,8 @@ public class Jinzora extends TabActivity {
 				} catch (RemoteException e) {
 					Log.e("jinzora","Error setting remote baseURL",e);
 				}
+				
+				PlaybackServiceConnection.this.notify();
 			}
 			
 			try {

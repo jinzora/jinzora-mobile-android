@@ -202,7 +202,7 @@ public class LocalDevice extends PlaybackDevice {
 	@Override
 	public synchronized void updatePlaylist(String urlstr, int addType) {
 		try {
-			
+			Log.d("jinzora", "trying to open playlist " + urlstr);
 			InputStream inStream = null;
 			if (urlstr.startsWith("file://")) {
 				inStream = new FileInputStream(urlstr.substring(7));
@@ -228,6 +228,7 @@ public class LocalDevice extends PlaybackDevice {
 			}
 
 			BufferedReader br = new BufferedReader(new InputStreamReader(inStream));
+			Log.d("jinzora", "got bufferedreader");
 			String line = null; 
 			String lastLine = "";
 			

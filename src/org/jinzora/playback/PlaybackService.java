@@ -257,7 +257,7 @@ public class PlaybackService extends Service {
 				if (Intents.ACTION_PLAYLIST.equals(action)) {
 					String playlist = intent.getStringExtra("playlist");
 					int addtype = intent.getIntExtra("addtype", 0);
-
+					Log.d(TAG, "PlaybackService got action playlist");
 					try {
 						mBinder.updatePlaylist(playlist, addtype);
 						return;
@@ -604,8 +604,8 @@ public class PlaybackService extends Service {
 		@Override
 		public void updatePlaylist(String pl, int addType)
 				throws RemoteException {
+			Log.d(TAG, "called PlaybackService.updatePlaylist");
 			player.updatePlaylist(pl, addType);
-
 			/* Assumes synchronous player.playlist(). Might have to change this. */
 			try {
 				/* Broadcast */
