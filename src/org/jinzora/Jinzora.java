@@ -62,7 +62,7 @@ public class Jinzora extends TabActivity {
 		final static int SCAN_EVENT = 0;
 	}
 	
-	public static String INTENT_SWITCH_TAB = "org.jinzora.switch_tab";
+	public static String EXTRA_SWITCH_TAB = "org.jinzora.switch_tab";
 	
 	protected static Jinzora instance = null;
 	private static SharedPreferences sSessionPreferences = null;
@@ -205,9 +205,7 @@ public class Jinzora extends TabActivity {
 	public void onResume() {
 		super.onResume();
 		instance = this;
-		Log.d(TAG, "in Jinzora.onResume");
 		Intent bindIntent = new Intent(this,PlaybackService.class);
-		Log.d(TAG, "calling service bind w auto create");
 		bindService(bindIntent, sPbConnection, BIND_AUTO_CREATE);
 		
 		String curTab = "browse";
@@ -220,19 +218,19 @@ public class Jinzora extends TabActivity {
         			try {
         				Thread.sleep(5000);
         			} catch (InterruptedException e) {}
-                	Log.d(TAG, "calling Jinzora.doPlaylist");
                 	Jinzora.doPlaylist( inboundIntent.getData().toString(), Jinzora.getAddType() );
         		};
         	}.start();
         	curTab = "playback";
         }
         
-        if (inboundIntent.hasExtra(INTENT_SWITCH_TAB)) {
-        	curTab = inboundIntent.getStringExtra(INTENT_SWITCH_TAB);
+        if (inboundIntent.hasExtra(EXTRA_SWITCH_TAB)) {
+           curTab = inboundIntent.getStringExtra(EXTRA_SWITCH_TAB);
+           inboundIntent.removeExtra(EXTRA_SWITCH_TAB);
         }
 
         getTabHost().setCurrentTabByTag(curTab);
-        Log.d(TAG, "done with Jinzora.onResume");
+        inboundIntent.setAction("");
 	}
 	
 	@Override
@@ -254,7 +252,6 @@ public class Jinzora extends TabActivity {
         super.onCreate(savedInstanceState);
         sPbConnection = new PlaybackServiceConnection();
         instance = this;
-        Log.d(TAG, "called Jinzora.onCreate");
         try {
     		if (sSessionPreferences == null) {
         		sSessionPreferences = getSharedPreferences("main", 0);
@@ -279,10 +276,9 @@ public class Jinzora extends TabActivity {
 	        
 	        final Intent queryIntent = getIntent();
 	        final String queryAction = queryIntent.getAction();
-	        
-	        if (Intent.ACTION_SEARCH.equals(queryAction)) {
+	        final String MEDIA_PLAY_FROM_SEARCH = "android.media.action.MEDIA_PLAY_FROM_SEARCH";
+	        if (Intent.ACTION_SEARCH.equals(queryAction) || MEDIA_PLAY_FROM_SEARCH.equals(queryAction)) {
 	        	String queryString = queryIntent.getStringExtra(SearchManager.QUERY);
-	        	
 	        	// Track history
 	        	SearchRecentSuggestions suggestions = new SearchRecentSuggestions(this, 
 	                    SearchHistoryProvider.AUTHORITY, SearchHistoryProvider.MODE);
@@ -291,9 +287,14 @@ public class Jinzora extends TabActivity {
 	        	
 	            // look for keywords
 	        	boolean quickplay=false;
-	        	if (queryString != null && queryString.startsWith("play ")) {
+	        	if (queryString != null && isPlayRequest(queryString)) {
 	        		quickplay=true;
-	        		queryString=queryString.substring(5);
+	        		queryString = stripPlayRequest(queryString);
+	        	}
+	        	// did the query come from android?
+	        	if (MEDIA_PLAY_FROM_SEARCH.equals(queryAction)) {
+	        		quickplay = true;
+	        		getIntent().putExtra(EXTRA_SWITCH_TAB, "playback");
 	        	}
 
 	        	// TODO: use 'power search' to populate appropriate fields.
@@ -321,7 +322,6 @@ public class Jinzora extends TabActivity {
 	            	Intent qp = PlaybackService.getQuickplayIntent();
 	            	qp.putExtra("query", queryString);
 	            	startService(qp);
-	            	finish();
 	            } else {
 		            // Open Browse activity
 		            intBrowse.putExtra(getPackageName()+".browse",
@@ -353,7 +353,18 @@ public class Jinzora extends TabActivity {
         	Log.e("jinzora", "error", e);
         }
         
-    }    
+    }
+    
+    private boolean isPlayRequest(String queryString) {
+    	return (queryString.startsWith("play ") || queryString.startsWith("listen to "));
+    }
+    
+    private String stripPlayRequest(String query) {
+    	if (query.startsWith("play ")) return query.substring(5);
+    	if (query.startsWith("listen to ")) return query.substring(10);
+    	return query;
+    }
+    
 
     protected static void initContext(Activity activity) {
     	activity.setVolumeControlStream(AudioManager.STREAM_MUSIC);
@@ -483,6 +494,7 @@ public class Jinzora extends TabActivity {
 	public static void doPlaylist(String playlist, int addtype) {
 		// New-school way of doing it: send an intent.
 		// Can then make this remotable.
+		
 		Intent plIntent = new Intent(PlaybackService.Intents.ACTION_PLAYLIST);
 		plIntent.addCategory(PlaybackService.Intents.CATEGORY_REMOTABLE);
 		plIntent.putExtra("playlist", playlist);
@@ -613,7 +625,7 @@ public class Jinzora extends TabActivity {
 		}
 		public PlaybackInterface getPlaybackBinding() {
 			if (playbackBinding == null) {
-				if(true)return null;
+
 				synchronized (PlaybackServiceConnection.this) {
 					while (playbackBinding == null) {
 						try {

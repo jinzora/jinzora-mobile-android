@@ -28,6 +28,11 @@
                 <action android:name="android.intent.action.SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
             <meta-data android:name="android.app.searchable" 
                        android:resource="@xml/searchable" />
                        
@@ -37,7 +42,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="audio/x-mpegurl" />
            </intent-filter>
-            
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="audio/mpegurl" />
+           </intent-filter>
                        
 		</activity>
 		<activity android:name="Preferences"></activity>
@@ -103,6 +112,8 @@
          	</intent-filter>
          </receiver>
 </application>
+<uses-permission android:name="android.permission.BLUETOOTH"></uses-permission>
+<uses-permission android:name="android.permission.NFC"></uses-permission>
 <uses-permission android:name="android.permission.INTERNET"></uses-permission>
 <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
 <uses-permission android:name="android.permission.WAKE_LOCK"></uses-permission>

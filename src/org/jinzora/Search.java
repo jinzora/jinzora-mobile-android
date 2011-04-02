@@ -16,7 +16,6 @@ import android.widget.EditText;
 
 
 public class Search extends Activity {
-	
 	@Override
 	protected void onStart() {
 		super.onStart();
