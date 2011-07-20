@@ -7,18 +7,18 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import mobisocial.nfc.Nfc;
-import mobisocial.nfc.Nfc.NdefFactory;
-
 import org.jinzora.download.DownloadService;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
+
+import mobisocial.nfc.NdefFactory;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.nfc.NfcAdapter;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -245,33 +245,33 @@ public class Browser extends ListActivity {
 	}
 
 	
-	@Override
-	public void onResume() {
-		super.onResume();
+    @Override
+    public void onResume() {
+        super.onResume();
 
-		Intent inbound = getIntent();
-		/*if (inbound.hasExtra("playlink")) {
-			Log.d("jinzora", "Setting NFC tag");
-			Jinzora.instance.setSharing(NdefFactory.fromUri(URI.create(inbound.getStringExtra("playlink"))));
-		}*/
-		
-		String newBrowsing = null;
-		if (null != inbound.getStringExtra(getPackageName()+".browse")) {
-			// todo: get rid of this static.
-			newBrowsing = inbound.getStringExtra(getPackageName()+".browse");
-		} else {
-	   		newBrowsing = getHomeURL();
-	   		if (null  == newBrowsing) {
-	   			startActivity(new Intent(this, Preferences.class));
-	   			return;
-	   		}
-       }
+        Intent inbound = getIntent();
 
-		if (browsing == null || !browsing.equals(newBrowsing) || !mContentLoaded) {
-			browsing = newBrowsing;
-			doBrowsing();
-		}
-	}
+        if (inbound.hasExtra("playlink")) {
+            Jinzora.mNfc.share(NdefFactory.fromUri(Uri.parse(inbound.getStringExtra("playlink"))));
+        }
+
+        String newBrowsing = null;
+        if (null != inbound.getStringExtra(getPackageName() + ".browse")) {
+            // todo: get rid of this static.
+            newBrowsing = inbound.getStringExtra(getPackageName() + ".browse");
+        } else {
+            newBrowsing = getHomeURL();
+            if (null == newBrowsing) {
+                startActivity(new Intent(this, Preferences.class));
+                return;
+            }
+        }
+
+        if (browsing == null || !browsing.equals(newBrowsing) || !mContentLoaded) {
+            browsing = newBrowsing;
+            doBrowsing();
+        }
+    }
 	
 	@Override
 	protected void onPause() {
@@ -678,7 +678,8 @@ public class Browser extends ListActivity {
 		
 		// Called when all data has been loaded
 		public void finalize() {
-			isFinishedLoading=true;
+			isFinishedLoading = true;
+			((ListView)findViewById(android.R.id.list)).setFastScrollEnabled(true);
 		}
     }
 }

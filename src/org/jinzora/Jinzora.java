@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.util.List;
@@ -24,6 +25,7 @@ import com.google.zxing.integration.IntentResult;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.SearchManager;
 import android.app.TabActivity;
 import android.content.ComponentName;
@@ -43,11 +45,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.TabHost;
+import android.widget.TextView;
 
 public class Jinzora extends TabActivity {
 	public static final String PACKAGE = "org.jinzora";
 	private static final String ASSET_WELCOME = "welcome.txt";
 	private static final String TAG = "jinzora";
+	protected static Nfc mNfc;
 	
 	protected class MenuItems { 
 		final static int HOME = 1;
@@ -115,17 +119,13 @@ public class Jinzora extends TabActivity {
 	}
 	
 	private void handleFirstRun() {
+		/*
 		final String JZ_LIVE_SITE = "http://live.jinzora.org";
 		Preferences.addProfile(sAppPreferences,JZ_LIVE_SITE,"","");
 		Preferences.loadSettingsFromProfile(sAppPreferences, sSessionPreferences, JZ_LIVE_SITE);
-		
-		final AlertDialog.Builder builder = new AlertDialog.Builder(Jinzora.this);
-        builder.setTitle(R.string.jinzora_welcome);
-        builder.setMessage(readAsset(this, ASSET_WELCOME));
-        builder.setPositiveButton(R.string.continue_txt, null);
-        builder.show();
-        
-        
+		*/
+	    Log.d(TAG, "wtf");
+	    showDialog(R.id.launch_music_app);
 	}
 	
 	private static CharSequence readAsset(Activity activity, String asset) {
@@ -204,6 +204,7 @@ public class Jinzora extends TabActivity {
 	@Override
 	public void onResume() {
 		super.onResume();
+		mNfc.onResume(this);
 		instance = this;
 		Intent bindIntent = new Intent(this,PlaybackService.class);
 		bindService(bindIntent, sPbConnection, BIND_AUTO_CREATE);
@@ -236,6 +237,7 @@ public class Jinzora extends TabActivity {
 	@Override
 	protected void onPause() {
 		super.onPause();
+		mNfc.onPause(this);
 		unbindService(sPbConnection);
 	}
 	
@@ -245,7 +247,12 @@ public class Jinzora extends TabActivity {
 
 		//playbackBinding = sPbConnection.playbackBinding;
 	}
-	
+
+	@Override
+	protected void onNewIntent(Intent intent) {
+	    mNfc.onNewIntent(this, intent);
+	}
+
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -265,7 +272,7 @@ public class Jinzora extends TabActivity {
     		if (baseurl == null) {
         		setBaseURL(sSessionPreferences);
         	}
-        	
+        	mNfc = new Nfc(this);
         	setContentView(R.layout.tabs);
 	        
 	        //ImageView icon = new ImageView(this);
@@ -680,5 +687,14 @@ public class Jinzora extends TabActivity {
 			Log.w("jinzora", "service disconnected.");
 			playbackBinding = null;
 		}
+	}
+
+	@Override
+	protected void onPrepareDialog(int id, Dialog dialog) {
+	    final AlertDialog.Builder builder = new AlertDialog.Builder(Jinzora.this);
+        TextView content = new TextView(this);
+        content.setText(readAsset(this, ASSET_WELCOME));
+        dialog.setTitle(R.string.jinzora_welcome);
+        dialog.setContentView(content);
 	}
 }

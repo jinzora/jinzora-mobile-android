@@ -112,8 +112,6 @@
          	</intent-filter>
          </receiver>
 </application>
-<uses-permission android:name="android.permission.BLUETOOTH"></uses-permission>
-<uses-permission android:name="android.permission.NFC"></uses-permission>
 <uses-permission android:name="android.permission.INTERNET"></uses-permission>
 <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
 <uses-permission android:name="android.permission.WAKE_LOCK"></uses-permission>
@@ -123,10 +121,14 @@
 <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
+<!--  BDLNA -->
+<uses-permission android:name="android.permission.NFC"/>
+<uses-permission android:name="android.permission.BLUETOOTH"/>
+
 
 
 
 <uses-sdk android:minSdkVersion="8"></uses-sdk>
 
-<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 </manifest> 

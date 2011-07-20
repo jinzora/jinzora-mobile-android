@@ -67,7 +67,11 @@
       <artifactId>cling-support</artifactId>
       <version>1.0</version>
     </dependency>
-    
+    <dependency>
+      <groupId>org.mobisocial</groupId>
+      <artifactId>easynfc</artifactId>
+      <version>0.3-SNAPSHOT</version>
+    </dependency>
     <!-- 
     <dependency>
       <groupId>edu.stanford.prpl.junction</groupId>
