@@ -11,10 +11,10 @@
 
   <groupId>org.jinzora</groupId>
   <artifactId>JinzoraMobile-android</artifactId>
-  <version>2.0</version>
+  <version>3.0</version>
   <packaging>apk</packaging>
   <name>JinzoraMobile</name>
-  <description>Jinzora client for the Android OS</description>
+  <description>Jinzora client for Android</description>
 
   <properties>
     <ANDROID_HOME>${env.ANDROID_SDK}</ANDROID_HOME>
@@ -131,10 +131,10 @@
                                       <includes>
                                           <include>target/*.apk</include>
                                       </includes>
-                                      <keystore>C:\Users\Ben\android.keystore</keystore>
+                                      <keystore>/home/bjdodson/android.keystore</keystore>
                                       <storepass></storepass>
                                       <keypass></keypass>
-                                      <alias>android</alias>
+                                      <alias>com.bjdodson</alias>
                                   </configuration>
                               </execution>
                               

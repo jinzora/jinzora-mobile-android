@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.jinzora.android.R;
 import org.jinzora.playback.PlaybackService;
 
 import android.app.AlertDialog;

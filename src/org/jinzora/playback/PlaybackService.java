@@ -9,7 +9,8 @@ import java.net.URLEncoder;
 import java.util.List;
 
 import org.jinzora.Jinzora;
-import org.jinzora.R;
+import org.jinzora.android.R;
+import org.jinzora.playback.PlaybackInterface;
 import org.jinzora.playback.players.LocalDevice;
 import org.jinzora.playback.players.PlaybackDevice;
 import org.xmlpull.v1.XmlPullParser;
@@ -350,8 +351,7 @@ public class PlaybackService extends Service {
 		i.setAction(Intents.ACTION_QUICKPLAY);
 
 		// service only:
-		i.setComponent(new ComponentName(Jinzora.PACKAGE, PlaybackService.class
-				.getName()));
+		i.setComponent(new ComponentName(Jinzora.PACKAGE, PlaybackService.class.getName()));
 
 		// for broadcasting:
 		// i.setPackage(Jinzora.PACKAGE);

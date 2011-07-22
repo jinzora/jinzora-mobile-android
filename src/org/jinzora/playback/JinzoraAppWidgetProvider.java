@@ -22,7 +22,7 @@
 package org.jinzora.playback;
  
 import org.jinzora.Jinzora;
-import org.jinzora.R;
+import org.jinzora.android.R;
 
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;

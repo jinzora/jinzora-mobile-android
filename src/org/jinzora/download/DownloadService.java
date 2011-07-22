@@ -8,14 +8,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.jinzora.download.DownloaderInterface;
+
 import android.app.Service;
-import android.content.ComponentName;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.os.Environment;
 import android.os.IBinder;
 import android.os.RemoteException;

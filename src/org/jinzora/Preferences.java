@@ -2,6 +2,7 @@ package org.jinzora;
 
 import java.util.Map;
 
+import org.jinzora.android.R;
 import org.jinzora.upnp.UpnpService;
 
 

@@ -1,21 +1,16 @@
 package org.jinzora.playback.players;
 
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import org.jinzora.Jinzora;
-import org.jinzora.R;
+import org.jinzora.android.R;
 import org.jinzora.playback.PlaybackService;
 
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.Service;
-import android.media.MediaPlayer;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;

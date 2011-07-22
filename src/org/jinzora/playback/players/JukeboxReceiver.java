@@ -7,7 +7,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.UUID;
 
 import org.jinzora.playback.PlaybackService;
 import org.json.JSONArray;

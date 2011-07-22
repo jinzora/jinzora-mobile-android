@@ -1,5 +1,6 @@
 package org.jinzora;
 
+import org.jinzora.android.R;
 import org.jinzora.playback.PlaybackService;
 
 import android.app.Activity;

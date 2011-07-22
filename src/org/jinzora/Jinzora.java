@@ -13,6 +13,7 @@ import java.util.List;
 
 import mobisocial.nfc.Nfc;
 
+import org.jinzora.android.R;
 import org.jinzora.download.DownloadActivity;
 import org.jinzora.download.DownloadService;
 import org.jinzora.download.DownloaderInterface;
@@ -48,7 +49,7 @@ import android.widget.TabHost;
 import android.widget.TextView;
 
 public class Jinzora extends TabActivity {
-	public static final String PACKAGE = "org.jinzora";
+	public static final String PACKAGE = "org.jinzora.android";
 	private static final String ASSET_WELCOME = "welcome.txt";
 	private static final String TAG = "jinzora";
 	protected static Nfc mNfc;
@@ -124,8 +125,7 @@ public class Jinzora extends TabActivity {
 		Preferences.addProfile(sAppPreferences,JZ_LIVE_SITE,"","");
 		Preferences.loadSettingsFromProfile(sAppPreferences, sSessionPreferences, JZ_LIVE_SITE);
 		*/
-	    Log.d(TAG, "wtf");
-	    showDialog(R.id.launch_music_app);
+	    //showDialog(R.id.launch_music_app);
 	}
 	
 	private static CharSequence readAsset(Activity activity, String asset) {

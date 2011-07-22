@@ -2,7 +2,8 @@ package org.jinzora.download;
 
 import java.util.List;
 
-import org.jinzora.R;
+import org.jinzora.android.R;
+import org.jinzora.download.DownloaderInterface;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
