@@ -17,6 +17,7 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -155,8 +156,12 @@ public class Preferences extends PreferenceActivity {
     	
     	return true;
     }
-    
-    
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        return Jinzora.doKeyUp(this, keyCode, event);
+    }
+
     @Override
     protected Dialog onCreateDialog(int id) {
         switch (id) {

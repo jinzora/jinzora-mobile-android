@@ -6,19 +6,18 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.util.List;
 
+import mobisocial.nfc.NdefFactory;
 import mobisocial.nfc.Nfc;
 
 import org.jinzora.android.R;
 import org.jinzora.download.DownloadActivity;
-import org.jinzora.download.DownloadService;
-import org.jinzora.download.DownloaderInterface;
 import org.jinzora.playback.PlaybackInterface;
 import org.jinzora.playback.PlaybackService;
+import org.jinzora.playback.PlaybackService.Intents;
 import org.json.JSONObject;
 
 import com.google.zxing.integration.IntentIntegrator;
@@ -30,18 +29,18 @@ import android.app.Dialog;
 import android.app.SearchManager;
 import android.app.TabActivity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
-import android.nfc.NdefMessage;
-import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.provider.SearchRecentSuggestions;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
@@ -52,7 +51,7 @@ public class Jinzora extends TabActivity {
 	public static final String PACKAGE = "org.jinzora.android";
 	private static final String ASSET_WELCOME = "welcome.txt";
 	private static final String TAG = "jinzora";
-	protected static Nfc mNfc;
+	static Nfc mNfc;
 	
 	protected class MenuItems { 
 		final static int HOME = 1;
@@ -211,7 +210,10 @@ public class Jinzora extends TabActivity {
 		
 		String curTab = "browse";
 		// View M3U?
-        final Intent inboundIntent = getIntent(); 
+        final Intent inboundIntent = getIntent();
+        if (inboundIntent == null) {
+            return;
+        }
         if (Intent.ACTION_VIEW.equals(inboundIntent.getAction())) {
         	// hack!
         	new Thread() {
@@ -501,7 +503,7 @@ public class Jinzora extends TabActivity {
 	public static void doPlaylist(String playlist, int addtype) {
 		// New-school way of doing it: send an intent.
 		// Can then make this remotable.
-		
+		instance.mNfc.share(NdefFactory.fromUri(playlist));
 		Intent plIntent = new Intent(PlaybackService.Intents.ACTION_PLAYLIST);
 		plIntent.addCategory(PlaybackService.Intents.CATEGORY_REMOTABLE);
 		plIntent.putExtra("playlist", playlist);
@@ -696,5 +698,24 @@ public class Jinzora extends TabActivity {
         content.setText(readAsset(this, ASSET_WELCOME));
         dialog.setTitle(R.string.jinzora_welcome);
         dialog.setContentView(content);
+	}
+
+	public static boolean doKeyUp(Context context, int keyCode, KeyEvent event) {
+	    switch (event.getKeyCode()) {
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+            case KeyEvent.KEYCODE_HEADSETHOOK:
+                PlaybackService.broadcastCommand(context, Intents.ACTION_CMD_PLAYPAUSE);
+                return true;
+            case KeyEvent.KEYCODE_MEDIA_NEXT:
+                PlaybackService.broadcastCommand(context, Intents.ACTION_CMD_NEXT);
+                return true;
+            case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
+                PlaybackService.broadcastCommand(context, Intents.ACTION_CMD_PREV);
+                return true;
+            case KeyEvent.KEYCODE_MEDIA_STOP:
+                PlaybackService.broadcastCommand(context, Intents.ACTION_CMD_STOP);
+                return true;
+            }
+	    return false;
 	}
 }

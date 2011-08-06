@@ -26,7 +26,12 @@ public class Search extends Activity {
 	protected void onStop() {
 		super.onStop();
 	}
-	
+
+	@Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        return Jinzora.doKeyUp(this, keyCode, event);
+    }
+
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

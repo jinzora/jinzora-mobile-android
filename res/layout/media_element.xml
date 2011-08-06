@@ -7,19 +7,22 @@
     android:layout_marginBottom="8dip"
 	android:layout_marginLeft="8dip"
 	android:paddingRight="5dip"
+	android:id="@+id/media_el_frame"
     >
 
     <Button android:id="@+id/media_el_play"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text=" Play "
-                android:textSize="18sp" 
-                android:focusable="false"
+                android:text="Play"
+                android:textSize="18sp"
+                android:paddingLeft="18dip"
+                android:paddingRight="18dip"
                 android:layout_alignParentRight="true" 
                 android:height="50dip"
                 android:layout_centerVertical="true"
+                android:focusable="false"
                 />
-    
+
     <TextView android:id="@+id/media_el_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

@@ -17,6 +17,7 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -423,6 +424,11 @@ public class Player extends ListActivity {
 	 public boolean onMenuItemSelected(int featureId, MenuItem item) {
 		 Jinzora.menuItemSelected(featureId,item,this);
 		 return super.onMenuItemSelected(featureId, item);
+	 }
+
+	 @Override
+	 public boolean onKeyUp(int keyCode, KeyEvent event) {
+	     return Jinzora.doKeyUp(this, keyCode, event);
 	 }
 }
 

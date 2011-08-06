@@ -31,6 +31,7 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -39,6 +40,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class Browser extends ListActivity {
 	private JzMediaAdapter allEntriesAdapter = null;
@@ -47,7 +49,9 @@ public class Browser extends ListActivity {
 	protected String browsing;
 	protected LayoutInflater mInflater = null;
 	private String curQuery = "";
-	private boolean mContentLoaded=false;
+	private boolean mContentLoaded = false;
+	private ListView mListView;
+	private boolean mButtonNav = false;
 
 	Handler mAddEntriesHandler = new Handler() {
 		@Override
@@ -67,7 +71,6 @@ public class Browser extends ListActivity {
 			allEntriesAdapter.finalize();
 		}
 	};
-	
 	
 	class PopulateListAsyncTask extends AsyncTask<Void, String, Void> {
 		private ProgressDialog mDialog=null;
@@ -89,7 +92,6 @@ public class Browser extends ListActivity {
 				mDialog.setCancelable(true);
 				mDialog.setOnCancelListener(
 						new DialogInterface.OnCancelListener() {
-							
 							@Override
 							public void onCancel(DialogInterface arg0) {
 								
@@ -156,79 +158,15 @@ public class Browser extends ListActivity {
     				Log.e("jinzora","error clearing view",e2);
     			}
 			}
-			
-			((ListView)findViewById(android.R.id.list)).setVisibility(View.VISIBLE);
+
+			mListView = getListView();
+			mListView.setVisibility(View.VISIBLE);
     		setListAdapter(allEntriesAdapter);
 
-    		final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next", "Download to device" };
-    		((ListView)findViewById(android.R.id.list))
-				.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+    		mListView.setOnItemClickListener(mListClickListener);
+    		mListView.setOnItemLongClickListener(mListLongClickListener);
+			mListView.setOnKeyListener(mListKeyListener);
 
-					@Override
-					public boolean onItemLongClick(AdapterView<?> parent,
-							View view, final int listPosition, long id) {
-
-						if (!visibleEntriesAdapter.isPlayable(listPosition)) return false;
-						
-						new AlertDialog.Builder(Browser.this)
-							.setTitle(visibleEntriesAdapter.getEntryTitle(listPosition))
-							.setItems(entryOptions, 
-									new AlertDialog.OnClickListener() {
-										@Override
-										public void onClick(final DialogInterface dialog, final int entryPos) {
-											final Bundle item = visibleEntriesAdapter.getEntry(listPosition);
-											switch (entryPos) {
-											case 0:
-												// Share
-												Intent share = new Intent("android.intent.action.SEND");
-												share.setType("audio/x-mpegurl")
-													.putExtra(Intent.EXTRA_TEXT, item.getString("playlink"));
-												Browser.this
-													.startActivity(Intent.createChooser(share, "Share playlist..."));
-												break;
-											case 1:
-											case 2:
-											case 3:
-												// Play, Queue
-												new Thread() {
-													@Override
-													public void run() {
-														try {
-															Jinzora.doPlaylist(item.getString("playlink"), entryPos-1);
-														} catch (Exception e) {
-															Log.e("jinzora","Error in longpress event",e);
-														} finally {
-															dialog.dismiss();
-														}
-													}
-												}.start();
-												break;
-											case 4:
-												// Download to device
-												try {
-													Intent dlIntent = new Intent(DownloadService.Intents.ACTION_DOWNLOAD_PLAYLIST);
-													dlIntent.putExtra("playlist", item.getString("playlink"));
-													dlIntent.setClass(Browser.this, DownloadService.class);
-													startService(dlIntent);
-													/*Jinzora
-													  .sDlConnection
-													  .getBinding()
-													  .downloadPlaylist(item.getString("playlink"));*/
-												} catch (Exception e) {
-													Log.d("jinzora","Error downloading playlist",e);
-												}
-												// Add menu entry
-											}
-										}
-									}
-							)
-							.create().show();
-						
-						return true;
-					}
-					
-				});
-			
     		try {
 	    		// Asynchronous, but no ProgressDialog.
 	    		XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
@@ -242,10 +180,8 @@ public class Browser extends ListActivity {
     			Log.e("jinzora","could not populate list",e);
     		}
 		}
-		
 	}
 
-	
     @Override
     public void onResume() {
         super.onResume();
@@ -288,7 +224,7 @@ public class Browser extends ListActivity {
         allEntriesAdapter = new JzMediaAdapter(Browser.this);
         visibleEntriesAdapter = allEntriesAdapter;
     }
-    
+
     private String getHomeURL() {
     	String baseurl = Jinzora.getBaseURL();
    		if (baseurl == null) {
@@ -415,43 +351,7 @@ public class Browser extends ListActivity {
     		}
     	}.start();
     }
-    
-    
-    
-    @Override
-    public void onListItemClick(ListView l, View v, final int position, long id) {
-    	try {
-    		String browse = null;
-    		if (null == (browse = visibleEntriesAdapter.getItem(position).getString("browse"))) {
-    			if (visibleEntriesAdapter.getItem(position).containsKey("playlink")) {
-					new Thread() {
-						public void run() {
-							try {
-								Jinzora.doPlaylist(visibleEntriesAdapter.getItem(position).getString("playlink"),
-											  Jinzora.getAddType());
-							} catch (Exception e) {
-								Log.e("jinzora","Error playing media",e);
-							}
-						}
-					}.start();
-    			}
-    			
-    			return;
-    		}
 
-    		Intent outbound = new Intent(this,Jinzora.class);
-    		if (visibleEntriesAdapter.getItem(position).containsKey("playlink")) {
-    			outbound.putExtra("playlink", visibleEntriesAdapter.getItem(position).getString("playlink"));
-    		}
-    		outbound.putExtra(getPackageName()+".browse", browse);
-    		startActivity(outbound);
-    		
-    	} catch (Exception e) {
-    		Log.e("jinzora","Error during listItemClick",e);
-    	}
-    
-    }
-    
     private boolean matchesFilter(String entry) {
     	return curQuery.length() == 0 || entry.toUpperCase().contains(curQuery);
     }
@@ -476,7 +376,7 @@ public class Browser extends ListActivity {
     			return super.onKeyUp(keyCode,event);
     		}
     	} else {
-    		return super.onKeyUp(keyCode,event);
+    		return Jinzora.doKeyUp(this, keyCode, event);
     	}
     	
     	//TODO: support caching in the case of deletions?
@@ -524,13 +424,13 @@ public class Browser extends ListActivity {
     	}
 
     	@Override
-    	public View getView(int position, View convertView, ViewGroup parent) {
+    	public View getView(final int position, View convertView, ViewGroup parent) {
     		View row;
     		if (convertView == null) {
     			if (Browser.this.mInflater == null) {
     				Browser.this.mInflater = LayoutInflater.from(context);
     			}
-    			row=Browser.this.mInflater.inflate(R.layout.media_element, null);
+    			row = Browser.this.mInflater.inflate(R.layout.media_element, null);
     		} else {
     			row = convertView;
     		}
@@ -557,25 +457,15 @@ public class Browser extends ListActivity {
     		if (!item.containsKey("playlink")) {
     			row.findViewById(R.id.media_el_play).setVisibility(View.INVISIBLE);
     		} else {
-    			Button button = (Button)row.findViewById(R.id.media_el_play);
-    			button.setOnClickListener(new View.OnClickListener() {
-
-    				@Override
-    				public void onClick(View v) {
-
-    					new Thread() {
-    						public void run() {
-    							try {
-    								Jinzora.doPlaylist(item.getString("playlink"), Jinzora.getAddType());
-    							} catch (Exception e) {
-    								Log.e("jinzora","Error playing media",e);
-    							}
-    						}
-    					}.start();
-    				}
-
-    			});
-    		}
+               Button button = (Button)row.findViewById(R.id.media_el_play);
+               button.setTag(R.id.media_el_play, item.getString("playlink"));
+               button.setTag(R.id.media_el_subfield1, position);
+               button.setOnClickListener(mPlayButtonClicked);
+               button.setOnKeyListener(mPlayButtonKeyListener);
+               if (mButtonNav) {
+                   button.setFocusable(true);
+               }
+            }
     		return row;  
     	}
 
@@ -596,8 +486,6 @@ public class Browser extends ListActivity {
     		return item.containsKey("playlink");
     	}
 
-    	
-    	
     	// SectionIndexer
     	
     	@Override 
@@ -683,4 +571,160 @@ public class Browser extends ListActivity {
 			((ListView)findViewById(android.R.id.list)).setFastScrollEnabled(true);
 		}
     }
+
+    private AdapterView.OnItemClickListener mListClickListener = new AdapterView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> av, View v, final int position, long id) {
+            try {
+                String browse = null;
+                if (null == (browse = visibleEntriesAdapter.getItem(position).getString("browse"))) {
+                    if (visibleEntriesAdapter.getItem(position).containsKey("playlink")) {
+                        new Thread() {
+                            public void run() {
+                                try {
+                                    Jinzora.doPlaylist(visibleEntriesAdapter.getItem(position).getString("playlink"),
+                                                  Jinzora.getAddType());
+                                } catch (Exception e) {
+                                    Log.e("jinzora","Error playing media",e);
+                                }
+                            }
+                        }.start();
+                    }
+                    return;
+                }
+
+                Intent outbound = new Intent(Browser.this, Jinzora.class);
+                if (visibleEntriesAdapter.getItem(position).containsKey("playlink")) {
+                    outbound.putExtra("playlink", visibleEntriesAdapter.getItem(position).getString("playlink"));
+                }
+                outbound.putExtra(getPackageName()+".browse", browse);
+                startActivity(outbound);
+            } catch (Exception e) {
+                Log.e("jinzora","Error during listItemClick",e);
+            }
+        }
+    };
+
+    private AdapterView.OnItemLongClickListener mListLongClickListener = new AdapterView.OnItemLongClickListener() {
+        @Override
+        public boolean onItemLongClick(AdapterView<?> parent,
+                View view, final int listPosition, long id) {
+
+            final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next", "Download to device" };
+            if (!visibleEntriesAdapter.isPlayable(listPosition)) return false;
+            new AlertDialog.Builder(Browser.this)
+                .setTitle(visibleEntriesAdapter.getEntryTitle(listPosition))
+                .setItems(entryOptions, 
+                        new AlertDialog.OnClickListener() {
+                            @Override
+                            public void onClick(final DialogInterface dialog, final int entryPos) {
+                                final Bundle item = visibleEntriesAdapter.getEntry(listPosition);
+                                switch (entryPos) {
+                                case 0:
+                                    // Share
+                                    Intent share = new Intent("android.intent.action.SEND");
+                                    share.setType("audio/x-mpegurl")
+                                        .putExtra(Intent.EXTRA_TEXT, item.getString("playlink"));
+                                    Browser.this
+                                        .startActivity(Intent.createChooser(share, "Share playlist..."));
+                                    break;
+                                case 1:
+                                case 2:
+                                case 3:
+                                    // Play, Queue
+                                    new Thread() {
+                                        @Override
+                                        public void run() {
+                                            try {
+                                                Jinzora.doPlaylist(item.getString("playlink"), entryPos-1);
+                                            } catch (Exception e) {
+                                                Log.e("jinzora","Error in longpress event",e);
+                                            } finally {
+                                                dialog.dismiss();
+                                            }
+                                        }
+                                    }.start();
+                                    break;
+                                case 4:
+                                    // Download to device
+                                    try {
+                                        Intent dlIntent = new Intent(DownloadService.Intents.ACTION_DOWNLOAD_PLAYLIST);
+                                        dlIntent.putExtra("playlist", item.getString("playlink"));
+                                        dlIntent.setClass(Browser.this, DownloadService.class);
+                                        startService(dlIntent);
+                                        /*Jinzora
+                                          .sDlConnection
+                                          .getBinding()
+                                          .downloadPlaylist(item.getString("playlink"));*/
+                                    } catch (Exception e) {
+                                        Log.d("jinzora","Error downloading playlist",e);
+                                    }
+                                    // Add menu entry
+                                }
+                            }
+                        }
+                )
+                .create().show();
+            
+            return true;
+        }  
+    };
+
+    private View.OnKeyListener mListKeyListener = new View.OnKeyListener() {
+        @Override
+        public synchronized boolean onKey(View view, int keyCode, KeyEvent event) {
+            if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode && event.getAction() == KeyEvent.ACTION_UP) {
+                View v = mListView.getSelectedView();
+                if (v == null) return false;
+                v = v.findViewById(R.id.media_el_play);
+                if (v.getVisibility() == View.VISIBLE) {
+                    mListView.setItemsCanFocus(true);
+                    int c = mListView.getChildCount();
+                    for (int i = 0; i < c; i++) {
+                        View u = mListView.getChildAt(i).findViewById(R.id.media_el_play);
+                        u.setFocusable(true);
+                    }
+                    v.requestFocus(View.FOCUS_RIGHT);
+                    mButtonNav = true;
+                }
+                return true;   
+            }
+            return false;
+        }
+    };
+
+    private View.OnClickListener mPlayButtonClicked = new View.OnClickListener() {
+        @Override
+        public void onClick(final View v) {
+            new Thread() {
+                public void run() {
+                    try {
+                        String item = (String)v.getTag(R.id.media_el_play);
+                        Jinzora.doPlaylist(item, Jinzora.getAddType());
+                    } catch (Exception e) {
+                        Log.e("jinzora","Error playing media",e);
+                    }
+                }
+            }.start();
+        }
+    };
+
+    private View.OnKeyListener mPlayButtonKeyListener = new View.OnKeyListener() {
+        @Override
+        public synchronized boolean onKey(View v, int keyCode, KeyEvent event) {
+            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                int c = mListView.getChildCount();
+                for (int i = 0; i < c; i++) {
+                    View u = mListView.getChildAt(i);
+                    u.findViewById(R.id.media_el_play).setFocusable(false);
+                }
+                mListView.setItemsCanFocus(false);
+                mListView.requestFocus(View.FOCUS_LEFT);
+                mListView.setSelection((Integer)v.getTag(R.id.media_el_subfield1));
+                mButtonNav = false;
+                return true;
+            }
+            return false;
+        }
+    };
 }
