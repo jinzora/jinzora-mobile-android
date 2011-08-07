@@ -2,7 +2,6 @@ package org.jinzora;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +19,6 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.nfc.NfcAdapter;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -31,7 +29,6 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -40,7 +37,6 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class Browser extends ListActivity {
 	private JzMediaAdapter allEntriesAdapter = null;
@@ -674,19 +670,25 @@ public class Browser extends ListActivity {
         @Override
         public synchronized boolean onKey(View view, int keyCode, KeyEvent event) {
             if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode && event.getAction() == KeyEvent.ACTION_UP) {
-                View v = mListView.getSelectedView();
-                if (v == null) return false;
-                v = v.findViewById(R.id.media_el_play);
-                if (v.getVisibility() == View.VISIBLE) {
-                    mListView.setItemsCanFocus(true);
-                    int c = mListView.getChildCount();
-                    for (int i = 0; i < c; i++) {
-                        View u = mListView.getChildAt(i).findViewById(R.id.media_el_play);
-                        u.setFocusable(true);
+                final View w = mListView.getSelectedView();
+                if (w == null) return false;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        View v = w.findViewById(R.id.media_el_play);
+                        if (v.getVisibility() == View.VISIBLE) {
+                            mListView.setItemsCanFocus(true);
+                            mListView.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
+                            int c = mListView.getChildCount();
+                            for (int i = 0; i < c; i++) {
+                                View u = mListView.getChildAt(i).findViewById(R.id.media_el_play);
+                                u.setFocusable(true);
+                            }
+                            v.requestFocus(View.FOCUS_RIGHT);
+                            mButtonNav = true;
+                        }
                     }
-                    v.requestFocus(View.FOCUS_RIGHT);
-                    mButtonNav = true;
-                }
+                });
                 return true;   
             }
             return false;
@@ -711,17 +713,22 @@ public class Browser extends ListActivity {
 
     private View.OnKeyListener mPlayButtonKeyListener = new View.OnKeyListener() {
         @Override
-        public synchronized boolean onKey(View v, int keyCode, KeyEvent event) {
+        public synchronized boolean onKey(final View v, int keyCode, KeyEvent event) {
             if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                int c = mListView.getChildCount();
-                for (int i = 0; i < c; i++) {
-                    View u = mListView.getChildAt(i);
-                    u.findViewById(R.id.media_el_play).setFocusable(false);
-                }
-                mListView.setItemsCanFocus(false);
-                mListView.requestFocus(View.FOCUS_LEFT);
-                mListView.setSelection((Integer)v.getTag(R.id.media_el_subfield1));
-                mButtonNav = false;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        int c = mListView.getChildCount();
+                        for (int i = 0; i < c; i++) {
+                            View u = mListView.getChildAt(i);
+                            u.findViewById(R.id.media_el_play).setFocusable(false);
+                        }
+                        mListView.setItemsCanFocus(false);
+                        mListView.setItemChecked((Integer)v.getTag(R.id.media_el_subfield1), true);
+                        mListView.requestFocus(View.FOCUS_LEFT);
+                        mButtonNav = false;
+                    }
+                });
                 return true;
             }
             return false;
