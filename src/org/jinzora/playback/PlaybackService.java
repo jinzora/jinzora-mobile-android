@@ -520,8 +520,10 @@ public class PlaybackService extends Service {
 			}
 
 			/* Standard */
-			playlistIntent.setAction(META_CHANGED_GOOGLE);
-			sendBroadcast(playlistIntent);
+			if (firstPlay) {
+    			playlistIntent.setAction(META_CHANGED_GOOGLE);
+    			sendBroadcast(playlistIntent);
+			}
 
 			mAppWidgetProvider.notifyChange(this, PLAYSTATE_CHANGED);
 		} catch (Exception e) {
