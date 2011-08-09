@@ -46,6 +46,7 @@ import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.TabHost;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class Jinzora extends TabActivity {
 	public static final String PACKAGE = "org.jinzora.android";
@@ -209,11 +210,13 @@ public class Jinzora extends TabActivity {
 		bindService(bindIntent, sPbConnection, BIND_AUTO_CREATE);
 		
 		String curTab = "browse";
+
 		// View M3U?
         final Intent inboundIntent = getIntent();
         if (inboundIntent == null) {
             return;
         }
+
         if (Intent.ACTION_VIEW.equals(inboundIntent.getAction())) {
         	// hack!
         	new Thread() {
@@ -261,6 +264,7 @@ public class Jinzora extends TabActivity {
         super.onCreate(savedInstanceState);
         sPbConnection = new PlaybackServiceConnection();
         instance = this;
+
         try {
     		if (sSessionPreferences == null) {
         		sSessionPreferences = getSharedPreferences("main", 0);
@@ -693,7 +697,6 @@ public class Jinzora extends TabActivity {
 
 	@Override
 	protected void onPrepareDialog(int id, Dialog dialog) {
-	    final AlertDialog.Builder builder = new AlertDialog.Builder(Jinzora.this);
         TextView content = new TextView(this);
         content.setText(readAsset(this, ASSET_WELCOME));
         dialog.setTitle(R.string.jinzora_welcome);
@@ -702,20 +705,8 @@ public class Jinzora extends TabActivity {
 
 	public static boolean doKeyUp(Context context, int keyCode, KeyEvent event) {
 	    switch (event.getKeyCode()) {
-            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-            case KeyEvent.KEYCODE_HEADSETHOOK:
-                PlaybackService.broadcastCommand(context, Intents.ACTION_CMD_PLAYPAUSE);
-                return true;
-            case KeyEvent.KEYCODE_MEDIA_NEXT:
-                PlaybackService.broadcastCommand(context, Intents.ACTION_CMD_NEXT);
-                return true;
-            case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
-                PlaybackService.broadcastCommand(context, Intents.ACTION_CMD_PREV);
-                return true;
-            case KeyEvent.KEYCODE_MEDIA_STOP:
-                PlaybackService.broadcastCommand(context, Intents.ACTION_CMD_STOP);
-                return true;
-            }
+            // Multimedia keys handled in playback.RemoteControlReceiver
+	    }
 	    return false;
 	}
 }

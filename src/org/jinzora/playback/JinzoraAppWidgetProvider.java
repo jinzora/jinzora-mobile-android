@@ -34,6 +34,7 @@ import android.content.res.Resources;
 import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
+import android.widget.Toast;
  
 /**
  * Simple widget to show currently playing album art along
@@ -45,7 +46,7 @@ public class JinzoraAppWidgetProvider extends AppWidgetProvider {
     public static final String CMDAPPWIDGETUPDATE = "appwidgetupdate";
     
     static final ComponentName THIS_APPWIDGET =
-        new ComponentName("org.jinzora",
+        new ComponentName("org.jinzora.android",
                 "org.jinzora.playback.JinzoraAppWidgetProvider");
     
     private static JinzoraAppWidgetProvider sInstance;
@@ -149,7 +150,6 @@ public class JinzoraAppWidgetProvider extends AppWidgetProvider {
  
         // Link actions buttons to intents
         linkButtons(service, views, playing);
-        
         pushUpdate(service, appWidgetIds, views);
     }
  
@@ -167,28 +167,22 @@ public class JinzoraAppWidgetProvider extends AppWidgetProvider {
         
         final ComponentName serviceName = new ComponentName(context, PlaybackService.class);
         
-        Intent playerIntent = new Intent(context,Jinzora.class);
+        Intent playerIntent = new Intent(context, Jinzora.class);
+        playerIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         playerIntent.putExtra(Jinzora.EXTRA_SWITCH_TAB, "playback");
-        if (playerActive) {
-            pendingIntent = PendingIntent.getActivity(context,
-                    0 /* no requestCode */, playerIntent, 0 /* no flags */);
-            views.setOnClickPendingIntent(R.id.album_appwidget, pendingIntent);
-        } else {
-            pendingIntent = PendingIntent.getActivity(context,
-                    0 /* no requestCode */, playerIntent, 0 /* no flags */);
-            views.setOnClickPendingIntent(R.id.album_appwidget, pendingIntent);
-        }
-        
+        pendingIntent = PendingIntent.getActivity(context,
+                0 /* no requestCode */, playerIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+        views.setOnClickPendingIntent(R.id.album_appwidget, pendingIntent);
+
         intent = new Intent(PlaybackService.Intents.ACTION_CMD_PLAYPAUSE);
-        //intent.setComponent(serviceName);
         pendingIntent = PendingIntent.getBroadcast(context,
                 0 /* no requestCode */, intent, 0 /* no flags */);
         views.setOnClickPendingIntent(R.id.control_play, pendingIntent);
-        
+
         intent = new Intent(PlaybackService.Intents.ACTION_CMD_NEXT);
         //intent.setComponent(serviceName);
         pendingIntent = PendingIntent.getBroadcast(context,
-                0 /* no requestCode */, intent, 0 /* no flags */);
+                0 /* no requestCode */, intent, 0);
         views.setOnClickPendingIntent(R.id.control_next, pendingIntent);
     }
 }

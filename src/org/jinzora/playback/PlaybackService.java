@@ -67,6 +67,7 @@ public class PlaybackService extends Service {
 
 	public static final String PLAYSTATE_CHANGED = "org.jinzora.playstatechanged";
 	public static final String META_CHANGED = "org.jinzora.metachanged";
+	public static final String META_CHANGED_GOOGLE = "com.android.music.metachanged";
 	public static final String PLAYBACK_COMPLETE = "org.jinzora.playbackcomplete";
 	public static final String PLAYLIST_UPDATED = "org.jinzora.playlistupdated";
 
@@ -240,6 +241,7 @@ public class PlaybackService extends Service {
 	private BroadcastReceiver mCommandReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
+		    Log.w(TAG, "got a command " + intent);
 			if (player == null) {
 				Log.w(TAG, "Receieved a command but have a null player");
 				return;
@@ -359,45 +361,56 @@ public class PlaybackService extends Service {
 		return i;
 	}
 
+	@Override
 	public void onStart(Intent intent, int startId) {
-		if (intent != null
-				&& Intents.ACTION_QUICKPLAY
-						.equalsIgnoreCase(intent.getAction())) {
-			quickplay(intent);
-		}
-
-		if (intent != null && Intents.ACTION_CONNECT_JUKEBOX.equalsIgnoreCase(intent.getAction())) {
-			// TODO: this is where the remote intent stuff is.
-			// we'd like to remove it.
-			// TODO: props. Mad props.
-			// TODO: instead of just passing "transfer=true|false", support
-			// queuing/replacing/etc
-			installRemoteIntentFilter(intent);
-
-			// Notification so they can remove this jukebox
-			String notice = "Connected to remote jukebox. Click to disconnect.";
-			Intent cancelIntent = new Intent(this, Jinzora.class);
-			cancelIntent.setAction(Intents.ACTION_DISCONNECT_JUKEBOX);
-			Notification notification = new Notification(
-					android.R.drawable.ic_btn_speak_now, notice, System
-							.currentTimeMillis());
-			PendingIntent pending = PendingIntent.getActivity(this,
-					JB_NOTIFY_ID, cancelIntent, 0);
-
-			notification.setLatestEventInfo(this, "Jinzora Mobile", notice,
-					pending);
-			notification.flags |= Notification.FLAG_ONGOING_EVENT;
-			nm.notify(JB_NOTIFY_ID, notification);
-		}
-
-		if (intent != null && Intents.ACTION_DISCONNECT_JUKEBOX.equalsIgnoreCase(intent.getAction())) {
-			nm.cancel(JB_NOTIFY_ID);
-			// hacky end to a hacky beginning (remote intents)
-			Intent holla = new Intent("profile.tag.LOAD");
-			holla.putExtra("tag", "later");
-			sendBroadcast(holla);
-		}
+		handleStart(intent);
 	};
+
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+	    handleStart(intent);
+	    return START_STICKY;
+	}
+
+	private void handleStart(Intent intent) {
+	    if (intent != null
+                && Intents.ACTION_QUICKPLAY
+                        .equalsIgnoreCase(intent.getAction())) {
+            quickplay(intent);
+        }
+
+        if (intent != null && Intents.ACTION_CONNECT_JUKEBOX.equalsIgnoreCase(intent.getAction())) {
+            // TODO: this is where the remote intent stuff is.
+            // we'd like to remove it.
+            // TODO: props. Mad props.
+            // TODO: instead of just passing "transfer=true|false", support
+            // queuing/replacing/etc
+            installRemoteIntentFilter(intent);
+
+            // Notification so they can remove this jukebox
+            String notice = "Connected to remote jukebox. Click to disconnect.";
+            Intent cancelIntent = new Intent(this, Jinzora.class);
+            cancelIntent.setAction(Intents.ACTION_DISCONNECT_JUKEBOX);
+            Notification notification = new Notification(
+                    android.R.drawable.ic_btn_speak_now, notice, System
+                            .currentTimeMillis());
+            PendingIntent pending = PendingIntent.getActivity(this,
+                    JB_NOTIFY_ID, cancelIntent, 0);
+
+            notification.setLatestEventInfo(this, "Jinzora Mobile", notice,
+                    pending);
+            notification.flags |= Notification.FLAG_ONGOING_EVENT;
+            nm.notify(JB_NOTIFY_ID, notification);
+        }
+
+        if (intent != null && Intents.ACTION_DISCONNECT_JUKEBOX.equalsIgnoreCase(intent.getAction())) {
+            nm.cancel(JB_NOTIFY_ID);
+            // hacky end to a hacky beginning (remote intents)
+            Intent holla = new Intent("profile.tag.LOAD");
+            holla.putExtra("tag", "later");
+            sendBroadcast(holla);
+        }
+	}
 
 	@Override
 	public void onCreate() {
@@ -423,7 +436,6 @@ public class PlaybackService extends Service {
 		commandFilter.addAction(Intents.ACTION_PLAYLIST_SYNC_REQUEST);
 
 		commandFilter.addCategory(Intents.CATEGORY_REMOTABLE);
-
 		registerReceiver(mCommandReceiver, commandFilter);
 	}
 
@@ -506,6 +518,10 @@ public class PlaybackService extends Service {
 				Spoutable spoutable = new NowPlayingSpout(artist, track);
 				AndroidSpout.spout(this, spoutable);
 			}
+
+			/* Standard */
+			playlistIntent.setAction(META_CHANGED_GOOGLE);
+			sendBroadcast(playlistIntent);
 
 			mAppWidgetProvider.notifyChange(this, PLAYSTATE_CHANGED);
 		} catch (Exception e) {
@@ -785,6 +801,7 @@ public class PlaybackService extends Service {
 
 		}
 		// player = JukeboxDevice.getInstance("0");
+		startService(new Intent(this, PlaybackService.class));
 		return mBinder;
 	}
 
@@ -798,14 +815,14 @@ public class PlaybackService extends Service {
 		IntentFilter filter = new IntentFilter();
 		filter.addAction("org.jinzora.jukebox.PLAYLIST");
 		filter.addAction("org.jinzora.jukebox.PLAYLIST_SYNC_RESPONSE");
-		filter.addAction("org.jinzora.jukebox.cmd.PLAY");
-		filter.addAction("org.jinzora.jukebox.cmd.PAUSE");
-		filter.addAction("org.jinzora.jukebox.cmd.NEXT");
-		filter.addAction("org.jinzora.jukebox.cmd.PREV");
-		filter.addAction("org.jinzora.jukebox.cmd.STOP");
-		filter.addAction("org.jinzora.jukebox.cmd.CLEAR");
-		filter.addAction("org.jinzora.jukebox.cmd.JUMPTO");
-		filter.addAction("org.jinzora.jukebox.cmd.PLAYPAUSE");
+		filter.addAction(Intents.ACTION_CMD_PLAY);
+		filter.addAction(Intents.ACTION_CMD_PAUSE);
+		filter.addAction(Intents.ACTION_CMD_NEXT);
+		filter.addAction(Intents.ACTION_CMD_PREV);
+		filter.addAction(Intents.ACTION_CMD_STOP);
+		filter.addAction(Intents.ACTION_CMD_CLEAR);
+		filter.addAction(Intents.ACTION_CMD_JUMPTO);
+		filter.addAction(Intents.ACTION_CMD_PLAYPAUSE);
 		filter.addCategory("junction.remoteintent.REMOTABLE");
 
 		Intent intent = new Intent("junction.remoteintent.INSTALL_FILTER");
