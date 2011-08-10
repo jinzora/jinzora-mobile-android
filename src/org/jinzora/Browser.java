@@ -37,6 +37,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class Browser extends ListActivity {
 	private JzMediaAdapter allEntriesAdapter = null;
@@ -195,7 +196,9 @@ public class Browser extends ListActivity {
         } else {
             newBrowsing = getHomeURL();
             if (null == newBrowsing) {
-                startActivity(new Intent(this, Preferences.class));
+                Intent prefs = new Intent(this, Preferences.class);
+                prefs.putExtra("direct", true);
+                startActivity(prefs);
                 return;
             }
         }

@@ -34,6 +34,10 @@ public class Preferences extends PreferenceActivity {
 	private static final int DIALOG_CONFIRM_PROFILE_DELETE = 1;
 	private static String deleteProfile = null;
 	private static Dialog mDialog = null;
+	private int mLaunchMode = LAUNCH_MODE_TAB;
+
+	private static final int LAUNCH_MODE_TAB = 1;
+	private static final int LAUNCH_MODE_DIRECT = 2;
 	
 	 @Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +45,9 @@ public class Preferences extends PreferenceActivity {
 		Jinzora.initContext(this);
 		this.getPreferenceManager().setSharedPreferencesName("main");
 		addPreferencesFromResource(R.layout.preferences);
+		if (getIntent().hasExtra("direct")) {
+		    mLaunchMode = LAUNCH_MODE_DIRECT;
+		}
 	}
 	 
     @Override
@@ -159,6 +166,12 @@ public class Preferences extends PreferenceActivity {
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (mLaunchMode == LAUNCH_MODE_DIRECT) {
+                finish();
+            }
+            return true;
+        }
         return Jinzora.doKeyUp(this, keyCode, event);
     }
 

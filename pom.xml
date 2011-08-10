@@ -11,7 +11,7 @@
 
   <groupId>org.jinzora</groupId>
   <artifactId>JinzoraMobile-android</artifactId>
-  <version>3.0.2</version>
+  <version>3.0.4</version>
   <packaging>apk</packaging>
   <name>JinzoraMobile</name>
   <description>Jinzora client for Android</description>
