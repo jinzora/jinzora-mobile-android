@@ -1,14 +1,14 @@
-package org.jinzora;
+package org.jinzora.fragments;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.jinzora.Jinzora;
 import org.jinzora.android.R;
 import org.jinzora.playback.PlaybackService;
 
 import android.app.AlertDialog;
-import android.app.ListActivity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -16,11 +16,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.support.v4.app.ListFragment;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -28,14 +26,13 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
-public class Player extends ListActivity {
+public class PlayerFragment extends ListFragment {
 	private static Map<Integer,String>jukeboxes = null;
 	private static int selectedPlaybackDevice = 0;
 	private static int selectedAddType = 0;
 	private static List<String[]> staticDeviceList;
 	
 	PlaylistAdapter mPlaylistAdapter;
-	
 	BroadcastReceiver mPositionReceiver;
 	BroadcastReceiver mListUpdatedReceiver;
 	
@@ -50,17 +47,17 @@ public class Player extends ListActivity {
 	}
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		Jinzora.initContext(this);
-		
-		// Playlist 
-		
-		mPlaylistAdapter = new PlaylistAdapter(this);
-		
-		this.setContentView(R.layout.player);
+	public void onActivityCreated(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);	
+		mPlaylistAdapter = new PlaylistAdapter(getActivity());
 		setListAdapter(mPlaylistAdapter);
-		((ListView)findViewById(android.R.id.list)).setOnItemClickListener(new AdapterView.OnItemClickListener() {
+	}
+
+	@Override
+	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+		final View v = inflater.inflate(R.layout.player, container, false);
+
+		((ListView)v.findViewById(android.R.id.list)).setOnItemClickListener(new AdapterView.OnItemClickListener() {
 			@Override
 			public void onItemClick(AdapterView<?> arg0, View arg1, int pos,
 					long arg3) {
@@ -74,7 +71,7 @@ public class Player extends ListActivity {
 		});
 		
 		final CharSequence[] entryOptions = {"Play Now", "Play Next" /*, "Cut",*/ };
-		((ListView)findViewById(android.R.id.list))
+		((ListView)v.findViewById(android.R.id.list))
 			.setOnItemLongClickListener(
 					new AdapterView.OnItemLongClickListener() {
 
@@ -83,7 +80,7 @@ public class Player extends ListActivity {
 								View view, final int listPosition, long id) {
 
 							AlertDialog dialog =
-								new AlertDialog.Builder(Player.this)
+								new AlertDialog.Builder(getActivity())
 								.setTitle(mPlaylistAdapter.getItemName(listPosition))
 								.setItems(entryOptions, new AlertDialog.OnClickListener() {
 									
@@ -108,17 +105,13 @@ public class Player extends ListActivity {
 									}
 								})
 								.create();
-							
 							dialog.show();
-							
 							return true;
 						}
-			
 					});
-		
+
 		// Buttons
-		
-		this.findViewById(R.id.prevbutton).setOnClickListener(new View.OnClickListener() {
+		v.findViewById(R.id.prevbutton).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				new Thread() {
@@ -136,7 +129,7 @@ public class Player extends ListActivity {
 		
 		/* Could handle these buttons with broadcasted Intents as well. */
 		
-		this.findViewById(R.id.nextbutton).setOnClickListener(new View.OnClickListener() {
+		v.findViewById(R.id.nextbutton).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				new Thread() {
@@ -152,7 +145,7 @@ public class Player extends ListActivity {
 			}
 		});
 		
-		this.findViewById(R.id.playbutton).setOnClickListener(new View.OnClickListener() {
+		v.findViewById(R.id.playbutton).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				new Thread() {
@@ -169,7 +162,7 @@ public class Player extends ListActivity {
 			}
 		});
 		
-		this.findViewById(R.id.pausebutton).setOnClickListener(new View.OnClickListener() {
+		v.findViewById(R.id.pausebutton).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				new Thread() {
@@ -219,7 +212,7 @@ public class Player extends ListActivity {
 		});
 		
 		*/
-		
+		return v;
 	}
 	
 	/*
@@ -328,11 +321,10 @@ public class Player extends ListActivity {
 	
 	
 	@Override
-	protected void onResume() {
+	public void onResume() {
 		super.onResume();
-		
+
 		updateUi();
-		
 		mPositionReceiver = new BroadcastReceiver() {
 			@Override
 			public void onReceive(Context context, Intent intent) {
@@ -340,9 +332,9 @@ public class Player extends ListActivity {
 				mPlaylistAdapter.setPlaylistPos(pos);
 			}
 		};	
-		
+
 		IntentFilter intentFilter = new IntentFilter(PlaybackService.PLAYSTATE_CHANGED);
-		registerReceiver(mPositionReceiver, intentFilter);
+		getActivity().registerReceiver(mPositionReceiver, intentFilter);
 		
 		
 		mListUpdatedReceiver = new BroadcastReceiver() {
@@ -361,8 +353,7 @@ public class Player extends ListActivity {
 		};
 		
 		IntentFilter listIntentFilter = new IntentFilter(PlaybackService.PLAYLIST_UPDATED);
-		registerReceiver(mListUpdatedReceiver, listIntentFilter);
-		
+		getActivity().registerReceiver(mListUpdatedReceiver, listIntentFilter);
 	}
 	
 	private void updateUi() {
@@ -386,7 +377,7 @@ public class Player extends ListActivity {
 						} catch (InterruptedException e) {}
 					}
 					if (Jinzora.sPbConnection.hasPlaybackBinding()) {
-						runOnUiThread(new Runnable() {
+					    getActivity().runOnUiThread(new Runnable() {
 							public void run() {
 								try {
 									List<String>tracks = Jinzora.sPbConnection.getPlaybackBinding().getPlaylistNames();
@@ -409,35 +400,19 @@ public class Player extends ListActivity {
 	public void onPause() {
 		super.onPause();
 		
-		unregisterReceiver(mPositionReceiver);
-		unregisterReceiver(mListUpdatedReceiver);
+		getActivity().unregisterReceiver(mPositionReceiver);
+		getActivity().unregisterReceiver(mListUpdatedReceiver);
 		mPositionReceiver = null;
 		mListUpdatedReceiver = null;
 	}
-	
-	 @Override
-	 public boolean onCreateOptionsMenu(Menu menu) {
-		 return Jinzora.createMenu(menu);
-	 }
-	    
-	 @Override
-	 public boolean onMenuItemSelected(int featureId, MenuItem item) {
-		 Jinzora.menuItemSelected(featureId,item,this);
-		 return super.onMenuItemSelected(featureId, item);
-	 }
-
-	 @Override
-	 public boolean onKeyUp(int keyCode, KeyEvent event) {
-	     return Jinzora.doKeyUp(this, keyCode, event);
-	 }
 }
 
 
 class PlaylistAdapter extends ArrayAdapter<String> {
 	protected int mPos = -1;
-	ListActivity mListActivity;
+	Context mListActivity;
 	LayoutInflater inflater;
-	public PlaylistAdapter(ListActivity parent) {
+	public PlaylistAdapter(Context parent) {
 		super(parent, android.R.layout.simple_list_item_1);
 		mListActivity = parent;
 		inflater=LayoutInflater.from(parent);

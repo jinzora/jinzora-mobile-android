@@ -1,82 +1,65 @@
-package org.jinzora;
+package org.jinzora.fragments;
 
+import org.jinzora.Jinzora;
 import org.jinzora.android.R;
 import org.jinzora.playback.PlaybackService;
 
-import android.app.Activity;
 import android.app.SearchManager;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 
 
 
-public class Search extends Activity {
-	@Override
-	protected void onStart() {
-		super.onStart();
-	}
-	
-	@Override
-	protected void onStop() {
-		super.onStop();
-	}
-
+public class SearchFragment extends Fragment {
+/*
 	@Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         return Jinzora.doKeyUp(this, keyCode, event);
     }
+*/
 
 	@Override
-    public void onCreate(Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Jinzora.initContext(this);
         try {
-        	setContentView(R.layout.search);
-        	
-        	
-        	
-        	this.findViewById(R.id.search_box).setOnKeyListener(new View.OnKeyListener() {
+        	final View v = inflater.inflate(R.layout.search, container, false);
+        	v.findViewById(R.id.search_box).setOnKeyListener(new View.OnKeyListener() {
 	        	 @Override
 	        	public boolean onKey(View v, int keyCode, KeyEvent event) {
 	        		if (event.getAction() == KeyEvent.ACTION_UP &&
 	        			event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
-	        		
-	        			doSearch();
+	        			doSearch(v);
 	        		}
-	        		
 	        		return false;
 	        	}
 	         });
 	         
-	         this.findViewById(R.id.search_button).setOnClickListener(new View.OnClickListener() {
-
+	         v.findViewById(R.id.search_button).setOnClickListener(new View.OnClickListener() {
 	 			@Override
 	 			public void onClick(View v) {
-	 			
-	 				doSearch();
+	 				doSearch(v);
 	 			}
 	 		});
 	         
-	        this.findViewById(R.id.quicksearch_button).setOnClickListener(new View.OnClickListener() {
-
+	        v.findViewById(R.id.quicksearch_button).setOnClickListener(new View.OnClickListener() {
 		 			@Override
-		 			public void onClick(View v) {
-		 			
+		 			public void onClick(final View view) {
 		 				new Thread() {
 		 					@Override
 		 					public void run() {
 		 						try {
-		 							String query = ((EditText)findViewById(R.id.search_box)).getText().toString();
+		 							String query = ((EditText)v.findViewById(R.id.search_box)).getText().toString();
 		 							if (query != null && query.length() > 0) {
 		 								Intent quickplay = PlaybackService.getQuickplayIntent();
 		 								quickplay.putExtra("query", query);
-		 								startService(quickplay);
+		 								getActivity().startService(quickplay);
 		 							}
 		 						} catch (Exception e) {
 		 							Log.e("jinzora","Error during search",e);
@@ -85,31 +68,21 @@ public class Search extends Activity {
 		 				}.start();
 		 			}
 		 		});
-        	
+        	return v;
         } catch (Exception e) {
-        	
+        	Log.e("jinzora", "Error building search fragment ui", e);
+        	return null;
         }
 	}
-	
-	@Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-    	return Jinzora.createMenu(menu);
-    }
-    
-    @Override
-    public boolean onMenuItemSelected(int featureId, MenuItem item) {
-    	Jinzora.menuItemSelected(featureId,item, this);
-    	return super.onMenuItemSelected(featureId, item);
-    }
-    
-    private void doSearch() {
+
+    private void doSearch(final View v) {
     	new Thread() {
 				@Override
 				public void run() {
 					try {
-						String query = ((EditText)findViewById(R.id.search_box)).getText().toString();
+						String query = ((EditText)v.findViewById(R.id.search_box)).getText().toString();
 						if (query != null && query.length() > 0) {
-							Intent intent = new Intent(Search.this, Jinzora.class);
+							Intent intent = new Intent(getActivity(), Jinzora.class);
 							intent.setAction(Intent.ACTION_SEARCH);
 							intent.putExtra(SearchManager.QUERY, query);
 							//intent.putExtra(Search.this.getPackageName()+".browse",Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(query, "UTF-8"));

@@ -1,34 +1,36 @@
-package org.jinzora;
+package org.jinzora.fragments;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import mobisocial.nfc.NdefFactory;
+
+import org.jinzora.Jinzora;
 import org.jinzora.android.R;
 import org.jinzora.download.DownloadService;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
-import mobisocial.nfc.NdefFactory;
-
+import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ListActivity;
-import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-
+import android.support.v4.app.Fragment;
+import android.support.v4.app.ListFragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -37,180 +39,45 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
-import android.widget.Toast;
 
-public class Browser extends ListActivity {
+public class BrowserFragment extends ListFragment
+        implements LoaderManager.LoaderCallbacks<List<Bundle>> {
+    private final String TAG = "jinzora";
 	private JzMediaAdapter allEntriesAdapter = null;
 	private JzMediaAdapter visibleEntriesAdapter = null;
-	
-	protected String browsing;
+
+	private URL mUrl;
 	protected LayoutInflater mInflater = null;
 	private String curQuery = "";
-	private boolean mContentLoaded = false;
 	private ListView mListView;
 	private boolean mButtonNav = false;
 
 	Handler mAddEntriesHandler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
-			allEntriesAdapter.add(msg.getData());
-			if (allEntriesAdapter != visibleEntriesAdapter) {
-				if (matchesFilter(msg.getData().getString("name"))) {
-					visibleEntriesAdapter.add(msg.getData());
-				}
-			}
-		}
-	};
-	
-	Handler mEntriesCompleteHandler = new Handler() {
-		@Override
-		public void handleMessage(Message msg) {
-			allEntriesAdapter.finalize();
-		}
-	};
-	
-	class PopulateListAsyncTask extends AsyncTask<Void, String, Void> {
-		private ProgressDialog mDialog=null;
-		private InputStream inStream=null;
-		private String mEncoding;
-		private boolean waitingForConn=true;
-		
-		public PopulateListAsyncTask() {
-			
-		}
-		
-		@Override
-		protected void onPreExecute() {
-			if (mDialog == null) {
-				mDialog = new ProgressDialog(Browser.this);
-				//mDialog.setTitle("Connecting to media server");
-				mDialog.setMessage(Browser.this.getResources().getText(R.string.loading));
-				mDialog.setIndeterminate(true);
-				mDialog.setCancelable(true);
-				mDialog.setOnCancelListener(
-						new DialogInterface.OnCancelListener() {
-							@Override
-							public void onCancel(DialogInterface arg0) {
-								
-							}
-						});
-			}	
-			
-			// wait a bit before showing dialog
-			new Thread() {
-				public void run() {
-					try {
-						Thread.sleep(2000);
-					} catch (Exception e){}
-					
-					if (waitingForConn) {
-						Browser.this.runOnUiThread(new Runnable() {
-							@Override
-							public void run() {
-								mDialog.show();
-							}
-						});
-					}
-				};
-			}.start();
-		}
-		
-		/**
-		 * Our background task is to connect to the remote host.
-		 * Populating the list occurs during postExecute.
-		 */
-		@Override
-		protected Void doInBackground(Void... arg0) {
-			try {
-				URL url = new URL(browsing);
-    			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-    			conn.setConnectTimeout(20000);
-    			inStream = conn.getInputStream();
-    			conn.connect();
-    			mEncoding = conn.getContentEncoding();
-    			
-    			mContentLoaded=true;
-    			waitingForConn=false;
-    			return null;
-    		} catch (Exception e) {
-    			waitingForConn=false;
-    			return null;
-    		}
-		}
-		
-		@Override
-		protected void onPostExecute(Void result) {
-			mDialog.hide();
-			if (inStream == null) {
-				try {
-	    			Log.w("jinzora","could not connect to server");
-	    			
-	    			JzMediaAdapter adapter = new JzMediaAdapter(Browser.this, new ArrayList<Bundle>());
-	        		setContentView(R.layout.browse);
-	        		setListAdapter(adapter);
-	        		
-	        		((TextView)findViewById(R.id.browse_notice)).setText(R.string.connection_failed);
-	        		findViewById(R.id.browse_notice).setVisibility(View.VISIBLE);
-    			} catch (Exception e2) {
-    				Log.e("jinzora","error clearing view",e2);
+		    synchronized (this) {
+    			allEntriesAdapter.add(msg.getData());
+    			if (allEntriesAdapter != visibleEntriesAdapter) {
+    				if (matchesFilter(msg.getData().getString("name"))) {
+    					visibleEntriesAdapter.add(msg.getData());
+    				}
     			}
-			}
-
-			mListView = getListView();
-			mListView.setVisibility(View.VISIBLE);
-    		setListAdapter(allEntriesAdapter);
-
-    		mListView.setOnItemClickListener(mListClickListener);
-    		mListView.setOnItemLongClickListener(mListLongClickListener);
-			mListView.setOnKeyListener(mListKeyListener);
-
-    		try {
-	    		// Asynchronous, but no ProgressDialog.
-	    		XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-				factory.setNamespaceAware(true);
-				XmlPullParser xpp;
-	    		xpp = factory.newPullParser();
-				xpp.setInput(inStream, mEncoding);
-				
-				populateList(xpp, inStream);
-    		} catch  (Exception e) {
-    			Log.e("jinzora","could not populate list",e);
-    		}
+		    }
 		}
-	}
+	};
 
     @Override
     public void onResume() {
         super.onResume();
 
-        Intent inbound = getIntent();
-
-        if (inbound.hasExtra("playlink")) {
-            Jinzora.mNfc.share(NdefFactory.fromUri(Uri.parse(inbound.getStringExtra("playlink"))));
-        }
-
-        String newBrowsing = null;
-        if (null != inbound.getStringExtra(getPackageName() + ".browse")) {
-            // todo: get rid of this static.
-            newBrowsing = inbound.getStringExtra(getPackageName() + ".browse");
-        } else {
-            newBrowsing = getHomeURL();
-            if (null == newBrowsing) {
-                Intent prefs = new Intent(this, Preferences.class);
-                prefs.putExtra("direct", true);
-                startActivity(prefs);
-                return;
-            }
-        }
-
-        if (browsing == null || !browsing.equals(newBrowsing) || !mContentLoaded) {
-            browsing = newBrowsing;
-            doBrowsing();
+        String playlink = getArguments().getString("playlink");
+        if (playlink != null) {
+            Jinzora.mNfc.share(NdefFactory.fromUri(Uri.parse(playlink)));
         }
     }
 	
 	@Override
-	protected void onPause() {
+    public void onPause() {
 		super.onPause();
 	}
 
@@ -218,147 +85,55 @@ public class Browser extends ListActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Jinzora.initContext(this);
-        
-        allEntriesAdapter = new JzMediaAdapter(Browser.this);
-        visibleEntriesAdapter = allEntriesAdapter;
+        synchronized (this) {
+            allEntriesAdapter = new JzMediaAdapter(BrowserFragment.this);
+            visibleEntriesAdapter = allEntriesAdapter;
+        }
     }
 
-    private String getHomeURL() {
-    	String baseurl = Jinzora.getBaseURL();
-   		if (baseurl == null) {
-   			return null;
-   		} else {
-   			return baseurl + "&request=home";
-   		}
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        try {
+            mUrl = new URL(getArguments().getString("browsing"));
+        } catch (MalformedURLException e) {
+            Log.e(TAG, "Could not load browsing URL", e);
+        }
     }
 
-    private void doBrowsing() {
-    	try {
-    		allEntriesAdapter.clear();
-    		setContentView(R.layout.browse);
-    		PopulateListAsyncTask connect = new PopulateListAsyncTask();
-    		connect.execute();
-    		
-    	} catch (Exception e) {
-    		Log.e("jinzora", "error", e);
-    	}
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
+        mListView = getListView();
+        mListView.setVisibility(View.VISIBLE);
+        synchronized (this) {
+            setListAdapter(allEntriesAdapter);
+        }
+
+        mListView.setOnItemClickListener(mListClickListener);
+        mListView.setOnItemLongClickListener(mListLongClickListener);
+        mListView.setOnKeyListener(mListKeyListener);
+
+        getLoaderManager().initLoader(0, null, this);
     }
 
-    public void populateList(final XmlPullParser xpp, final InputStream inStream) {
-    	new Thread() {
-    		@Override
-			public void run() {
-				try {
-					int eventType = xpp.getEventType();
-					while (eventType != XmlPullParser.END_DOCUMENT) {
-						if(eventType == XmlPullParser.START_DOCUMENT) {
-			
-						} else if(eventType == XmlPullParser.END_DOCUMENT) {
-			
-						} else if(eventType == XmlPullParser.START_TAG && 
-								(xpp.getName().equals("login"))) {
-							
-							
-			        		((TextView)findViewById(R.id.browse_notice)).setText(R.string.bad_login);
-			        		findViewById(R.id.browse_notice).setVisibility(View.VISIBLE);
-			        		
-							return;
-						} else if(eventType == XmlPullParser.START_TAG && 
-								(xpp.getName().equals("nodes") || xpp.getName().equals("browse") || xpp.getName().equals("tracks"))) {
-			
-							int depth = xpp.getDepth();
-							xpp.next();
-			
-							Bundle item = null;
-							while (!(depth == xpp.getDepth() && eventType == XmlPullParser.END_TAG)) {	            	  
-								if (depth+1 == xpp.getDepth() && eventType == XmlPullParser.START_TAG) {
-									item = new Bundle();
-								} else if (depth+1 == xpp.getDepth() && eventType == XmlPullParser.END_TAG) {
-									/*if (item.containsKey("album")) {
-			            			  item.put("subfield1", item.get("album"));
-			            			  if (item.containsKey("artist")) {
-			            				  item.put("subfield2",item.get("artist"));
-			            			  }
-			            		  } else*/ if (item.containsKey("artist")){
-			            			  item.putString("subfield1", item.getString("artist"));
-			            		  }
-			
-			            		  /*
-			            		  if (isActivityPaused) {
-			            			  // A fairly gross hack to fix the bug
-			            			  // when a user presses 'back'
-			            			  // while the page is still loading.
-			            			  // Probably a better way to handle it.
-			            			  inStream.close();
-			            			  Log.d("jinzora","killed it");
-			            			  mContentLoaded=false; // force refresh on resume
-			            			  return;
-			            		  }
-			            		  */
-			            		  
-			            		  Message m = mAddEntriesHandler.obtainMessage();
-			            		  m.setData(item);
-			            		  mAddEntriesHandler.sendMessage(m);
-								}
-			
-								if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("name")) {
-									eventType = xpp.next();
-									item.putString("name", xpp.getText());	           			  
-								}
-			
-								if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("artist")) {
-									eventType = xpp.next();
-									item.putString("artist", xpp.getText());
-								}
-			
-								if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("album")) {
-									eventType = xpp.next();
-									item.putString("album", xpp.getText());
-								}
-			
-								if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("playlink")) {
-									eventType = xpp.next();
-									item.putString("playlink", xpp.getText());
-								}
-			
-								if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("browse")) {
-									eventType = xpp.next();
-									item.putString("browse",xpp.getText());
-								}
-			
-								eventType = xpp.next();
-							}
-						} else if(eventType == XmlPullParser.END_TAG) {
-			
-						} else if(eventType == XmlPullParser.TEXT) {
-
-						}
-						eventType = xpp.next();
-					}
-				} catch (Exception e) {
-					Log.e("jinzora","Error processing XML",e);
-				} finally {
-					try {
-						inStream.close();
-					} catch (Exception e) {
-						Log.w("jinzora","Error closing stream",e);
-					}
-				}
-				
-				mEntriesCompleteHandler.sendEmptyMessage(0);
-    		}
-    	}.start();
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.browse, container, false);
     }
 
     private boolean matchesFilter(String entry) {
     	return curQuery.length() == 0 || entry.toUpperCase().contains(curQuery);
     }
-    
-    @Override
-    public synchronized boolean onKeyUp(int keyCode, android.view.KeyEvent event) {
+
+    private synchronized boolean onKeyUp(int keyCode, KeyEvent event) {
     	JzMediaAdapter workingEntries;
     	char c;
+    	if (event.getAction() != KeyEvent.ACTION_UP) {
+    	    return false;
+    	}
+
     	if ('\0' != (c = event.getMatch("ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ".toCharArray()))) {
     		curQuery = curQuery + c;
     		workingEntries = visibleEntriesAdapter;
@@ -368,14 +143,14 @@ public class Browser extends ListActivity {
     			if (curQuery.length() == 0) {
     				visibleEntriesAdapter = allEntriesAdapter;
         	        setListAdapter(allEntriesAdapter);
-        	    	return super.onKeyUp(keyCode,event);
+        	    	return true;
         		}
     			workingEntries = allEntriesAdapter;
     		} else {
-    			return super.onKeyUp(keyCode,event);
+    			return true;
     		}
     	} else {
-    		return Jinzora.doKeyUp(this, keyCode, event);
+    		return false;
     	}
     	
     	//TODO: support caching in the case of deletions?
@@ -390,20 +165,10 @@ public class Browser extends ListActivity {
     	
     	visibleEntriesAdapter = new JzMediaAdapter(this, newList);
         setListAdapter(visibleEntriesAdapter);
-    	return super.onKeyUp(keyCode,event);
+        Log.d(TAG, "SET " + newList.size() + " + ITEMS");
+        return true;
     }
-    
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-    	return Jinzora.createMenu(menu);
-    }
-    
-    @Override
-    public boolean onMenuItemSelected(int featureId, MenuItem item) {
-    	Jinzora.menuItemSelected(featureId,item,this);
-    	return super.onMenuItemSelected(featureId, item);
-    }
-    
+
     private List<Character> mSections = new ArrayList<Character>();
     int[] sectionHeaders = new int[26];
     int[] sectionPositions = new int[26];
@@ -412,24 +177,22 @@ public class Browser extends ListActivity {
     	private boolean isAlphabetical = true;
     	private boolean isFinishedLoading = false;
     	
-    	Browser context;
-    	public JzMediaAdapter(Browser context) {
-    		super(context, R.layout.media_element);
-    		this.context=context;
+    	public JzMediaAdapter(BrowserFragment context) {
+    		super(getActivity(), R.layout.media_element);
     	}
     	
-    	public JzMediaAdapter(Browser context, List<Bundle>data) {
-    		super(context,R.layout.media_element,data);
+    	public JzMediaAdapter(BrowserFragment context, List<Bundle>data) {
+    		super(getActivity(),R.layout.media_element, data);
     	}
 
     	@Override
     	public View getView(final int position, View convertView, ViewGroup parent) {
     		View row;
     		if (convertView == null) {
-    			if (Browser.this.mInflater == null) {
-    				Browser.this.mInflater = LayoutInflater.from(context);
+    			if (BrowserFragment.this.mInflater == null) {
+    				BrowserFragment.this.mInflater = LayoutInflater.from(getActivity());
     			}
-    			row = Browser.this.mInflater.inflate(R.layout.media_element, null);
+    			row = BrowserFragment.this.mInflater.inflate(R.layout.media_element, null);
     		} else {
     			row = convertView;
     		}
@@ -567,7 +330,7 @@ public class Browser extends ListActivity {
 		// Called when all data has been loaded
 		public void finalize() {
 			isFinishedLoading = true;
-			((ListView)findViewById(android.R.id.list)).setFastScrollEnabled(true);
+			((ListView)getActivity().findViewById(android.R.id.list)).setFastScrollEnabled(true);
 		}
     }
 
@@ -592,12 +355,14 @@ public class Browser extends ListActivity {
                     return;
                 }
 
-                Intent outbound = new Intent(Browser.this, Jinzora.class);
+                Bundle args = new Bundle();
                 if (visibleEntriesAdapter.getItem(position).containsKey("playlink")) {
-                    outbound.putExtra("playlink", visibleEntriesAdapter.getItem(position).getString("playlink"));
+                    args.putString("playlink", visibleEntriesAdapter.getItem(position).getString("playlink"));
                 }
-                outbound.putExtra(getPackageName()+".browse", browse);
-                startActivity(outbound);
+                args.putString("browsing", browse);
+                Intent newBrowser = new Intent(getActivity(), Jinzora.class);
+                newBrowser.putExtras(args);
+                startActivity(newBrowser);
             } catch (Exception e) {
                 Log.e("jinzora","Error during listItemClick",e);
             }
@@ -611,7 +376,7 @@ public class Browser extends ListActivity {
 
             final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next", "Download to device" };
             if (!visibleEntriesAdapter.isPlayable(listPosition)) return false;
-            new AlertDialog.Builder(Browser.this)
+            new AlertDialog.Builder(getActivity())
                 .setTitle(visibleEntriesAdapter.getEntryTitle(listPosition))
                 .setItems(entryOptions, 
                         new AlertDialog.OnClickListener() {
@@ -624,7 +389,7 @@ public class Browser extends ListActivity {
                                     Intent share = new Intent("android.intent.action.SEND");
                                     share.setType("audio/x-mpegurl")
                                         .putExtra(Intent.EXTRA_TEXT, item.getString("playlink"));
-                                    Browser.this
+                                    BrowserFragment.this
                                         .startActivity(Intent.createChooser(share, "Share playlist..."));
                                     break;
                                 case 1:
@@ -649,8 +414,8 @@ public class Browser extends ListActivity {
                                     try {
                                         Intent dlIntent = new Intent(DownloadService.Intents.ACTION_DOWNLOAD_PLAYLIST);
                                         dlIntent.putExtra("playlist", item.getString("playlink"));
-                                        dlIntent.setClass(Browser.this, DownloadService.class);
-                                        startService(dlIntent);
+                                        dlIntent.setClass(getActivity(), DownloadService.class);
+                                        getActivity().startService(dlIntent);
                                         /*Jinzora
                                           .sDlConnection
                                           .getBinding()
@@ -675,7 +440,7 @@ public class Browser extends ListActivity {
             if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode && event.getAction() == KeyEvent.ACTION_UP) {
                 final View w = mListView.getSelectedView();
                 if (w == null) return false;
-                runOnUiThread(new Runnable() {
+                getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         View v = w.findViewById(R.id.media_el_play);
@@ -693,8 +458,9 @@ public class Browser extends ListActivity {
                     }
                 });
                 return true;   
+            } else {
+                return onKeyUp(keyCode, event);
             }
-            return false;
         }
     };
 
@@ -718,7 +484,7 @@ public class Browser extends ListActivity {
         @Override
         public synchronized boolean onKey(final View v, int keyCode, KeyEvent event) {
             if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                runOnUiThread(new Runnable() {
+                getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         int c = mListView.getChildCount();
@@ -737,4 +503,175 @@ public class Browser extends ListActivity {
             return false;
         }
     };
+
+    static class MediaListLoader extends AsyncTaskLoader<List<Bundle>> {
+        private int UPDATE_INTERVAL = 20;
+        private InputStream inStream = null;
+        private String mEncoding;
+        private final Activity mmContext;
+        private final URL mmUrl;
+        private final BrowserFragment mmFragment;
+        List<Bundle> mmResults;
+
+        public MediaListLoader(BrowserFragment fragment, URL url) {
+            super(fragment.getActivity());
+            mmContext = fragment.getActivity();
+            mmUrl = url;
+            mmFragment = fragment;
+        }
+
+        protected void onStartLoading() {
+            if (mmResults != null) {
+                deliverResult(mmResults);
+            }
+            if (takeContentChanged() || mmResults == null) {
+                forceLoad();
+            }
+        }
+
+        @Override
+        public List<Bundle> loadInBackground() {
+            try {
+                HttpURLConnection conn = (HttpURLConnection)mmUrl.openConnection();
+                conn.setConnectTimeout(20000);
+                inStream = conn.getInputStream();
+                conn.connect();
+                mEncoding = conn.getContentEncoding();
+            } catch (Exception e) {
+            }
+
+            if (inStream == null) {
+                Log.w("jinzora","could not connect to server");
+                ((TextView)mmContext.findViewById(R.id.browse_notice)).setText(R.string.connection_failed);
+                mmContext.findViewById(R.id.browse_notice).setVisibility(View.VISIBLE);
+                return null;
+            }
+
+            try {
+                XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+                factory.setNamespaceAware(true);
+                XmlPullParser xpp;
+                xpp = factory.newPullParser();
+                xpp.setInput(inStream, mEncoding);
+                
+                mmResults = populateList(xpp, inStream);
+            } catch  (Exception e) {
+                Log.e("jinzora","could not populate list",e);
+            }
+            return mmResults;
+        }
+
+        private List<Bundle> populateList(XmlPullParser xpp, InputStream inStream) {
+            final Activity activity = mmFragment.getActivity();
+            List<Bundle> results = new ArrayList<Bundle>();
+            try {
+                int eventType = xpp.getEventType();
+                while (eventType != XmlPullParser.END_DOCUMENT) {
+                    if(eventType == XmlPullParser.START_DOCUMENT) {
+        
+                    } else if(eventType == XmlPullParser.END_DOCUMENT) {
+        
+                    } else if(eventType == XmlPullParser.START_TAG && 
+                            (xpp.getName().equals("login"))) {
+
+                        activity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                ((TextView)activity.findViewById(R.id.browse_notice)).setText(R.string.bad_login);
+                                activity.findViewById(R.id.browse_notice).setVisibility(View.VISIBLE);
+                            }
+                        });
+                        return results;
+                    } else if(eventType == XmlPullParser.START_TAG && 
+                            (xpp.getName().equals("nodes") || xpp.getName().equals("browse") || xpp.getName().equals("tracks"))) {
+
+                        int depth = xpp.getDepth();
+                        xpp.next();
+
+                        Bundle item = null;
+                        while (!(depth == xpp.getDepth() && eventType == XmlPullParser.END_TAG)) {                    
+                            if (depth + 1 == xpp.getDepth() && eventType == XmlPullParser.START_TAG) {
+                                item = new Bundle();
+                            } else if (depth + 1 == xpp.getDepth()
+                                    && eventType == XmlPullParser.END_TAG) {
+                                /*
+                                 * if (item.containsKey("album")) {
+                                 * item.put("subfield1", item.get("album")); if
+                                 * (item.containsKey("artist")) {
+                                 * item.put("subfield2",item.get("artist")); } }
+                                 * else
+                                 */
+                                if (item.containsKey("artist")) {
+                                    item.putString("subfield1", item.getString("artist"));
+                                }
+
+                                results.add(item);
+                                /*if (results.size() % UPDATE_INTERVAL == 0) {
+                                    deliverResult(results);
+                                }*/
+                            }
+        
+                            if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("name")) {
+                                eventType = xpp.next();
+                                item.putString("name", xpp.getText());                        
+                            }
+        
+                            if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("artist")) {
+                                eventType = xpp.next();
+                                item.putString("artist", xpp.getText());
+                            }
+        
+                            if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("album")) {
+                                eventType = xpp.next();
+                                item.putString("album", xpp.getText());
+                            }
+        
+                            if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("playlink")) {
+                                eventType = xpp.next();
+                                item.putString("playlink", xpp.getText());
+                            }
+        
+                            if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("browse")) {
+                                eventType = xpp.next();
+                                item.putString("browse",xpp.getText());
+                            }
+        
+                            eventType = xpp.next();
+                        }
+                    } else if(eventType == XmlPullParser.END_TAG) {
+                    } else if(eventType == XmlPullParser.TEXT) {
+                    }
+                    eventType = xpp.next();
+                }
+                return results;
+            } catch (Exception e) {
+                Log.e("jinzora","Error processing XML",e);
+                return null;
+            } finally {
+                try {
+                    inStream.close();
+                } catch (Exception e) {
+                    Log.w("jinzora","Error closing stream",e);
+                }
+            }
+        }
+    }
+
+    @Override
+    public Loader<List<Bundle>> onCreateLoader(int arg0, Bundle arg1) {
+        return new MediaListLoader(this, mUrl);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<List<Bundle>> loader, List<Bundle> result) {
+        synchronized (this) {
+            allEntriesAdapter = new JzMediaAdapter(this, result);
+            visibleEntriesAdapter = allEntriesAdapter;
+            setListAdapter(allEntriesAdapter);
+        }
+    }
+
+    @Override
+    public void onLoaderReset(Loader<List<Bundle>> arg0) {
+    }
 }

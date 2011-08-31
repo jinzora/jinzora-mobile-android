@@ -11,7 +11,7 @@
 
   <groupId>org.jinzora</groupId>
   <artifactId>JinzoraMobile-android</artifactId>
-  <version>3.0.4</version>
+  <version>3.1</version>
   <packaging>apk</packaging>
   <name>JinzoraMobile</name>
   <description>Jinzora client for Android</description>
@@ -71,6 +71,11 @@
       <groupId>org.mobisocial</groupId>
       <artifactId>easynfc</artifactId>
       <version>0.3-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>android.support</groupId>
+      <artifactId>support</artifactId>
+      <version>v13</version>
     </dependency>
     <!-- 
     <dependency>

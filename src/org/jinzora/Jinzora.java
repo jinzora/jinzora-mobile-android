@@ -1,13 +1,12 @@
 package org.jinzora;
 
-
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.List;
 
 import mobisocial.nfc.NdefFactory;
@@ -15,19 +14,18 @@ import mobisocial.nfc.Nfc;
 
 import org.jinzora.android.R;
 import org.jinzora.download.DownloadActivity;
+import org.jinzora.fragments.BrowserFragment;
+import org.jinzora.fragments.PlayerFragment;
+import org.jinzora.fragments.SearchFragment;
 import org.jinzora.playback.PlaybackInterface;
 import org.jinzora.playback.PlaybackService;
-import org.jinzora.playback.PlaybackService.Intents;
+import org.jinzora.util.CommonLayouts;
 import org.json.JSONObject;
-
-import com.google.zxing.integration.IntentIntegrator;
-import com.google.zxing.integration.IntentResult;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.SearchManager;
-import android.app.TabActivity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -39,20 +37,36 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.provider.SearchRecentSuggestions;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.view.PagerAdapter;
+import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.TabHost;
+import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
-public class Jinzora extends TabActivity {
+import com.google.zxing.integration.IntentIntegrator;
+import com.google.zxing.integration.IntentResult;
+
+public class Jinzora extends FragmentActivity
+        implements ViewPager.OnPageChangeListener {
 	public static final String PACKAGE = "org.jinzora.android";
 	private static final String ASSET_WELCOME = "welcome.txt";
 	private static final String TAG = "jinzora";
-	static Nfc mNfc;
+	public static Nfc mNfc;
+
+	private ViewPager mViewPager;
+    private final List<Button> mButtons = new ArrayList<Button>();
+    private final List<Fragment> mFragments = new ArrayList<Fragment>();
+    private final List<String> mLabels = new ArrayList<String>();
 	
 	protected class MenuItems { 
 		final static int HOME = 1;
@@ -105,6 +119,14 @@ public class Jinzora extends TabActivity {
     		setBaseURL(sSessionPreferences);
     	}
 		return baseurl;
+	}
+
+	public static String getHomeURL() {
+	    String base = getBaseURL();
+	    if (base == null) {
+	        return null;
+	    }
+	    return base += "&request=home";
 	}
 	
 	public static void setAddType(int type) {
@@ -235,7 +257,8 @@ public class Jinzora extends TabActivity {
            inboundIntent.removeExtra(EXTRA_SWITCH_TAB);
         }
 
-        getTabHost().setCurrentTabByTag(curTab);
+        // TODO
+        //getTabHost().setCurrentTabByTag(curTab);
         inboundIntent.setAction("");
 	}
 	
@@ -265,12 +288,31 @@ public class Jinzora extends TabActivity {
         sPbConnection = new PlaybackServiceConnection();
         instance = this;
 
+        sSessionPreferences = getSharedPreferences("main", 0);
+        sAppPreferences = getSharedPreferences("profiles", 0);
+
+        mLabels.add("Browse");
+        mLabels.add("Player");
+        mLabels.add("Search");
+
+        Bundle args = new Bundle();
+
+        String url;
+        if (getIntent().hasExtra("browsing")) {
+            url = getIntent().getStringExtra("browsing");
+        } else {
+            url = getHomeURL();
+        }
+
+        if (url == null) {
+            Intent prefs = new Intent(this, Preferences.class);
+            prefs.putExtra("direct", true);
+            startActivity(prefs);
+            finish();
+            return;
+        }
+
         try {
-    		if (sSessionPreferences == null) {
-        		sSessionPreferences = getSharedPreferences("main", 0);
-        		sAppPreferences = getSharedPreferences("profiles", 0);
-        	}
-    		
     		if (isFirstRun()) {
     			handleFirstRun();
     		}
@@ -278,15 +320,13 @@ public class Jinzora extends TabActivity {
     		if (baseurl == null) {
         		setBaseURL(sSessionPreferences);
         	}
-        	mNfc = new Nfc(this);
+            mNfc = new Nfc(this);
+            mNfc.onCreate(this);
         	setContentView(R.layout.tabs);
 	        
 	        //ImageView icon = new ImageView(this);
 	        //icon.setImageResource(android.R.drawable.ic_menu_compass);
-	        
-	        Intent intBrowse = new Intent(this,Browser.class);
-	        Intent playbackIntent = new Intent(this,Player.class);
-	        
+
 	        final Intent queryIntent = getIntent();
 	        final String queryAction = queryIntent.getAction();
 	        final String MEDIA_PLAY_FROM_SEARCH = "android.media.action.MEDIA_PLAY_FROM_SEARCH";
@@ -336,37 +376,54 @@ public class Jinzora extends TabActivity {
 	            	qp.putExtra("query", queryString);
 	            	startService(qp);
 	            } else {
-		            // Open Browse activity
-		            intBrowse.putExtra(getPackageName()+".browse",
-		            		 			Jinzora.getBaseURL()+"&request=search&query="+URLEncoder.encode(queryString, "UTF-8"));
+		            url = Jinzora.getBaseURL() + "&request=search&query=" +
+		                    URLEncoder.encode(queryString, "UTF-8");
 	            }
-	        } else if (getIntent() != null && getIntent().getExtras() != null) {
-	        	intBrowse.putExtras(getIntent().getExtras());
 	        }
 
-	        TabHost host = this.getTabHost();
+	        args.putString("browsing", url);
+	        if (getIntent().hasExtra("playback")) {
+	            args.putString("playback", getIntent().getStringExtra("playback"));
+	        }
+	        Fragment f = new BrowserFragment();
+	        f.setArguments(args);
+	        mFragments.add(f);
+	        mFragments.add(new PlayerFragment());
+	        mFragments.add(new SearchFragment());
 
-	        host.addTab(host.newTabSpec("browse")
-	        		.setIndicator(getString(R.string.browser)/*,icon.getDrawable()*/)
-	        		.setContent(intBrowse));
-	        
-	        host.addTab(host.newTabSpec("playback")
-	        		.setIndicator(getString(R.string.player))
-	        		.setContent(playbackIntent));
-	        
-	        //icon.setImageResource(android.R.drawable.ic_menu_search);
-	        host.addTab(host.newTabSpec("search")
-	        		.setIndicator(getString(R.string.search)/*,icon.getDrawable()*/)
-	        		.setContent(new Intent(this, Search.class)));
-	        
-	        host.addTab(host.newTabSpec("settings")
-	        		.setIndicator(getString(R.string.settings))
-	        		.setContent(new Intent(this, Preferences.class)));
+	        PagerAdapter adapter = new JinzoraFragmentAdapter(getSupportFragmentManager());
+	        mViewPager = (ViewPager)findViewById(R.id.feed_pager);
+	        mViewPager.setAdapter(adapter);
+	        mViewPager.setOnPageChangeListener(this);
+
+	        new JinzoraFragmentAdapter(getSupportFragmentManager());
+
+	        ViewGroup group = (ViewGroup)findViewById(R.id.tab_frame);
+	        for (int i = 0; i < mLabels.size(); i++) {
+	            Button button = new Button(this);
+	            button.setText(mLabels.get(i));
+	            button.setTextSize(18f);
+	            
+	            button.setLayoutParams(CommonLayouts.FULL_HEIGHT);
+	            button.setTag(i);
+	            button.setOnClickListener(mViewSelected);
+
+	            group.addView(button);
+	            mButtons.add(button);
+	        }
         } catch (Exception e) {
         	Log.e("jinzora", "error", e);
         }
-        
+        onPageSelected(0);
     }
+
+    private View.OnClickListener mViewSelected = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Integer i = (Integer)v.getTag();
+            mViewPager.setCurrentItem(i);
+        }
+    };
     
     private boolean isPlayRequest(String queryString) {
     	return (queryString.startsWith("play ") || queryString.startsWith("listen to "));
@@ -383,7 +440,7 @@ public class Jinzora extends TabActivity {
     	activity.setVolumeControlStream(AudioManager.STREAM_MUSIC);
     }
     
-    protected static boolean createMenu(Menu menu) {
+    public static boolean createMenu(Menu menu) {
     	menu.add(0,MenuItems.HOME,1,R.string.home)
     	.setIcon(R.drawable.ic_menu_home)
     	.setAlphabeticShortcut('h');
@@ -709,4 +766,42 @@ public class Jinzora extends TabActivity {
 	    }
 	    return false;
 	}
+
+	public class JinzoraFragmentAdapter extends FragmentPagerAdapter {
+        final int NUM_ITEMS;
+
+        public JinzoraFragmentAdapter(FragmentManager fm) {
+            super(fm);
+            NUM_ITEMS = mFragments.size();
+        }
+
+        @Override
+        public int getCount() {
+            return NUM_ITEMS;
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            return mFragments.get(position);
+        }
+    }
+
+    @Override
+    public void onPageScrollStateChanged(int arg0) {
+        
+    }
+
+    @Override
+    public void onPageScrolled(int arg0, float arg1, int arg2) {
+        
+    }
+
+    @Override
+    public void onPageSelected(int selected) {
+        int c = mButtons.size();
+        for (int i = 0; i < c; i++) {
+            mButtons.get(i).setBackgroundColor(0xFFFF5640);
+        }
+        mButtons.get(selected).setBackgroundColor(0xFF4F4Fd9);
+    }
 }
