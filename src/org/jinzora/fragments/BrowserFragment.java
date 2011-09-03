@@ -12,8 +12,13 @@ import mobisocial.nfc.NdefFactory;
 import org.jinzora.Jinzora;
 import org.jinzora.android.R;
 import org.jinzora.download.DownloadService;
+import org.jinzora.playback.PlaybackService;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
+
+import edu.stanford.spout.lib.AndroidSpout;
+import edu.stanford.spout.lib.NowPlayingSpout;
+import edu.stanford.spout.lib.Spoutable;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -39,6 +44,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class BrowserFragment extends ListFragment
         implements LoaderManager.LoaderCallbacks<List<Bundle>> {
@@ -326,12 +332,6 @@ public class BrowserFragment extends ListFragment
 			}
 			return null;
 		}
-		
-		// Called when all data has been loaded
-		public void finalize() {
-			isFinishedLoading = true;
-			((ListView)getActivity().findViewById(android.R.id.list)).setFastScrollEnabled(true);
-		}
     }
 
     private AdapterView.OnItemClickListener mListClickListener = new AdapterView.OnItemClickListener() {
@@ -344,8 +344,7 @@ public class BrowserFragment extends ListFragment
                         new Thread() {
                             public void run() {
                                 try {
-                                    Jinzora.doPlaylist(visibleEntriesAdapter.getItem(position).getString("playlink"),
-                                                  Jinzora.getAddType());
+                                    doPlaylist(position);
                                 } catch (Exception e) {
                                     Log.e("jinzora","Error playing media",e);
                                 }
@@ -470,8 +469,7 @@ public class BrowserFragment extends ListFragment
             new Thread() {
                 public void run() {
                     try {
-                        String item = (String)v.getTag(R.id.media_el_play);
-                        Jinzora.doPlaylist(item, Jinzora.getAddType());
+                        doPlaylist((Integer)v.getTag(R.id.media_el_subfield1));
                     } catch (Exception e) {
                         Log.e("jinzora","Error playing media",e);
                     }
@@ -655,6 +653,19 @@ public class BrowserFragment extends ListFragment
                 }
             }
         }
+    }
+
+    private void doPlaylist(int position) {
+        /* Broadcast */
+        String playlink = visibleEntriesAdapter.getItem(position).getString("playlink");
+        String artist = visibleEntriesAdapter.getItem(position).getString("artist");
+        String name = visibleEntriesAdapter.getItem(position).getString("name");
+        Intent playlistIntent = new Intent(PlaybackService.META_CHANGED_GOOGLE);
+        playlistIntent.putExtra("artist", artist);
+        playlistIntent.putExtra("track", name);
+        playlistIntent.putExtra("url", playlink);
+        getActivity().sendBroadcast(playlistIntent);
+        Jinzora.doPlaylist(playlink, Jinzora.getAddType());
     }
 
     @Override

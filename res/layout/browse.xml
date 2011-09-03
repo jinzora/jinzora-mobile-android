@@ -7,7 +7,7 @@
 	android:id="@id/android:list" 
 	android:layout_width="wrap_content" 
 	android:layout_height="fill_parent"
-	android:fastScrollEnabled="false"
+	android:fastScrollEnabled="true"
 	android:smoothScrollbar="true"
 	android:visibility="gone"
 />
