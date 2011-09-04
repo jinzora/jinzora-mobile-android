@@ -512,7 +512,7 @@ public class PlaybackService extends Service {
 			playlistIntent.putExtra("position", player.getPlaylistPos());
 			playlistIntent.putExtra("artist", artist);
 			playlistIntent.putExtra("track", track);
-			playlistIntent.putExtra("url", url);
+			// playlistIntent.putExtra("url", url); // TODO: Jinzora doesn't support mp3 urls.
 			sendBroadcast(playlistIntent);
 
 			/* Spout */
