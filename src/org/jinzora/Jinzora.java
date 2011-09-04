@@ -810,4 +810,20 @@ public class Jinzora extends FragmentActivity
         }
         mButtons.get(selected).setBackgroundColor(R.color.tab_selected);
     }
+
+    public void setTab(final String name) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "paging " + name);
+                if ("browse".equals(name)) {
+                    mViewPager.setCurrentItem(0);
+                } else if ("player".equals(name)) {
+                    mViewPager.setCurrentItem(1);
+                } else if ("search".equals(name)) {
+                    mViewPager.setCurrentItem(2);
+                }
+            }
+        });
+    }
 }

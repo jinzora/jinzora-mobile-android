@@ -16,10 +16,6 @@ import org.jinzora.playback.PlaybackService;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
-import edu.stanford.spout.lib.AndroidSpout;
-import edu.stanford.spout.lib.NowPlayingSpout;
-import edu.stanford.spout.lib.Spoutable;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -28,7 +24,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.app.Fragment;
 import android.support.v4.app.ListFragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.AsyncTaskLoader;
@@ -44,7 +39,6 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class BrowserFragment extends ListFragment
         implements LoaderManager.LoaderCallbacks<List<Bundle>> {
@@ -672,7 +666,10 @@ public class BrowserFragment extends ListFragment
         playlistIntent.putExtra("artist", artist);
         playlistIntent.putExtra("track", name);
         playlistIntent.putExtra("url", playlink);
+        // TODO: display bugs.
         getActivity().sendBroadcast(playlistIntent);
+
+        ((Jinzora)getActivity()).setTab("player");
         Jinzora.doPlaylist(playlink, Jinzora.getAddType());
     }
 
