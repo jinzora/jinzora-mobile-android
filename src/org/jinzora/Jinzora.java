@@ -250,7 +250,7 @@ public class Jinzora extends FragmentActivity
                 	Jinzora.doPlaylist( inboundIntent.getData().toString(), Jinzora.getAddType() );
         		};
         	}.start();
-        	curTab = "playback";
+        	curTab = "player";
         }
         
         if (inboundIntent.hasExtra(EXTRA_SWITCH_TAB)) {
@@ -259,7 +259,7 @@ public class Jinzora extends FragmentActivity
         }
 
         // TODO
-        //getTabHost().setCurrentTabByTag(curTab);
+        setTab(curTab);
         inboundIntent.setAction("");
 	}
 	
