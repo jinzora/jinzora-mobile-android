@@ -8,11 +8,12 @@
   	android:orientation="horizontal"
   	android:layout_width="match_parent"
   	android:layout_height="wrap_content"
-  	android:layout_marginTop="3dp">
+  	android:background="@color/tab_unselected">
   </LinearLayout>
 <android.support.v4.view.ViewPager
     android:layout_width="match_parent" 
     android:layout_height="match_parent" 
-    android:id="@+id/feed_pager"/>
+    android:id="@+id/feed_pager"
+    android:padding="4dip"/>
 </LinearLayout>
 

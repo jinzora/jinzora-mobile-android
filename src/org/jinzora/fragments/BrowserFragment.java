@@ -509,6 +509,8 @@ public class BrowserFragment extends ListFragment
         private final Activity mmContext;
         private final URL mmUrl;
         private final BrowserFragment mmFragment;
+        private static List<Bundle> sLastResults;
+        private static URL sLastUrl;
         List<Bundle> mmResults;
 
         public MediaListLoader(BrowserFragment fragment, URL url) {
@@ -519,6 +521,12 @@ public class BrowserFragment extends ListFragment
         }
 
         protected void onStartLoading() {
+            if (mmResults == null) {
+                if (sLastUrl != null && sLastUrl.equals(mmUrl)) {
+                    mmResults = sLastResults;
+                }
+            }
+
             if (mmResults != null) {
                 deliverResult(mmResults);
             }
@@ -676,6 +684,8 @@ public class BrowserFragment extends ListFragment
     @Override
     public void onLoadFinished(Loader<List<Bundle>> loader, List<Bundle> result) {
         synchronized (this) {
+            MediaListLoader.sLastResults = result;
+            MediaListLoader.sLastUrl = mUrl;
             allEntriesAdapter = new JzMediaAdapter(this, result);
             visibleEntriesAdapter = allEntriesAdapter;
             setListAdapter(allEntriesAdapter);
@@ -684,5 +694,7 @@ public class BrowserFragment extends ListFragment
 
     @Override
     public void onLoaderReset(Loader<List<Bundle>> arg0) {
+        MediaListLoader.sLastResults = null;
+        MediaListLoader.sLastUrl = null;
     }
 }

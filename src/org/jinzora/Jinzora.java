@@ -32,6 +32,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -800,8 +801,9 @@ public class Jinzora extends FragmentActivity
     public void onPageSelected(int selected) {
         int c = mButtons.size();
         for (int i = 0; i < c; i++) {
-            mButtons.get(i).setBackgroundColor(0xFFFF5640);
+            mButtons.get(i).setBackgroundColor(Color.TRANSPARENT);
+            mButtons.get(i).setTextColor(Color.WHITE);
         }
-        mButtons.get(selected).setBackgroundColor(0xFF4F4Fd9);
+        mButtons.get(selected).setBackgroundColor(R.color.tab_selected);
     }
 }

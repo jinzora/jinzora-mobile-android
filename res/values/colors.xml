@@ -2,4 +2,22 @@
 	<color name="now_playing">#A60000</color>
 	<color name="playlist_entry">#000</color>
 	<color name="appwidget_text">#ffffffff</color>
+	<color name="tab_selected">#FF3399FF</color>
+	<color name="tab_unselected">#FFCC0066</color>
+	<color name="tab_text">#FFD6EBFF</color>
+
+	<drawable name="white">#ffffff</drawable>
+    <drawable name="black">#000000</drawable>
+    <drawable name="brown">#BCA254</drawable>
+    <drawable name="feed_header">#BCA254</drawable>
+    <color name="title_background">#ff282828</color>
+    <color name="title_text">#ffffffff</color>
+    <color name="title_text_alt">#ff000000</color>
+    <color name="foreground1">#ff282828</color>
+    <color name="foreground2">#ff282828</color>
+    <color name="background1">#ffffffff</color>
+    <color name="background2">#ffffffff</color>
+    <color name="background3">#ffffffff</color>
+    <color name="title_separator">#00ffffff</color>
+    
 </resources>
