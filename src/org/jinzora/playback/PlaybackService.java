@@ -474,11 +474,12 @@ public class PlaybackService extends Service {
 	}
 
 	public void notifyPlaying(boolean firstPlay) {
-		String artist = null, track = null;
+		String artist = null, track = null, url = null;
 
 		try {
 			artist = player.getArtistName();
 			track = player.getTrackName();
+			url = player.getPlaylistURLs().get(player.getPlaylistPos());
 		} catch (Exception e) {
 			Log.e(TAG, "could not get artist/track info", e);
 			return;
@@ -511,6 +512,7 @@ public class PlaybackService extends Service {
 			playlistIntent.putExtra("position", player.getPlaylistPos());
 			playlistIntent.putExtra("artist", artist);
 			playlistIntent.putExtra("track", track);
+			playlistIntent.putExtra("url", url);
 			sendBroadcast(playlistIntent);
 
 			/* Spout */

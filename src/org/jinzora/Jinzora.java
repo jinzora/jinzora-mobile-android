@@ -440,8 +440,9 @@ public class Jinzora extends FragmentActivity
     protected static void initContext(Activity activity) {
     	activity.setVolumeControlStream(AudioManager.STREAM_MUSIC);
     }
-    
-    public static boolean createMenu(Menu menu) {
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
     	menu.add(0,MenuItems.HOME,1,R.string.home)
     	.setIcon(R.drawable.ic_menu_home)
     	.setAlphabeticShortcut('h');
@@ -471,8 +472,10 @@ public class Jinzora extends FragmentActivity
     	
     	return true;
     }
-    
-    protected static void menuItemSelected(int featureId, MenuItem item, Activity activity) {
+
+    @Override
+    public boolean onMenuItemSelected(int featureId, MenuItem item) {
+        Activity activity = this;
     	switch (item.getItemId()) {
     	case MenuItems.HOME:
     		Intent goHome = 
@@ -520,6 +523,7 @@ public class Jinzora extends FragmentActivity
     		activity.startActivity(dlLaunch);
     		break;
     	}
+    	return true;
     }
     
     
