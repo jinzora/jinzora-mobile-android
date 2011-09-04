@@ -1,6 +1,5 @@
 <resources>
-	<color name="now_playing">#A60000</color>
-	<color name="playlist_entry">#000</color>
+	<color name="now_playing">#FF3399FF</color>
 	<color name="appwidget_text">#ffffffff</color>
 	<color name="tab_selected">#FF3399FF</color>
 	<color name="tab_unselected">#FFCC0066</color>

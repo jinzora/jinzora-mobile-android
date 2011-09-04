@@ -244,10 +244,7 @@ public class Jinzora extends FragmentActivity
         	// hack!
         	new Thread() {
         		public void run() {
-        			try {
-        				Thread.sleep(5000);
-        			} catch (InterruptedException e) {}
-                	Jinzora.doPlaylist( inboundIntent.getData().toString(), Jinzora.getAddType() );
+        			Jinzora.doPlaylist( inboundIntent.getData().toString(), Jinzora.getAddType() );
         		};
         	}.start();
         	curTab = "player";

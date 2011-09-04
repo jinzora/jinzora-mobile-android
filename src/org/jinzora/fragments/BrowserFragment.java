@@ -367,10 +367,11 @@ public class BrowserFragment extends ListFragment
         public boolean onItemLongClick(AdapterView<?> parent,
                 View view, final int listPosition, long id) {
 
+            final String title = visibleEntriesAdapter.getEntryTitle(listPosition);
             final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next", "Download to device" };
             if (!visibleEntriesAdapter.isPlayable(listPosition)) return false;
             new AlertDialog.Builder(getActivity())
-                .setTitle(visibleEntriesAdapter.getEntryTitle(listPosition))
+                .setTitle(title)
                 .setItems(entryOptions, 
                         new AlertDialog.OnClickListener() {
                             @Override
@@ -381,7 +382,8 @@ public class BrowserFragment extends ListFragment
                                     // Share
                                     Intent share = new Intent("android.intent.action.SEND");
                                     share.setType("audio/x-mpegurl")
-                                        .putExtra(Intent.EXTRA_TEXT, item.getString("playlink"));
+                                        .putExtra(Intent.EXTRA_TEXT, item.getString("playlink"))
+                                        .putExtra(Intent.EXTRA_TITLE, title);
                                     BrowserFragment.this
                                         .startActivity(Intent.createChooser(share, "Share playlist..."));
                                     break;

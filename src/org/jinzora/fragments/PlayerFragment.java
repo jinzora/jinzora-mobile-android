@@ -14,6 +14,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.support.v4.app.ListFragment;
@@ -446,7 +447,7 @@ class PlaylistAdapter extends ArrayAdapter<String> {
 			row.setBackgroundResource(R.color.now_playing);
 		} else {
 			//iv.setVisibility(View.GONE);
-			row.setBackgroundColor(R.color.playlist_entry);
+			row.setBackgroundColor(Color.TRANSPARENT);
 		}
 		return row;
 	}
