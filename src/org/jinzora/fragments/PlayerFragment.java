@@ -49,7 +49,7 @@ public class PlayerFragment extends ListFragment {
 
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);	
+		super.onActivityCreated(savedInstanceState);	
 		mPlaylistAdapter = new PlaylistAdapter(getActivity());
 		setListAdapter(mPlaylistAdapter);
 	}

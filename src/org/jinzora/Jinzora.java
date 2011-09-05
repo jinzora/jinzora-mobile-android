@@ -76,6 +76,7 @@ public class Jinzora extends FragmentActivity
 		final static int SCAN = 4;
 		final static int SEARCH = 5;
 		final static int DOWNLOADS = 6;
+		final static int PREFERENCES = 7;
 	}
 	
 	protected class RequestCodes {
@@ -289,10 +290,6 @@ public class Jinzora extends FragmentActivity
         sSessionPreferences = getSharedPreferences("main", 0);
         sAppPreferences = getSharedPreferences("profiles", 0);
 
-        mLabels.add("Browse");
-        mLabels.add("Player");
-        mLabels.add("Search");
-
         Bundle args = new Bundle();
 
         String url;
@@ -379,15 +376,22 @@ public class Jinzora extends FragmentActivity
 	            }
 	        }
 
+	        mLabels.add("Browse");
+	        mLabels.add("Player");
+	        mLabels.add("Search");
+	        //mLabels.add("Settings");
+
 	        args.putString("browsing", url);
 	        if (getIntent().hasExtra("playback")) {
 	            args.putString("playback", getIntent().getStringExtra("playback"));
 	        }
+
 	        Fragment f = new BrowserFragment();
 	        f.setArguments(args);
 	        mFragments.add(f);
 	        mFragments.add(new PlayerFragment());
 	        mFragments.add(new SearchFragment());
+	        //mFragments.add(new SettingsFragment());
 
 	        PagerAdapter adapter = new JinzoraFragmentAdapter(getSupportFragmentManager());
 	        mViewPager = (ViewPager)findViewById(R.id.feed_pager);
@@ -447,20 +451,24 @@ public class Jinzora extends FragmentActivity
     	menu.add(0,MenuItems.ADDWHERE,2,"Queue Mode")
     	.setIcon(android.R.drawable.ic_menu_add)
     	.setAlphabeticShortcut('a');
+
+    	menu.add(0,MenuItems.PREFERENCES,3,R.string.settings)
+        .setIcon(android.R.drawable.ic_menu_preferences)
+        .setAlphabeticShortcut('s');
     	
-    	menu.add(0,MenuItems.SEARCH,3,R.string.search)
+    	menu.add(0,MenuItems.SEARCH,4,R.string.search)
     	.setIcon(android.R.drawable.ic_search_category_default)
     	.setAlphabeticShortcut(SearchManager.MENU_KEY);
     	
-    	menu.add(0,MenuItems.DOWNLOADS,4,R.string.downloads)
+    	menu.add(0,MenuItems.DOWNLOADS,5,R.string.downloads)
     	.setIcon(android.R.drawable.ic_menu_save)
     	.setAlphabeticShortcut('d');
     	
     	
-    	menu.add(0,MenuItems.QUIT,5,R.string.quit)
+    	menu.add(0,MenuItems.QUIT,6,R.string.quit)
     	.setIcon(android.R.drawable.ic_menu_close_clear_cancel)
     	.setAlphabeticShortcut('q');
-    	
+
     	/*
     	menu.add(0,MenuItems.SCAN,3,R.string.scan)
     	.setIcon(android.R.drawable.ic_menu_search)
@@ -519,6 +527,11 @@ public class Jinzora extends FragmentActivity
     		Intent dlLaunch = new Intent(activity,DownloadActivity.class);
     		activity.startActivity(dlLaunch);
     		break;
+    	case MenuItems.PREFERENCES:
+            Intent launch = new Intent(activity,Preferences.class);
+            launch.putExtra("direct", "true");
+            activity.startActivity(launch);
+            break;
     	}
     	return true;
     }

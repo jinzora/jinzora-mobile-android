@@ -27,7 +27,6 @@ public class SearchFragment extends Fragment {
 
 	@Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         try {
         	final View v = inflater.inflate(R.layout.search, container, false);
         	v.findViewById(R.id.search_box).setOnKeyListener(new View.OnKeyListener() {

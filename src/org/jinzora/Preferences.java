@@ -40,7 +40,7 @@ public class Preferences extends PreferenceActivity {
 	private static final int LAUNCH_MODE_DIRECT = 2;
 	
 	 @Override
-	protected void onCreate(Bundle savedInstanceState) {
+	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		Jinzora.initContext(this);
 		this.getPreferenceManager().setSharedPreferencesName("main");
