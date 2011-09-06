@@ -499,10 +499,8 @@ public class BrowserFragment extends ListFragment
     };
 
     static class MediaListLoader extends AsyncTaskLoader<List<Bundle>> {
-        private int UPDATE_INTERVAL = 20;
         private InputStream inStream = null;
         private String mEncoding;
-        private final Activity mmContext;
         private final URL mmUrl;
         private final BrowserFragment mmFragment;
         private static List<Bundle> sLastResults;
@@ -511,7 +509,6 @@ public class BrowserFragment extends ListFragment
 
         public MediaListLoader(BrowserFragment fragment, URL url) {
             super(fragment.getActivity());
-            mmContext = fragment.getActivity();
             mmUrl = url;
             mmFragment = fragment;
         }
@@ -544,8 +541,6 @@ public class BrowserFragment extends ListFragment
 
             if (inStream == null) {
                 Log.w("jinzora","could not connect to server");
-                ((TextView)mmContext.findViewById(R.id.browse_notice)).setText(R.string.connection_failed);
-                mmContext.findViewById(R.id.browse_notice).setVisibility(View.VISIBLE);
                 return null;
             }
 
@@ -683,11 +678,16 @@ public class BrowserFragment extends ListFragment
     @Override
     public void onLoadFinished(Loader<List<Bundle>> loader, List<Bundle> result) {
         synchronized (this) {
-            MediaListLoader.sLastResults = result;
-            MediaListLoader.sLastUrl = mUrl;
-            allEntriesAdapter = new JzMediaAdapter(this, result);
-            visibleEntriesAdapter = allEntriesAdapter;
-            setListAdapter(allEntriesAdapter);
+            if (result == null) {
+                ((TextView)getActivity().findViewById(R.id.browse_notice)).setText(R.string.connection_failed);
+                getActivity().findViewById(R.id.browse_notice).setVisibility(View.VISIBLE);
+            } else {
+                MediaListLoader.sLastResults = result;
+                MediaListLoader.sLastUrl = mUrl;
+                allEntriesAdapter = new JzMediaAdapter(this, result);
+                visibleEntriesAdapter = allEntriesAdapter;
+                setListAdapter(allEntriesAdapter);
+            }
         }
     }
 
