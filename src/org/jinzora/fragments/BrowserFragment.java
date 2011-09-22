@@ -13,6 +13,7 @@ import org.jinzora.Jinzora;
 import org.jinzora.android.R;
 import org.jinzora.download.DownloadService;
 import org.jinzora.playback.PlaybackService;
+import org.jinzora.util.DrawableManager;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
@@ -36,6 +37,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
@@ -174,15 +176,24 @@ public class BrowserFragment extends ListFragment
     int[] sectionPositions = new int[26];
     
     class JzMediaAdapter extends ArrayAdapter<Bundle> implements SectionIndexer {
+        private final DrawableManager mDrawableManager =
+                DrawableManager.forKey(mUrl.toExternalForm());
     	private boolean isAlphabetical = true;
     	private boolean isFinishedLoading = false;
+    	private boolean hasArtwork = false;
     	
     	public JzMediaAdapter(BrowserFragment context) {
     		super(getActivity(), R.layout.media_element);
     	}
     	
     	public JzMediaAdapter(BrowserFragment context, List<Bundle>data) {
-    		super(getActivity(),R.layout.media_element, data);
+    		super(getActivity(), R.layout.media_element, data);
+    		for (Bundle b : data) {
+    		    if (b.containsKey("thumbnail")) {
+    		        hasArtwork = true;
+    		        break;
+    		    }
+    		}
     	}
 
     	@Override
@@ -195,6 +206,10 @@ public class BrowserFragment extends ListFragment
     			row = BrowserFragment.this.mInflater.inflate(R.layout.media_element, null);
     		} else {
     			row = convertView;
+    			// Reusing a view; reset the ImageView since
+    			// it will be set asynchronously.
+    			((ImageView)row.findViewById(R.id.media_artwork))
+    			    .setImageResource(R.drawable.albumart_mp_unknown);
     		}
 
     		final Bundle item = (Bundle)this.getItem(position);
@@ -203,32 +218,40 @@ public class BrowserFragment extends ListFragment
 
     		if (item.containsKey("subfield1")) {
     			label = (TextView)row.findViewById(R.id.media_el_subfield1);
+    			label.setVisibility(View.VISIBLE);
     			label.setText(item.getString("subfield1"));
     		} else {
-    			label = (TextView)row.findViewById(R.id.media_el_subfield1);
-    			label.setText("");
+    		    row.findViewById(R.id.media_el_subfield1).setVisibility(View.GONE);
     		}
     		if (item.containsKey("subfield2")) {
     			label = (TextView)row.findViewById(R.id.media_el_subfield2);
+    			label.setVisibility(View.VISIBLE);
     			label.setText(item.getString("subfield2"));
     		} else {
-    			label = (TextView)row.findViewById(R.id.media_el_subfield2);
-    			label.setText("");
+    			row.findViewById(R.id.media_el_subfield2).setVisibility(View.GONE);
     		}
 
-    		if (!item.containsKey("playlink")) {
-    			row.findViewById(R.id.media_el_play).setVisibility(View.INVISIBLE);
+    		if (item.containsKey("playlink")) {
+    		    Button button = (Button)row.findViewById(R.id.media_el_play);
+                button.setTag(R.id.media_el_play, item.getString("playlink"));
+                button.setTag(R.id.media_el_subfield1, position);
+                button.setOnClickListener(mPlayButtonClicked);
+                button.setOnKeyListener(mPlayButtonKeyListener);
+                if (mButtonNav) {
+                    button.setFocusable(true);
+                }
     		} else {
-               Button button = (Button)row.findViewById(R.id.media_el_play);
-               button.setTag(R.id.media_el_play, item.getString("playlink"));
-               button.setTag(R.id.media_el_subfield1, position);
-               button.setOnClickListener(mPlayButtonClicked);
-               button.setOnKeyListener(mPlayButtonKeyListener);
-               if (mButtonNav) {
-                   button.setFocusable(true);
-               }
+    		   row.findViewById(R.id.media_el_play).setVisibility(View.GONE);
             }
-    		return row;  
+
+    		if (hasArtwork) {
+    		    ImageView thumb = (ImageView)row.findViewById(R.id.media_artwork);
+    		    thumb.setVisibility(View.VISIBLE);
+    		    if (item.containsKey("thumbnail")) {
+    		        mDrawableManager.fetchDrawableOnThread(item.getString("thumbnail"), thumb);
+    		    }
+    		}
+    		return row;
     	}
 
     	public Bundle getEntry(int pos) {
@@ -612,22 +635,31 @@ public class BrowserFragment extends ListFragment
                                 eventType = xpp.next();
                                 item.putString("name", xpp.getText());                        
                             }
-        
+
+                            // "thumbnail" is 75x75; "image" is full-size.
+                            if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("thumbnail")) {
+                                eventType = xpp.next();
+                                String thumb = xpp.getText().trim();
+                                if (thumb.length() > 0) {
+                                    item.putString("thumbnail", thumb);
+                                }
+                            }
+
                             if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("artist")) {
                                 eventType = xpp.next();
                                 item.putString("artist", xpp.getText());
                             }
-        
+
                             if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("album")) {
                                 eventType = xpp.next();
                                 item.putString("album", xpp.getText());
                             }
-        
+
                             if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("playlink")) {
                                 eventType = xpp.next();
                                 item.putString("playlink", xpp.getText());
                             }
-        
+
                             if (eventType == XmlPullParser.START_TAG && xpp.getName() != null && xpp.getName().equals("browse")) {
                                 eventType = xpp.next();
                                 item.putString("browse",xpp.getText());
