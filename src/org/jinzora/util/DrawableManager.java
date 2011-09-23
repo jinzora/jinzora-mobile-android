@@ -41,7 +41,7 @@ import android.widget.ImageView;
 
 public class DrawableManager {
    private static final String TAG = "drawableManager";
-   private static final boolean DBG = false;
+   private static final boolean DBG = true;
    private final Map<String, Drawable> drawableMap;
    private final Map<ImageView, String> pendingViews;
 
@@ -95,12 +95,26 @@ public class DrawableManager {
    }
 
    public void fetchDrawableOnThread(final String urlString, final ImageView imageView) {
+       if (urlString == null) {
+           if (DBG) Log.d(TAG, "Null image url.");
+           synchronized (pendingViews) {
+               pendingViews.remove(imageView);
+           }
+           return;
+       }
+
+       synchronized (pendingViews) {
+           pendingViews.put(imageView, urlString);
+       }
+
        if (drawableMap.containsKey(urlString)) {
+           if (DBG) Log.d(TAG, "Image cached in memory.");
            imageView.setImageDrawable(drawableMap.get(urlString));
            return;
        }
        File localFile = getLocalFile(urlString);
        if (localFile != null && localFile.exists()) {
+           if (DBG) Log.d(TAG, "Image from disk.");
            imageView.setImageDrawable(fetchDrawable(urlString));
            return;
        }
@@ -117,10 +131,6 @@ public class DrawableManager {
            }
        };
 
-       synchronized (pendingViews) {
-           pendingViews.put(imageView, urlString);
-       }
-
        new Thread() {
            @Override
            public void run() {
@@ -133,8 +143,8 @@ public class DrawableManager {
 
    private InputStream fetch(String urlString) throws MalformedURLException, IOException {
        String state = Environment.getExternalStorageState();
-       if (!(Environment.MEDIA_MOUNTED.equals(state) ||
-               Environment.MEDIA_MOUNTED_READ_ONLY.equals(state))) {
+       if (!externalStorageAvailable()) {
+           if (DBG) Log.d(TAG, "External storage not available; fetching from network");
            DefaultHttpClient httpClient = new DefaultHttpClient();
            HttpGet request = new HttpGet(urlString);
            HttpResponse response = httpClient.execute(request);
@@ -147,11 +157,13 @@ public class DrawableManager {
        }
 
        if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+           if (DBG) Log.d(TAG, "External storage is read-only; fetching from network");
            DefaultHttpClient httpClient = new DefaultHttpClient();
            HttpGet request = new HttpGet(urlString);
            HttpResponse response = httpClient.execute(request);
            return response.getEntity().getContent();
        } else {
+           if (DBG) Log.d(TAG, "Fetching from network and storing on disk");
            File thumbDir = thumbFile.getParentFile();
            if (!thumbDir.exists()) {
                thumbDir.mkdir();
@@ -187,12 +199,7 @@ public class DrawableManager {
 
     private boolean externalStorageAvailable() {
         String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            return true;
-        } else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-            return true;
-        } else {
-            return false;
-        }
+        return (Environment.MEDIA_MOUNTED.equals(state) ||
+                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state));
     }
 }

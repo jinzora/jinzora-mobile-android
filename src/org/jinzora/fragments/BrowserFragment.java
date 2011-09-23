@@ -247,9 +247,7 @@ public class BrowserFragment extends ListFragment
     		if (hasArtwork) {
     		    ImageView thumb = (ImageView)row.findViewById(R.id.media_artwork);
     		    thumb.setVisibility(View.VISIBLE);
-    		    if (item.containsKey("thumbnail")) {
-    		        mDrawableManager.fetchDrawableOnThread(item.getString("thumbnail"), thumb);
-    		    }
+    		    mDrawableManager.fetchDrawableOnThread(item.getString("thumbnail"), thumb);
     		}
     		return row;
     	}
