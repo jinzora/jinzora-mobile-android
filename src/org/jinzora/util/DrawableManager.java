@@ -41,7 +41,7 @@ import android.widget.ImageView;
 
 public class DrawableManager {
    private static final String TAG = "drawableManager";
-   private static final boolean DBG = true;
+   private static final boolean DBG = false;
    private final Map<String, Drawable> drawableMap;
    private final Map<ImageView, String> pendingViews;
 

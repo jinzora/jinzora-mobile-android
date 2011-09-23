@@ -54,6 +54,9 @@ public class BrowserFragment extends ListFragment
 	private ListView mListView;
 	private boolean mButtonNav = false;
 
+	private static final String STATE_LIST_POSITION = "listpos";
+	private int mLastPosition = -1;
+
 	Handler mAddEntriesHandler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
@@ -118,11 +121,24 @@ public class BrowserFragment extends ListFragment
         mListView.setOnKeyListener(mListKeyListener);
 
         getLoaderManager().initLoader(0, null, this);
+
+        if (savedInstanceState != null) {
+            mLastPosition = savedInstanceState.getInt(STATE_LIST_POSITION);
+        } else {
+            mLastPosition = -1;
+        }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         return inflater.inflate(R.layout.browse, container, false);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putInt(STATE_LIST_POSITION, getListView().getFirstVisiblePosition());
     }
 
     private boolean matchesFilter(String entry) {
@@ -717,12 +733,15 @@ public class BrowserFragment extends ListFragment
                 allEntriesAdapter = new JzMediaAdapter(this, result);
                 visibleEntriesAdapter = allEntriesAdapter;
                 setListAdapter(allEntriesAdapter);
+                if (mLastPosition != -1) {
+                    getListView().setSelection(mLastPosition);
+                }
             }
         }
     }
 
     @Override
-    public void onLoaderReset(Loader<List<Bundle>> arg0) {
+    public void onLoaderReset(Loader<List<Bundle>> loader) {
         MediaListLoader.sLastResults = null;
         MediaListLoader.sLastUrl = null;
     }
