@@ -100,7 +100,7 @@ public class DrawableManager {
            return;
        }
        File localFile = getLocalFile(urlString);
-       if (localFile.exists()) {
+       if (localFile != null && localFile.exists()) {
            imageView.setImageDrawable(fetchDrawable(urlString));
            return;
        }
@@ -132,8 +132,26 @@ public class DrawableManager {
    }
 
    private InputStream fetch(String urlString) throws MalformedURLException, IOException {
+       String state = Environment.getExternalStorageState();
+       if (!(Environment.MEDIA_MOUNTED.equals(state) ||
+               Environment.MEDIA_MOUNTED_READ_ONLY.equals(state))) {
+           DefaultHttpClient httpClient = new DefaultHttpClient();
+           HttpGet request = new HttpGet(urlString);
+           HttpResponse response = httpClient.execute(request);
+           return response.getEntity().getContent();
+       } 
+
        File thumbFile = getLocalFile(urlString);
-       if (!thumbFile.exists()) {
+       if (thumbFile.exists()) {
+           return new FileInputStream(thumbFile);
+       }
+
+       if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+           DefaultHttpClient httpClient = new DefaultHttpClient();
+           HttpGet request = new HttpGet(urlString);
+           HttpResponse response = httpClient.execute(request);
+           return response.getEntity().getContent();
+       } else {
            File thumbDir = thumbFile.getParentFile();
            if (!thumbDir.exists()) {
                thumbDir.mkdir();
@@ -142,6 +160,7 @@ public class DrawableManager {
            HttpGet request = new HttpGet(urlString);
            HttpResponse response = httpClient.execute(request);
            InputStream is = response.getEntity().getContent();
+
            OutputStream out = new FileOutputStream(thumbFile);
            byte[] buf = new byte[1024];
            int len;
@@ -149,18 +168,31 @@ public class DrawableManager {
                out.write(buf, 0, len);
            }
            out.close();
+           return new FileInputStream(thumbFile);
        }
-
-       return new FileInputStream(thumbFile);
    }
 
     private File getLocalFile(String urlString) {
+        if (!externalStorageAvailable()) {
+            return null;
+        }
         try {
             File thumbDir = new File(Environment.getExternalStorageDirectory(), THUMB_DIR);
             return new File(thumbDir, HashUtils.SHA1(urlString));
         } catch (Exception e) {
             Log.e(TAG, "Error computing string hash.", e);
             return null;
+        }
+    }
+
+    private boolean externalStorageAvailable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        } else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+            return true;
+        } else {
+            return false;
         }
     }
 }
