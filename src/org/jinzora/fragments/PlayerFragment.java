@@ -58,20 +58,7 @@ public class PlayerFragment extends ListFragment {
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		final View v = inflater.inflate(R.layout.player, container, false);
 
-		((ListView)v.findViewById(android.R.id.list)).setOnItemClickListener(new AdapterView.OnItemClickListener() {
-			@Override
-			public void onItemClick(AdapterView<?> arg0, View arg1, int pos,
-					long arg3) {
-				
-				try {
-					Jinzora.sPbConnection.getPlaybackBinding().jumpTo(pos);
-				} catch (Exception e) {
-					Log.e("jinzora","Failed jumping in playlist",e);
-				}
-			}
-		});
-		
-		final CharSequence[] entryOptions = {"Play Now", "Play Next" /*, "Cut",*/ };
+		final CharSequence[] entryOptions = {"Play Now", "Play Next" };
 		((ListView)v.findViewById(android.R.id.list))
 			.setOnItemLongClickListener(
 					new AdapterView.OnItemLongClickListener() {
@@ -319,7 +306,14 @@ public class PlayerFragment extends ListFragment {
 	}
 	*/
 	
-	
+	@Override
+	public void onListItemClick(ListView l, View v, int position, long id) {
+	    try {
+            Jinzora.sPbConnection.getPlaybackBinding().jumpTo(position);
+        } catch (Exception e) {
+            Log.e("jinzora","Failed jumping in playlist",e);
+        }
+	}
 	
 	@Override
 	public void onResume() {
