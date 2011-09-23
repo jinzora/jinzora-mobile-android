@@ -18,8 +18,12 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.    
 */
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +33,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.graphics.drawable.Drawable;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -36,12 +41,14 @@ import android.widget.ImageView;
 
 public class DrawableManager {
    private static final String TAG = "drawableManager";
-   private static final boolean DBG = true;
+   private static final boolean DBG = false;
    private final Map<String, Drawable> drawableMap;
    private final Map<ImageView, String> pendingViews;
 
    private static DrawableManager lastManager;
    private static String lastKey = null;
+
+   private static final String THUMB_DIR = "jinzora/.thumb";
 
    public DrawableManager() {
        drawableMap = new HashMap<String, Drawable>();
@@ -71,7 +78,6 @@ public class DrawableManager {
            InputStream is = fetch(urlString);
            Drawable drawable = Drawable.createFromStream(is, "src");
 
-
            if (drawable != null) {
                drawableMap.put(urlString, drawable);
            } else {
@@ -91,6 +97,12 @@ public class DrawableManager {
    public void fetchDrawableOnThread(final String urlString, final ImageView imageView) {
        if (drawableMap.containsKey(urlString)) {
            imageView.setImageDrawable(drawableMap.get(urlString));
+           return;
+       }
+       File localFile = getLocalFile(urlString);
+       if (localFile.exists()) {
+           imageView.setImageDrawable(fetchDrawable(urlString));
+           return;
        }
 
        final Handler handler = new Handler() {
@@ -120,10 +132,35 @@ public class DrawableManager {
    }
 
    private InputStream fetch(String urlString) throws MalformedURLException, IOException {
-       DefaultHttpClient httpClient = new DefaultHttpClient();
-       HttpGet request = new HttpGet(urlString);
-       HttpResponse response = httpClient.execute(request);
-       return response.getEntity().getContent();
+       File thumbFile = getLocalFile(urlString);
+       if (!thumbFile.exists()) {
+           File thumbDir = thumbFile.getParentFile();
+           if (!thumbDir.exists()) {
+               thumbDir.mkdir();
+           }
+           DefaultHttpClient httpClient = new DefaultHttpClient();
+           HttpGet request = new HttpGet(urlString);
+           HttpResponse response = httpClient.execute(request);
+           InputStream is = response.getEntity().getContent();
+           OutputStream out = new FileOutputStream(thumbFile);
+           byte[] buf = new byte[1024];
+           int len;
+           while ((len = is.read(buf)) > 0) {
+               out.write(buf, 0, len);
+           }
+           out.close();
+       }
+
+       return new FileInputStream(thumbFile);
    }
 
+    private File getLocalFile(String urlString) {
+        try {
+            File thumbDir = new File(Environment.getExternalStorageDirectory(), THUMB_DIR);
+            return new File(thumbDir, HashUtils.SHA1(urlString));
+        } catch (Exception e) {
+            Log.e(TAG, "Error computing string hash.", e);
+            return null;
+        }
+    }
 }
