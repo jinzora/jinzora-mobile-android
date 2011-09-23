@@ -28,33 +28,34 @@ public class SearchFragment extends Fragment {
 	@Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         try {
-        	final View v = inflater.inflate(R.layout.search, container, false);
-        	v.findViewById(R.id.search_box).setOnKeyListener(new View.OnKeyListener() {
+        	final View mainView = inflater.inflate(R.layout.search, container, false);
+        	mainView.findViewById(R.id.search_box).setOnKeyListener(new View.OnKeyListener() {
 	        	 @Override
 	        	public boolean onKey(View v, int keyCode, KeyEvent event) {
 	        		if (event.getAction() == KeyEvent.ACTION_UP &&
 	        			event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
-	        			doSearch(v);
+	        			doSearch(mainView);
 	        		}
 	        		return false;
 	        	}
 	         });
 	         
-	         v.findViewById(R.id.search_button).setOnClickListener(new View.OnClickListener() {
+        	mainView.findViewById(R.id.search_button).setOnClickListener(new View.OnClickListener() {
 	 			@Override
 	 			public void onClick(View v) {
-	 				doSearch(v);
+	 				doSearch(mainView);
 	 			}
 	 		});
 	         
-	        v.findViewById(R.id.quicksearch_button).setOnClickListener(new View.OnClickListener() {
+        	mainView.findViewById(R.id.quicksearch_button).setOnClickListener(new View.OnClickListener() {
 		 			@Override
 		 			public void onClick(final View view) {
 		 				new Thread() {
 		 					@Override
 		 					public void run() {
 		 						try {
-		 							String query = ((EditText)v.findViewById(R.id.search_box)).getText().toString();
+		 							String query = ((EditText)mainView
+		 							        .findViewById(R.id.search_box)).getText().toString();
 		 							if (query != null && query.length() > 0) {
 		 								Intent quickplay = PlaybackService.getQuickplayIntent();
 		 								quickplay.putExtra("query", query);
@@ -67,7 +68,7 @@ public class SearchFragment extends Fragment {
 		 				}.start();
 		 			}
 		 		});
-        	return v;
+        	return mainView;
         } catch (Exception e) {
         	Log.e("jinzora", "Error building search fragment ui", e);
         	return null;

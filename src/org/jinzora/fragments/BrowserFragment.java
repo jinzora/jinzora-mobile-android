@@ -137,8 +137,9 @@ public class BrowserFragment extends ListFragment
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-
-        outState.putInt(STATE_LIST_POSITION, getListView().getFirstVisiblePosition());
+        if (isResumed()) {
+            outState.putInt(STATE_LIST_POSITION, getListView().getFirstVisiblePosition());
+        }
     }
 
     private boolean matchesFilter(String entry) {
