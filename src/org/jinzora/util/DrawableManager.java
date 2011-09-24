@@ -24,7 +24,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,7 +35,9 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 
+import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
@@ -44,27 +49,47 @@ public class DrawableManager {
    private static final boolean DBG = false;
    private final Map<String, Drawable> drawableMap;
    private final Map<ImageView, String> pendingViews;
+   private boolean cacheToDisk = true;
 
    private static DrawableManager lastManager;
    private static String lastKey = null;
 
-   private static final String THUMB_DIR = "jinzora/.thumb";
+   private final File THUMB_DIR;
 
-   public DrawableManager() {
+   public DrawableManager(Context context) {
        drawableMap = new HashMap<String, Drawable>();
        pendingViews = new HashMap<ImageView, String>();
+       THUMB_DIR = getThumbDirectory(context);
    }
 
-   public static DrawableManager forKey(String key) {
-       // TODO: Currently, we only store the last-used DrawableManager.
-       // This is primarily useful for screen orientation changes,
-       // where the 
+   public static DrawableManager forKey(Context context, String key) {
+       /*
+        * TODO: Currently, we only store the last-used DrawableManager.
+        * This is primarily useful for screen orientation changes,
+        * where the key (representing the overall view) remains the same.
+        * More robust caching requires deeper thought about memory management.
+        */
        if (lastKey != null && lastKey.equals(key)) {
            return lastManager;
        }
        lastKey = key;
-       lastManager = new DrawableManager();
+       lastManager = new DrawableManager(context);
        return lastManager;
+   }
+
+   private File getThumbDirectory(Context context) {
+       File base;
+       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
+           base = context.getExternalCacheDir();
+       } else {
+           base = new File(Environment.getExternalStorageDirectory(),
+                   context.getPackageName() + "/cache");
+       }
+       return new File(base, "thumbs");
+   }
+
+   public void setCacheToDisk(boolean cacheToDisk) {
+       this.cacheToDisk = cacheToDisk;
    }
 
    public Drawable fetchDrawable(String urlString) {
@@ -112,6 +137,7 @@ public class DrawableManager {
            imageView.setImageDrawable(drawableMap.get(urlString));
            return;
        }
+
        File localFile = getLocalFile(urlString);
        if (localFile != null && localFile.exists()) {
            if (DBG) Log.d(TAG, "Image from disk.");
@@ -156,8 +182,8 @@ public class DrawableManager {
            return new FileInputStream(thumbFile);
        }
 
-       if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-           if (DBG) Log.d(TAG, "External storage is read-only; fetching from network");
+       if (!cacheToDisk || Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+           if (DBG) Log.d(TAG, "Fetching from network and not writing to disk");
            DefaultHttpClient httpClient = new DefaultHttpClient();
            HttpGet request = new HttpGet(urlString);
            HttpResponse response = httpClient.execute(request);
@@ -166,7 +192,7 @@ public class DrawableManager {
            if (DBG) Log.d(TAG, "Fetching from network and storing on disk");
            File thumbDir = thumbFile.getParentFile();
            if (!thumbDir.exists()) {
-               thumbDir.mkdir();
+               thumbDir.mkdirs();
            }
            DefaultHttpClient httpClient = new DefaultHttpClient();
            HttpGet request = new HttpGet(urlString);
@@ -189,8 +215,7 @@ public class DrawableManager {
             return null;
         }
         try {
-            File thumbDir = new File(Environment.getExternalStorageDirectory(), THUMB_DIR);
-            return new File(thumbDir, HashUtils.SHA1(urlString));
+            return new File(THUMB_DIR, HashUtils.SHA1(urlString));
         } catch (Exception e) {
             Log.e(TAG, "Error computing string hash.", e);
             return null;
@@ -201,5 +226,33 @@ public class DrawableManager {
         String state = Environment.getExternalStorageState();
         return (Environment.MEDIA_MOUNTED.equals(state) ||
                 Environment.MEDIA_MOUNTED_READ_ONLY.equals(state));
+    }
+
+    private static class HashUtils {
+        private static String convertToHex(byte[] data) {
+            StringBuffer buf = new StringBuffer();
+            for (int i = 0; i < data.length; i++) {
+                int halfbyte = (data[i] >>> 4) & 0x0F;
+                int two_halfs = 0;
+                do {
+                    if ((0 <= halfbyte) && (halfbyte <= 9))
+                        buf.append((char) ('0' + halfbyte));
+                    else
+                        buf.append((char) ('a' + (halfbyte - 10)));
+                    halfbyte = data[i] & 0x0F;
+                } while (two_halfs++ < 1);
+            }
+            return buf.toString();
+        }
+
+        public static String SHA1(String text) throws NoSuchAlgorithmException,
+                UnsupportedEncodingException {
+            MessageDigest md;
+            md = MessageDigest.getInstance("SHA-1");
+            byte[] sha1hash = new byte[40];
+            md.update(text.getBytes("iso-8859-1"), 0, text.length());
+            sha1hash = md.digest();
+            return convertToHex(sha1hash);
+        }
     }
 }

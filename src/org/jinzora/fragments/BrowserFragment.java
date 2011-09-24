@@ -194,7 +194,7 @@ public class BrowserFragment extends ListFragment
     
     class JzMediaAdapter extends ArrayAdapter<Bundle> implements SectionIndexer {
         private final DrawableManager mDrawableManager =
-                DrawableManager.forKey(mUrl.toExternalForm());
+                DrawableManager.forKey(getActivity(), mUrl.toExternalForm());
     	private boolean isAlphabetical = true;
     	private boolean isFinishedLoading = false;
     	private boolean hasArtwork = false;
@@ -203,8 +203,8 @@ public class BrowserFragment extends ListFragment
     		super(getActivity(), R.layout.media_element);
     	}
     	
-    	public JzMediaAdapter(BrowserFragment context, List<Bundle>data) {
-    		super(getActivity(), R.layout.media_element, data);
+    	public JzMediaAdapter(BrowserFragment fragment, List<Bundle>data) {
+    		super(fragment.getActivity(), R.layout.media_element, data);
     		for (Bundle b : data) {
     		    if (b.containsKey("thumbnail")) {
     		        hasArtwork = true;

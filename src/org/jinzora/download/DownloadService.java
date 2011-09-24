@@ -111,7 +111,7 @@ public class DownloadService extends Service {
 	
 	@Override
 	public void onStart(Intent intent, int startId) {
-		if (Intents.ACTION_DOWNLOAD_PLAYLIST.equals(intent.getAction())) {
+		if (intent != null && Intents.ACTION_DOWNLOAD_PLAYLIST.equals(intent.getAction())) {
 			String pl = intent.getStringExtra("playlist");
 			downloadPlaylist(pl);
 		}
