@@ -25,9 +25,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.ref.SoftReference;
 import java.net.MalformedURLException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,7 +49,7 @@ import android.widget.ImageView;
 public class DrawableManager {
    private static final String TAG = "drawableManager";
    private static final boolean DBG = false;
-   private final Map<String, Drawable> drawableMap;
+   private final Map<String, SoftReference<Drawable>> drawableMap;
    private final Map<ImageView, String> pendingViews;
    private boolean cacheToDisk = true;
 
@@ -57,7 +59,7 @@ public class DrawableManager {
    private final File THUMB_DIR;
 
    public DrawableManager(Context context) {
-       drawableMap = new HashMap<String, Drawable>();
+       drawableMap = Collections.synchronizedMap(new HashMap<String, SoftReference<Drawable>>());
        pendingViews = new HashMap<ImageView, String>();
        THUMB_DIR = getThumbDirectory(context);
    }
@@ -94,8 +96,15 @@ public class DrawableManager {
 
    public Drawable fetchDrawable(String urlString) {
        if (drawableMap.containsKey(urlString)) {
-           if (DBG) Log.d(TAG, "Using cached image");
-           return drawableMap.get(urlString);
+           SoftReference<Drawable> reference = drawableMap.get(urlString);
+           Drawable drawable = reference.get();
+           if (drawable != null) {
+               if (DBG) Log.d(TAG, "Using cached image");
+               return drawable;
+           } else {
+               if (DBG) Log.d(TAG, "Soft reference cleared.");
+               drawableMap.remove(urlString);
+           }
        }
 
        if (DBG) Log.d(TAG, "Fetching image");
@@ -104,7 +113,7 @@ public class DrawableManager {
            Drawable drawable = Drawable.createFromStream(is, "src");
 
            if (drawable != null) {
-               drawableMap.put(urlString, drawable);
+               drawableMap.put(urlString, new SoftReference<Drawable>(drawable));
            } else {
              Log.w(this.getClass().getSimpleName(), "could not get thumbnail for " + urlString);
            }
@@ -133,9 +142,16 @@ public class DrawableManager {
        }
 
        if (drawableMap.containsKey(urlString)) {
-           if (DBG) Log.d(TAG, "Image cached in memory.");
-           imageView.setImageDrawable(drawableMap.get(urlString));
-           return;
+           SoftReference<Drawable> reference = drawableMap.get(urlString);
+           Drawable drawable = reference.get();
+           if (drawable != null) {
+               if (DBG) Log.d(TAG, "Image cached in memory.");
+               imageView.setImageDrawable(drawable);
+               return;
+           } else {
+               if (DBG) Log.d(TAG, "Soft reference cleared.");
+               drawableMap.remove(urlString);
+           }
        }
 
        File localFile = getLocalFile(urlString);
