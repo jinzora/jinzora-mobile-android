@@ -623,20 +623,23 @@ public class PlaybackService extends Service {
 		}
 
 		@Override
-		public void updatePlaylist(String pl, int addType)
+		public void updatePlaylist(final String pl, final int addType)
 				throws RemoteException {
 			Log.d(TAG, "called PlaybackService.updatePlaylist");
-			player.updatePlaylist(pl, addType);
-			/* Assumes synchronous player.playlist(). Might have to change this. */
-			try {
-				/* Broadcast */
-				Intent playlistIntent = new Intent(PLAYLIST_UPDATED);
-				sendBroadcast(playlistIntent);
+			new Thread() {
+			    public void run() {
+		            try {
+		                player.updatePlaylist(pl, addType);
 
-			} catch (Exception e) {
-				Log.w(TAG, "broadcast error", e);
-			}
+		                /* Broadcast */
+		                Intent playlistIntent = new Intent(PLAYLIST_UPDATED);
+		                sendBroadcast(playlistIntent);
 
+		            } catch (Exception e) {
+		                Log.w(TAG, "broadcast error", e);
+		            }
+			    };
+			}.start();
 		}
 
 		@Override

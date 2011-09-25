@@ -588,12 +588,12 @@ public class Jinzora extends FragmentActivity
 		instance.sendOrderedBroadcast(plIntent,null);
 		
 		// Old method: service binding.
-		
+		/*
 		try {
 			sPbConnection.getPlaybackBinding().updatePlaylist(playlist, addtype);
 		} catch (RemoteException e) {
 			Log.e("jinzora","Error sending playlist",e);
-		}
+		}*/
 	}
 	
 	private void doJukeboxConnectionPrompt() {
