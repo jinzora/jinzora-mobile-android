@@ -83,13 +83,15 @@ public class Jinzora extends FragmentActivity
 		final static int SCAN_EVENT = 0;
 	}
 	
-	public static String EXTRA_SWITCH_TAB = "org.jinzora.switch_tab";
-	
+	public static final String EXTRA_SWITCH_TAB = "org.jinzora.switch_tab";
+	private static final String STATE_CURRENT_TAB = "tab";
+
 	protected static Jinzora instance = null;
 	private static SharedPreferences sSessionPreferences = null;
 	private static SharedPreferences sAppPreferences = null;
 	
 	private static String baseurl;
+	private int mCurrentTab;
 	
 	private static boolean sServiceStarted = false;
     public static PlaybackServiceConnection sPbConnection = null;
@@ -233,7 +235,7 @@ public class Jinzora extends FragmentActivity
 		Intent bindIntent = new Intent(this,PlaybackService.class);
 		bindService(bindIntent, sPbConnection, BIND_AUTO_CREATE);
 		
-		String curTab = "browse";
+		String curTab = null;
 
 		// View M3U?
         final Intent inboundIntent = getIntent();
@@ -256,8 +258,13 @@ public class Jinzora extends FragmentActivity
            inboundIntent.removeExtra(EXTRA_SWITCH_TAB);
         }
 
-        // TODO
-        setTab(curTab);
+        // TODO: gross
+        if (curTab != null) {
+            setTab(curTab);    
+        } else {
+            mViewPager.setCurrentItem(mCurrentTab);
+        }
+
         inboundIntent.setAction("");
 	}
 	
@@ -398,8 +405,6 @@ public class Jinzora extends FragmentActivity
 	        mViewPager.setAdapter(adapter);
 	        mViewPager.setOnPageChangeListener(this);
 
-	        new JinzoraFragmentAdapter(getSupportFragmentManager());
-
 	        ViewGroup group = (ViewGroup)findViewById(R.id.tab_frame);
 	        for (int i = 0; i < mLabels.size(); i++) {
 	            Button button = new Button(this);
@@ -417,6 +422,14 @@ public class Jinzora extends FragmentActivity
         	Log.e("jinzora", "error", e);
         }
         onPageSelected(0);
+        mCurrentTab = (savedInstanceState == null) ? 0 :
+            savedInstanceState.getInt(STATE_CURRENT_TAB);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(STATE_CURRENT_TAB, mCurrentTab);
     }
 
     private View.OnClickListener mViewSelected = new View.OnClickListener() {
@@ -813,6 +826,7 @@ public class Jinzora extends FragmentActivity
 
     @Override
     public void onPageSelected(int selected) {
+        mCurrentTab = selected;
         int c = mButtons.size();
         for (int i = 0; i < c; i++) {
             mButtons.get(i).setBackgroundColor(Color.TRANSPARENT);
