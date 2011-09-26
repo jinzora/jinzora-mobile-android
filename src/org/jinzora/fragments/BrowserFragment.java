@@ -188,7 +188,7 @@ public class BrowserFragment extends ListFragment
         return true;
     }
 
-    private List<Character> mSections = new ArrayList<Character>();
+    private Character[] mSectionsArray;
     int[] sectionHeaders = new int[26];
     int[] sectionPositions = new int[26];
     
@@ -196,7 +196,6 @@ public class BrowserFragment extends ListFragment
         private final DrawableManager mDrawableManager =
                 DrawableManager.forKey(getActivity(), mUrl.toExternalForm());
     	private boolean isAlphabetical = true;
-    	private boolean isFinishedLoading = false;
     	private boolean hasArtwork = false;
     	
     	public JzMediaAdapter(BrowserFragment context) {
@@ -211,6 +210,7 @@ public class BrowserFragment extends ListFragment
     		        break;
     		    }
     		}
+    		buildSectionIndices();
     	}
 
     	@Override
@@ -291,48 +291,52 @@ public class BrowserFragment extends ListFragment
     	@Override 
     	public void clear() {
     		super.clear();
-    		
-    		mSections.clear();
-    		sectionHeaders = new int[26];
+    		buildSectionIndices();
     	};
-    	
-    	@Override
-    	public void add(Bundle object) {
-    		super.add(object);
-    		
-    		int len = this.getCount();
-    		String entry2 = getEntryTitle(len-1).toUpperCase();
-    		if (len == 1) {
-    			char c2 = entry2.charAt(0);
-    			if (c2 <= 'A')
-    				mSections.add('A');
-    			else if (c2 >= 'Z')
-    				mSections.add('Z');
-    			else
-    				mSections.add(c2);
-    			return;
-    		}
-    		
-    		String entry1 = getEntryTitle(len-2).toUpperCase();
-    		if (entry1.length() == 0 || entry2.length() == 0) {
-    			// what happened?
-    			isAlphabetical = false;
-    			return;
-    		}
-    		
-    		if (entry1.compareTo(entry2) > 0) {
-    			isAlphabetical = false;
-    		} else if (isAlphabetical) {
-    				char c = entry2.charAt(0);
+
+    	private void buildSectionIndices() {
+    	    List<Character> sections = new ArrayList<Character>();
+    	    int count = getCount();
+    	    if (count == 0) return;
+    	    String entry = null;
+    	    String previous = null;
+    	    for (int i = 0; i < count; i++) {
+    	        previous = entry;
+    	        entry = getEntryTitle(i).toUpperCase();
+        		if (i == 0) {
+        			char c2 = entry.charAt(0);
+        			if (c2 <= 'A') {
+        			    sections.add('A');
+        			} else if (c2 >= 'Z') {
+        			    sections.add('Z');
+        			} else {
+        			    sections.add(c2);
+        			}
+        			continue;
+        		}
+        		
+        		if (previous.length() == 0 || entry.length() == 0) {
+        			// what happened?
+        			isAlphabetical = false;
+        			continue;
+        		}
+        		
+        		if (previous.compareTo(entry) > 0) {
+        			isAlphabetical = false;
+        		} else if (isAlphabetical) {
+    				char c = entry.charAt(0);
     				if (c < 'A') c = 'A';
 					else if (c > 'Z') c = 'Z';
     				
-    				if (mSections.get(mSections.size()-1) != c) {
-    					mSections.add(c);
-    					sectionHeaders[mSections.size()-1]=len-1;
-    					sectionPositions[c-'A']=mSections.size()-1;
+    				if (sections.get(sections.size()-1) != c) {
+    				    sections.add(c);
+    					sectionHeaders[sections.size()-1] = i;
+    					sectionPositions[c - 'A'] = sections.size() - 1;
     				}
-    		}
+        		}
+    	    }
+    	    mSectionsArray = new Character[sections.size()];
+    	    sections.toArray(mSectionsArray);
     	}
     	
 		@Override
@@ -359,10 +363,7 @@ public class BrowserFragment extends ListFragment
 
 		@Override
 		public Object[] getSections() {
-			if (isAlphabetical && isFinishedLoading) {
-				return mSections.toArray();
-			}
-			return null;
+			return mSectionsArray;
 		}
     }
 
@@ -470,12 +471,17 @@ public class BrowserFragment extends ListFragment
     private View.OnKeyListener mListKeyListener = new View.OnKeyListener() {
         @Override
         public synchronized boolean onKey(View view, int keyCode, KeyEvent event) {
-            if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode && event.getAction() == KeyEvent.ACTION_UP) {
+            if (KeyEvent.KEYCODE_DPAD_RIGHT == keyCode) {
+                if (event.getAction() != KeyEvent.ACTION_UP) {
+                    return true;
+                }
+                Log.d(TAG, "AND I SEE YOU LIKE THE RIGHT BUTTON");
                 final View w = mListView.getSelectedView();
                 if (w == null) return false;
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        Log.d(TAG, "I AM TRYING TO DO WHAT YOU WANT ME TO DO");
                         View v = w.findViewById(R.id.media_el_play);
                         if (v.getVisibility() == View.VISIBLE) {
                             mListView.setItemsCanFocus(true);
@@ -515,7 +521,10 @@ public class BrowserFragment extends ListFragment
     private View.OnKeyListener mPlayButtonKeyListener = new View.OnKeyListener() {
         @Override
         public synchronized boolean onKey(final View v, int keyCode, KeyEvent event) {
-            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                if (event.getAction() != KeyEvent.ACTION_UP) {
+                    return true;
+                }
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -729,6 +738,7 @@ public class BrowserFragment extends ListFragment
                 ((TextView)getActivity().findViewById(R.id.browse_notice)).setText(R.string.connection_failed);
                 getActivity().findViewById(R.id.browse_notice).setVisibility(View.VISIBLE);
             } else {
+                getActivity().findViewById(R.id.browse_notice).setVisibility(View.GONE);
                 MediaListLoader.sLastResults = result;
                 MediaListLoader.sLastUrl = mUrl;
                 allEntriesAdapter = new JzMediaAdapter(this, result);
@@ -737,6 +747,7 @@ public class BrowserFragment extends ListFragment
                 if (mLastPosition != -1) {
                     getListView().setSelection(mLastPosition);
                 }
+                getListView().setFastScrollEnabled(true);
             }
         }
     }
