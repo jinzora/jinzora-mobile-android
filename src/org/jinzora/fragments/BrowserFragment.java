@@ -56,6 +56,7 @@ public class BrowserFragment extends ListFragment
 
 	private static final String STATE_LIST_POSITION = "listpos";
 	private int mLastPosition = -1;
+	private Uri mShareLink;
 
 	Handler mAddEntriesHandler = new Handler() {
 		@Override
@@ -75,9 +76,8 @@ public class BrowserFragment extends ListFragment
     public void onResume() {
         super.onResume();
 
-        String playlink = getArguments().getString("playlink");
-        if (playlink != null) {
-            Jinzora.mNfc.share(NdefFactory.fromUri(Uri.parse(playlink)));
+        if (mShareLink != null) {
+            Jinzora.mNfc.share(mShareLink);
         }
     }
 	
@@ -100,6 +100,10 @@ public class BrowserFragment extends ListFragment
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         try {
+            Log.d(TAG, "Attached fragment.");
+            for (String arg : getArguments().keySet()) {
+                Log.d(TAG, arg);
+            }
             mUrl = new URL(getArguments().getString("browsing"));
         } catch (MalformedURLException e) {
             Log.e(TAG, "Could not load browsing URL", e);
@@ -109,6 +113,21 @@ public class BrowserFragment extends ListFragment
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
+        String playlink = getArguments().getString("playlink");
+        String browsing = getArguments().getString("browsing");
+        /*if (playlink != null) {
+            Log.d(TAG, "Setting ndef for " + playlink);
+            Jinzora.mNfc.share(NdefFactory.fromUri(Uri.parse(playlink)));
+        } else*/ if (browsing != null) {
+            Uri webAccess = Uri.parse("http://bjdodson.com/jinzora/demo.html#" + browsing);
+            Log.d(TAG, "Setting ndef for " + webAccess);
+            mShareLink = webAccess;
+            Jinzora.mNfc.share(NdefFactory.fromUri(webAccess));
+        } else {
+            Log.d(TAG, "No link for sharing.");
+            Jinzora.mNfc.share(NdefFactory.fromUri("http://jinzora.org"));
+        }
 
         mListView = getListView();
         mListView.setVisibility(View.VISIBLE);
@@ -724,6 +743,7 @@ public class BrowserFragment extends ListFragment
 
         ((Jinzora)getActivity()).setTab("player");
         Jinzora.doPlaylist(playlink, Jinzora.getAddType());
+        Jinzora.mNfc.share(NdefFactory.fromUri(Uri.parse(playlink)));
     }
 
     @Override

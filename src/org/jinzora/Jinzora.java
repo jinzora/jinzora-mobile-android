@@ -297,7 +297,10 @@ public class Jinzora extends FragmentActivity
         sSessionPreferences = getSharedPreferences("main", 0);
         sAppPreferences = getSharedPreferences("profiles", 0);
 
-        Bundle args = new Bundle();
+        Bundle args = getIntent().getExtras();
+        if (args == null) {
+            args = new Bundle();
+        }
 
         String url;
         if (getIntent().hasExtra("browsing")) {
