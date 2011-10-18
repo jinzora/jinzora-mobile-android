@@ -11,6 +11,7 @@ import java.util.List;
 
 import mobisocial.nfc.NdefFactory;
 import mobisocial.nfc.Nfc;
+import mobisocial.socialkit.musubi.Musubi;
 
 import org.jinzora.android.R;
 import org.jinzora.download.DownloadActivity;
@@ -53,6 +54,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.zxing.integration.IntentIntegrator;
 import com.google.zxing.integration.IntentResult;
@@ -68,6 +70,9 @@ public class Jinzora extends FragmentActivity
     private final List<Button> mButtons = new ArrayList<Button>();
     private final List<Fragment> mFragments = new ArrayList<Fragment>();
     private final List<String> mLabels = new ArrayList<String>();
+
+    /** TODO: The static here is a hack to extend Musubi across activities. **/
+    private static Musubi mMusubi;
 	
 	protected class MenuItems { 
 		final static int HOME = 1;
@@ -293,6 +298,12 @@ public class Jinzora extends FragmentActivity
         super.onCreate(savedInstanceState);
         sPbConnection = new PlaybackServiceConnection();
         instance = this;
+        if (Musubi.isMusubiInstalled(this) && Musubi.isMusubiIntent(getIntent())) {
+            mMusubi = Musubi.getInstance(this);
+        } else if (getIntent().getExtras() == null) {
+            // A bit of a hacky way to say "launched from the home screen"
+            mMusubi = null;
+        }
 
         sSessionPreferences = getSharedPreferences("main", 0);
         sAppPreferences = getSharedPreferences("profiles", 0);
@@ -427,6 +438,10 @@ public class Jinzora extends FragmentActivity
         onPageSelected(0);
         mCurrentTab = (savedInstanceState == null) ? 0 :
             savedInstanceState.getInt(STATE_CURRENT_TAB);
+    }
+
+    public Musubi getMusubi() {
+        return mMusubi;
     }
 
     @Override

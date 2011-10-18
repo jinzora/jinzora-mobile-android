@@ -21,6 +21,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             
+            <!-- Connected app via SocialKit/Musubi -->
+            <intent-filter>
+                <action android:name="mobisocial.intent.action.CONNECTED" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            
             <!--  joining a junction activity: set playback target -->
             <intent-filter>
                 <action android:name="junction.intent.action.JOIN" />
