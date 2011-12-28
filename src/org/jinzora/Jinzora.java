@@ -11,7 +11,14 @@ import java.util.List;
 
 import mobisocial.nfc.NdefFactory;
 import mobisocial.nfc.Nfc;
+import mobisocial.socialkit.Obj;
+import mobisocial.socialkit.musubi.DbFeed;
+import mobisocial.socialkit.musubi.DbObj;
+import mobisocial.socialkit.musubi.FeedObserver;
+import mobisocial.socialkit.musubi.MemObj;
 import mobisocial.socialkit.musubi.Musubi;
+import mobisocial.socialkit.musubi.multiplayer.rpc.JinzoraClient;
+import mobisocial.socialkit.musubi.multiplayer.rpc.JinzoraJukebox;
 
 import org.jinzora.android.R;
 import org.jinzora.download.DownloadActivity;
@@ -21,6 +28,7 @@ import org.jinzora.fragments.SearchFragment;
 import org.jinzora.playback.PlaybackInterface;
 import org.jinzora.playback.PlaybackService;
 import org.jinzora.util.CommonLayouts;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Activity;
@@ -33,8 +41,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.media.AudioManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -54,16 +64,18 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.zxing.integration.IntentIntegrator;
 import com.google.zxing.integration.IntentResult;
 
 public class Jinzora extends FragmentActivity
         implements ViewPager.OnPageChangeListener {
+    public static final String SK_TYPE_JUKEBOX = "jinzora-jukebox";
 	public static final String PACKAGE = "org.jinzora.android";
 	private static final String ASSET_WELCOME = "welcome.txt";
 	private static final String TAG = "jinzora";
+	private static final boolean DBG = true;
+
 	public static Nfc mNfc;
 
 	private ViewPager mViewPager;
@@ -73,7 +85,10 @@ public class Jinzora extends FragmentActivity
 
     /** TODO: The static here is a hack to extend Musubi across activities. **/
     private static Musubi mMusubi;
-	
+    private static JinzoraClient mJinzoraClient;
+    // TODO: should be in service
+    private static JinzoraJukebox mJinzoraServer;
+
 	protected class MenuItems { 
 		final static int HOME = 1;
 		final static int QUIT = 2;
@@ -82,6 +97,8 @@ public class Jinzora extends FragmentActivity
 		final static int SEARCH = 5;
 		final static int DOWNLOADS = 6;
 		final static int PREFERENCES = 7;
+		final static int JUKEBOX = 8;
+		final static int NO_JUKEBOX = 9;
 	}
 	
 	protected class RequestCodes {
@@ -252,6 +269,7 @@ public class Jinzora extends FragmentActivity
         	// hack!
         	new Thread() {
         		public void run() {
+        		    if (DBG) Log.d(TAG, "doing playlist from resume");
         			Jinzora.doPlaylist( inboundIntent.getData().toString(), Jinzora.getAddType() );
         		};
         	}.start();
@@ -300,8 +318,15 @@ public class Jinzora extends FragmentActivity
         instance = this;
         if (Musubi.isMusubiInstalled(this) && Musubi.isMusubiIntent(getIntent())) {
             mMusubi = Musubi.getInstance(this);
+            mMusubi.setFeedFromIntent(getIntent());
+            // TODO: OBJ NOT FEED
+            DbFeed feed = mMusubi.getFeed();
+            mJinzoraClient = new JinzoraClient(feed);
+            if (isMusubiJukbox()) {
+                mJinzoraServer = JinzoraJukebox.getInstance(feed);
+            }
         } else if (getIntent().getExtras() == null) {
-            // A bit of a hacky way to say "launched from the home screen"
+            // A hacky way to say "launched from the home screen"
             mMusubi = null;
         }
 
@@ -444,6 +469,10 @@ public class Jinzora extends FragmentActivity
         return mMusubi;
     }
 
+    public static JinzoraClient getJinzoraClient() {
+        return mJinzoraClient;
+    }
+
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -474,7 +503,8 @@ public class Jinzora extends FragmentActivity
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.clear();
     	menu.add(0,MenuItems.HOME,1,R.string.home)
     	.setIcon(R.drawable.ic_menu_home)
     	.setAlphabeticShortcut('h');
@@ -486,10 +516,22 @@ public class Jinzora extends FragmentActivity
     	menu.add(0,MenuItems.PREFERENCES,3,R.string.settings)
         .setIcon(android.R.drawable.ic_menu_preferences)
         .setAlphabeticShortcut('s');
-    	
-    	menu.add(0,MenuItems.SEARCH,4,R.string.search)
-    	.setIcon(android.R.drawable.ic_search_category_default)
-    	.setAlphabeticShortcut(SearchManager.MENU_KEY);
+
+    	if (mMusubi == null) {
+    	    menu.add(0,MenuItems.SEARCH,4,R.string.search)
+            .setIcon(android.R.drawable.ic_search_category_default)
+            .setAlphabeticShortcut(SearchManager.MENU_KEY);
+    	} else {
+    	    if (!isMusubiJukbox()) {
+                menu.add(0,MenuItems.JUKEBOX,4,R.string.jukebox)
+                    .setIcon(android.R.drawable.ic_media_play)
+                    .setAlphabeticShortcut('j');
+            } else {
+                menu.add(0,MenuItems.NO_JUKEBOX,4,R.string.no_jukebox)
+                .setIcon(android.R.drawable.ic_media_pause)
+                .setAlphabeticShortcut('j');
+            }
+    	}
     	
     	menu.add(0,MenuItems.DOWNLOADS,5,R.string.downloads)
     	.setIcon(android.R.drawable.ic_menu_save)
@@ -554,6 +596,12 @@ public class Jinzora extends FragmentActivity
     	case MenuItems.SEARCH:
     		activity.onSearchRequested();
     		break;
+    	case MenuItems.JUKEBOX:
+    	    setAsMusubiJukebox();
+    	    break;
+    	case MenuItems.NO_JUKEBOX:
+    	    removeAsMusubiJukebox();
+    	    break;
     	case MenuItems.DOWNLOADS:
     		Intent dlLaunch = new Intent(activity,DownloadActivity.class);
     		activity.startActivity(dlLaunch);
@@ -566,7 +614,6 @@ public class Jinzora extends FragmentActivity
     	}
     	return true;
     }
-    
     
     public void onActivityResult(int requestCode, int resultCode, Intent intent) {
     	IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, intent);
@@ -611,6 +658,15 @@ public class Jinzora extends FragmentActivity
 		// New-school way of doing it: send an intent.
 		// Can then make this remotable.
 		instance.mNfc.share(NdefFactory.fromUri(playlist));
+		if (mMusubi != null) {
+		    if (playsWithMusubi()) {
+		        Log.d(TAG, "playing with musubi");
+		        mJinzoraClient.sendPlaylistRequest(addtype, playlist);
+		        return;
+		    }
+		}
+		Log.d(TAG, "playing locally");
+
 		Intent plIntent = new Intent(PlaybackService.Intents.ACTION_PLAYLIST);
 		plIntent.addCategory(PlaybackService.Intents.CATEGORY_REMOTABLE);
 		plIntent.putExtra("playlist", playlist);
@@ -626,7 +682,56 @@ public class Jinzora extends FragmentActivity
 			Log.e("jinzora","Error sending playlist",e);
 		}*/
 	}
-	
+
+	private static boolean isMusubiJukbox() {
+	    if (mMusubi == null) {
+            return true;
+        }
+        DbFeed feed = mMusubi.getFeed();
+        // TODO: we need to be able to join on person_id.
+        // This can be implemented as a view on the DB, or by parsing the selection query.
+        Cursor c = feed.query("type=? AND contact_id=?", new String[] { SK_TYPE_JUKEBOX, "-666" });
+        try {
+            return (c != null && c.getCount() > 0);
+        } finally {
+            c.close();
+        }
+	}
+
+	private void removeAsMusubiJukebox() {
+        Uri feedUri = mMusubi.getFeed().getUri();
+        String where = "type = ? AND contact_id = ?";
+        String[] selectionArgs = { SK_TYPE_JUKEBOX, "-666" };
+        getContentResolver().delete(feedUri, where, selectionArgs);
+
+        mJinzoraServer = null;
+    }
+
+	public static boolean playsWithMusubi() {
+	    if (mMusubi == null) {
+	        return false;
+	    }
+	    DbFeed feed = mMusubi.getFeed();
+	    // TODO: Assumes single jukebox.
+	    Cursor c = feed.query("type=?", new String[] { SK_TYPE_JUKEBOX });
+	    if (c.moveToFirst()) {
+	        DbObj obj = mMusubi.objForCursor(c);
+	        if (!feed.getLocalUser().getId().equals(obj.getSender().getId())) {
+	            // TODO: getLocalUser().equals(obj.getSender());
+	            return true;
+	        }
+	    }
+	    return false;
+	}
+
+	private void setAsMusubiJukebox() {
+        Obj obj = new MemObj(SK_TYPE_JUKEBOX, new JSONObject()); // TODO: get rid of json
+        mMusubi.getFeed().postObj(obj);
+        if (mJinzoraServer == null) {
+            mJinzoraServer = JinzoraJukebox.getInstance(mMusubi.getFeed());
+        }
+    }
+
 	private void doJukeboxConnectionPrompt() {
 		
 		// Connect

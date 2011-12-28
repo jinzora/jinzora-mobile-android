@@ -91,8 +91,10 @@ public class BrowserFragment extends ListFragment
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         synchronized (this) {
-            allEntriesAdapter = new JzMediaAdapter(BrowserFragment.this);
-            visibleEntriesAdapter = allEntriesAdapter;
+            if (mUrl != null) {
+                allEntriesAdapter = new JzMediaAdapter(BrowserFragment.this);
+                visibleEntriesAdapter = allEntriesAdapter;
+            }
         }
     }
 
@@ -190,7 +192,11 @@ public class BrowserFragment extends ListFragment
     	} else {
     		return false;
     	}
-    	
+
+    	if (workingEntries == null) {
+    	    return false;
+    	}
+
     	//TODO: support caching in the case of deletions?
     	// (as long as it doesn't use too much memory)
     	int count = workingEntries.getCount();
@@ -494,13 +500,11 @@ public class BrowserFragment extends ListFragment
                 if (event.getAction() != KeyEvent.ACTION_UP) {
                     return true;
                 }
-                Log.d(TAG, "AND I SEE YOU LIKE THE RIGHT BUTTON");
                 final View w = mListView.getSelectedView();
                 if (w == null) return false;
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Log.d(TAG, "I AM TRYING TO DO WHAT YOU WANT ME TO DO");
                         View v = w.findViewById(R.id.media_el_play);
                         if (v.getVisibility() == View.VISIBLE) {
                             mListView.setItemsCanFocus(true);

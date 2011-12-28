@@ -6,6 +6,8 @@
 <string name="player">Player</string>
 <string name="browser">Browse</string>
 <string name="search">Search</string>
+<string name="jukebox">Jukebox</string>
+<string name="no_jukebox">No Jukebox</string>
 <string name="home">Home</string>
 <string name="quit">Quit</string>
 <string name="scan">Scan</string>

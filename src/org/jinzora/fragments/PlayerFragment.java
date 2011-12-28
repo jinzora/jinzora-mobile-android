@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import mobisocial.socialkit.musubi.multiplayer.rpc.JinzoraClient.PlaybackAction;
+
 import org.jinzora.Jinzora;
 import org.jinzora.android.R;
 import org.jinzora.playback.PlaybackService;
@@ -28,6 +30,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 public class PlayerFragment extends ListFragment {
+    public static final String TAG = "jinzora";
+
 	private static Map<Integer,String>jukeboxes = null;
 	private static int selectedPlaybackDevice = 0;
 	private static int selectedAddType = 0;
@@ -77,6 +81,11 @@ public class PlayerFragment extends ListFragment {
 										switch (entryPos) {
 										case 0:
 											try {
+											    if (Jinzora.playsWithMusubi()) {
+					                                Log.d(TAG, "playing with musubi");
+					                                Jinzora.getJinzoraClient().sendJumptoCommand(listPosition);
+					                                return;
+					                            }
 												Jinzora.sPbConnection.getPlaybackBinding().jumpTo(listPosition);
 											} catch (RemoteException e) {
 												Log.e("jinzora", "Failed to play track",e);
@@ -84,6 +93,11 @@ public class PlayerFragment extends ListFragment {
 											break;
 										case 1:
 											try {
+											    if (Jinzora.playsWithMusubi()) {
+                                                    Log.d(TAG, "playing with musubi");
+                                                    Jinzora.getJinzoraClient().sendJumpnextCommand(listPosition);
+                                                    return;
+                                                }
 												Jinzora.sPbConnection.getPlaybackBinding().queueNext(listPosition);
 											} catch (RemoteException e) {
 												Log.e("jinzora", "Failed to queue track",e);
@@ -106,6 +120,11 @@ public class PlayerFragment extends ListFragment {
 					@Override
 					public void run() {
 						try {
+						    if (Jinzora.playsWithMusubi()) {
+                                Log.d(TAG, "playing with musubi");
+                                Jinzora.getJinzoraClient().sendPlaybackCommand(PlaybackAction.PREV);
+                                return;
+                            }
 							Jinzora.sPbConnection.getPlaybackBinding().prev();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
@@ -124,6 +143,11 @@ public class PlayerFragment extends ListFragment {
 					@Override
 					public void run() {
 						try {
+						    if (Jinzora.playsWithMusubi()) {
+                                Log.d(TAG, "playing with musubi");
+                                Jinzora.getJinzoraClient().sendPlaybackCommand(PlaybackAction.NEXT);
+                                return;
+                            }
 							Jinzora.sPbConnection.getPlaybackBinding().next();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
@@ -141,6 +165,11 @@ public class PlayerFragment extends ListFragment {
 					public void run() {
 						try {
 							// also supports playpause();
+						    if (Jinzora.playsWithMusubi()) {
+				                Log.d(TAG, "playing with musubi");
+				                Jinzora.getJinzoraClient().sendPlaybackCommand(PlaybackAction.PLAY);
+				                return;
+				            }
 							Jinzora.sPbConnection.getPlaybackBinding().play();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
@@ -157,6 +186,11 @@ public class PlayerFragment extends ListFragment {
 					@Override
 					public void run() {
 						try {
+						    if (Jinzora.playsWithMusubi()) {
+                                Log.d(TAG, "playing with musubi");
+                                Jinzora.getJinzoraClient().sendPlaybackCommand(PlaybackAction.PAUSE);
+                                return;
+                            }
 							Jinzora.sPbConnection.getPlaybackBinding().pause();
 						} catch (RemoteException e) {
 							Log.e("jinzora","Error during playback action",e);
