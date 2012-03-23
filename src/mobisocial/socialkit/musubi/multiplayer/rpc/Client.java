@@ -2,7 +2,7 @@ package mobisocial.socialkit.musubi.multiplayer.rpc;
 
 import mobisocial.socialkit.Obj;
 import mobisocial.socialkit.musubi.DbFeed;
-import mobisocial.socialkit.musubi.MemObj;
+import mobisocial.socialkit.obj.MemObj;
 
 import org.json.JSONException;
 import org.json.JSONObject;

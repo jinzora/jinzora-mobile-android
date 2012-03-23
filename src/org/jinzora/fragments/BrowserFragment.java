@@ -444,10 +444,11 @@ public class BrowserFragment extends ListFragment
                                 switch (entryPos) {
                                 case 0:
                                     // Share
-                                    Intent share = new Intent("android.intent.action.SEND");
+                                    Intent share = new Intent(Intent.ACTION_SEND);
                                     share.setType("audio/x-mpegurl")
                                         .putExtra(Intent.EXTRA_TEXT, item.getString("playlink"))
-                                        .putExtra(Intent.EXTRA_TITLE, title);
+                                        .putExtra(Intent.EXTRA_TITLE, title)
+                                        .putExtra(Intent.EXTRA_SUBJECT, "Listen to " + title);
                                     BrowserFragment.this
                                         .startActivity(Intent.createChooser(share, "Share playlist..."));
                                     break;

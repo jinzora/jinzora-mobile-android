@@ -15,10 +15,10 @@ import mobisocial.socialkit.Obj;
 import mobisocial.socialkit.musubi.DbFeed;
 import mobisocial.socialkit.musubi.DbObj;
 import mobisocial.socialkit.musubi.FeedObserver;
-import mobisocial.socialkit.musubi.MemObj;
 import mobisocial.socialkit.musubi.Musubi;
 import mobisocial.socialkit.musubi.multiplayer.rpc.JinzoraClient;
 import mobisocial.socialkit.musubi.multiplayer.rpc.JinzoraJukebox;
+import mobisocial.socialkit.obj.MemObj;
 
 import org.jinzora.android.R;
 import org.jinzora.download.DownloadActivity;
@@ -317,8 +317,7 @@ public class Jinzora extends FragmentActivity
         sPbConnection = new PlaybackServiceConnection();
         instance = this;
         if (Musubi.isMusubiInstalled(this) && Musubi.isMusubiIntent(getIntent())) {
-            mMusubi = Musubi.getInstance(this);
-            mMusubi.setFeedFromIntent(getIntent());
+            mMusubi = Musubi.getInstance(this, getIntent());
             // TODO: OBJ NOT FEED
             DbFeed feed = mMusubi.getFeed();
             mJinzoraClient = new JinzoraClient(feed);
@@ -537,16 +536,15 @@ public class Jinzora extends FragmentActivity
     	.setIcon(android.R.drawable.ic_menu_save)
     	.setAlphabeticShortcut('d');
     	
-    	
+    	/*
     	menu.add(0,MenuItems.QUIT,6,R.string.quit)
     	.setIcon(android.R.drawable.ic_menu_close_clear_cancel)
     	.setAlphabeticShortcut('q');
+        */
 
-    	/*
     	menu.add(0,MenuItems.SCAN,3,R.string.scan)
-    	.setIcon(android.R.drawable.ic_menu_search)
-    	.setAlphabeticShortcut('s');
-    	*/
+        .setIcon(android.R.drawable.ic_menu_search)
+        .setAlphabeticShortcut('s');
     	
     	return true;
     }
@@ -564,7 +562,10 @@ public class Jinzora extends FragmentActivity
     		break;
     		
     	case MenuItems.SCAN:
-    		IntentIntegrator.initiateScan(instance);
+    		// mMusubi.relaunchConnected();
+    	    /**TODO create objContext, have methods to share it
+    	    define how to merge DbObj, define how to handle late-joiners
+    	    Have a "membership" model per obj**/
     		break;
     		
     	case MenuItems.QUIT:
@@ -687,7 +688,7 @@ public class Jinzora extends FragmentActivity
 	    if (mMusubi == null) {
             return true;
         }
-        DbFeed feed = mMusubi.getFeed();
+        DbFeed feed = mMusubi.getAppFeed();
         // TODO: we need to be able to join on person_id.
         // This can be implemented as a view on the DB, or by parsing the selection query.
         Cursor c = feed.query("type=? AND contact_id=?", new String[] { SK_TYPE_JUKEBOX, "-666" });
@@ -699,7 +700,7 @@ public class Jinzora extends FragmentActivity
 	}
 
 	private void removeAsMusubiJukebox() {
-        Uri feedUri = mMusubi.getFeed().getUri();
+        Uri feedUri = mMusubi.getAppFeed().getUri();
         String where = "type = ? AND contact_id = ?";
         String[] selectionArgs = { SK_TYPE_JUKEBOX, "-666" };
         getContentResolver().delete(feedUri, where, selectionArgs);
@@ -711,7 +712,7 @@ public class Jinzora extends FragmentActivity
 	    if (mMusubi == null) {
 	        return false;
 	    }
-	    DbFeed feed = mMusubi.getFeed();
+	    DbFeed feed = mMusubi.getAppFeed();
 	    // TODO: Assumes single jukebox.
 	    Cursor c = feed.query("type=?", new String[] { SK_TYPE_JUKEBOX });
 	    if (c.moveToFirst()) {
@@ -726,9 +727,9 @@ public class Jinzora extends FragmentActivity
 
 	private void setAsMusubiJukebox() {
         Obj obj = new MemObj(SK_TYPE_JUKEBOX, new JSONObject()); // TODO: get rid of json
-        mMusubi.getFeed().postObj(obj);
+        mMusubi.getAppFeed().postObj(obj);
         if (mJinzoraServer == null) {
-            mJinzoraServer = JinzoraJukebox.getInstance(mMusubi.getFeed());
+            mJinzoraServer = JinzoraJukebox.getInstance(mMusubi.getAppFeed());
         }
     }
 
