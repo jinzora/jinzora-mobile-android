@@ -304,6 +304,12 @@ public class BrowserFragment extends ListFragment
     		Bundle item = (Bundle)this.getItem(pos);
     		return item.getString("name");
     	}
+
+    	public String getEntrySubtitle(int pos) {
+    	    if (this.getCount() <= pos ) return null;
+    	    Bundle item = (Bundle)this.getItem(pos);
+    	    return item.getString("subfield1");
+    	}
     	
     	public boolean isPlayable(int pos) {
     		if (this.getCount() <= pos ) return false;
@@ -432,6 +438,13 @@ public class BrowserFragment extends ListFragment
                 View view, final int listPosition, long id) {
 
             final String title = visibleEntriesAdapter.getEntryTitle(listPosition);
+            final String subtitle = visibleEntriesAdapter.getEntrySubtitle(listPosition);
+            final String subject;
+            if (subtitle == null) {
+                subject = title;
+            } else {
+                subject = subtitle + " - " + title;
+            }
             final CharSequence[] entryOptions = {"Share", "Replace current playlist", "Queue to end of list", "Queue next", "Download to device" };
             if (!visibleEntriesAdapter.isPlayable(listPosition)) return false;
             new AlertDialog.Builder(getActivity())
@@ -448,7 +461,7 @@ public class BrowserFragment extends ListFragment
                                     share.setType("audio/x-mpegurl")
                                         .putExtra(Intent.EXTRA_TEXT, item.getString("playlink"))
                                         .putExtra(Intent.EXTRA_TITLE, title)
-                                        .putExtra(Intent.EXTRA_SUBJECT, "Listen to " + title);
+                                        .putExtra(Intent.EXTRA_SUBJECT, "Listen to " + subject);
                                     BrowserFragment.this
                                         .startActivity(Intent.createChooser(share, "Share playlist..."));
                                     break;
